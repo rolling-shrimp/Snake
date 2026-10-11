@@ -1,0 +1,239 @@
+﻿{
+  "tool": "built-in image_gen",
+  "date": "2026-10-06",
+  "referenceStyle": "level-1 initial concept",
+  "assets": [
+    {
+      "level": 1,
+      "initialProjectFile": "level-1.png",
+      "selectedProjectFile": "level-1-v2.png",
+      "generationPrompt": "Use case: ui-mockup\nAsset type: high-fidelity snake videogame gameplay UI concept, 1536x1024 landscape.\nPrimary request: Create the FIRST LEVEL gameplay screen of a bright, friendly cartoon Snake game, using Traditional Chinese text. The screenshot fills the canvas, no hardware, no perspective, no watermark.\nShared art direction for three level screens: warm ivory background, mint and pale yellow rounded cards, soft navy typography, tidy outline icons, colorful soft 2D game sprites with subtle depth. Beautiful polished casual-game design, very legible with generous spacing. Header top left shows a small friendly snake logo and \"貪吃蛇\"; top middle/right three circular numbered stage chips \"1\", \"2\", \"3\", chip 1 highlighted green. Pause button at top right.\nComposition: main square board on the left, compact information card on the right, keyboard control footer. Board must be an EXACT 10 columns by 10 rows = 100 equal square cells, pale cream/mint checkerboard, strong visible row and column grid lines; exactly 11 vertical lines and 11 horizontal lines. Small readable column labels 1 through 10 across the top and row labels 1 through 10 along the left, outside the board, to prove the cell count. No walls or solid blockers in level 1. Subtle arrows outside the four edges indicate wrapping boundaries. Grid takes up most of screen height.\nExact board contents using rows and columns numbered from top-left: the snake occupies exactly THREE adjacent cells, row 6 column 3 is a tapering rounded tail, row 6 column 4 is a rounded body segment, row 6 column 5 is a slightly larger friendly head facing right with two visible eyes and tiny tongue. Emerald green snake, clearly exactly three occupied cells including head. One ordinary red apple centered in row 3 column 8. All other cells empty. Do not draw duplicate snake segments, food, or decorative objects inside the board.\nRight information card exact text:\n\"第一關\"\n\"草地練習\"\n\"蛇長\"\n\"3 / 50\"\nA wide horizontal progress bar with only exactly 6 percent green fill, mostly empty light grey remainder; text above or below \"過關進度 6%\".\n\"長到 50 格即可過關\"\nA small simple legend with apple icon and \"普通食物 +1 格\".\nBoundary note \"邊界可穿越\".\nBottom keyboard footer with arrows/WASD and short text \"方向鍵 / WASD 移動\".\nConstraints: Show only a 3-cell snake and one ordinary apple on the board. LEVEL 1 HAS NO SHIELD, NO SHIELD COUNTER, NO FIRE, NO BOMBS, NO SPECIAL FOOD, NO MAZE WALLS, NO EXIT. No star counters, no coins, no timer, no food-total scoring. Goal is current snake length 50. All Chinese text must be Traditional Chinese and spelled exactly. Maintain an exact 10x10 grid; no missing rows.",
+      "localEditPrompt": "Use case: precise-object-edit. The input image is the edit TARGET, a polished Traditional Chinese Snake game UI screenshot, level 1. Make ONE tiny targeted correction only: shorten the GREEN FILL inside the existing progress bar to exactly 6% of the bar's inner horizontal track width. The grey unfilled part must occupy 94%. Bar track is about 430 pixels wide; green part must be about 26 pixels wide, measured from its left inner edge. The left green cap must also count within that 6%, do not enforce a minimum width that inflates it. Keep the existing bar outer frame, position, height, gloss, layout and text. Preserve \"3 / 50\" and \"過關進度 6%\" exactly. Everything else, especially the EXACT 10x10 board, the exactly THREE snake segments including head, every item position, all walls and gates if present, labels, Traditional Chinese text, shield numbers, title, icons, and art must be pixel-identical in appearance. Do not redraw or move the entire image. No additional objects. Do not change any numbers or text. The goal is accurate green fill length only."
+    },
+    {
+      "level": 2,
+      "initialProjectFile": "level-2.png",
+      "selectedProjectFile": "level-2-v2.png",
+      "generationPrompt": "Use case: ui-mockup. Asset type: high-fidelity snake videogame gameplay UI concept, 1536x1024 landscape. Create a NEW gameplay screen. Input image 1 is a VISUAL STYLE AND LAYOUT REFERENCE for the first level, preserve its bright cartoon casual-game art direction, warm ivory background, mint/cream checkerboard, rounded cards, navy Traditional Chinese typography, soft depth, top snake game title and three numbered stage chips, pause icon. Use the same overall layout: large square board left, information panel right. Precisely EXACT 10 columns and 10 rows of equal square cells, exactly 11 vertical and 11 horizontal grid lines. Outside the grid, small column labels 1..10 and row labels 1..10. Each game object centered in its specified cell and fits inside it. Three-cell emerald snake exactly: row 6 col 2 tapering tail, row 6 col 3 rounded body, row 6 col 4 head with eyes facing right. Head, body, and tail total THREE cells, no extra segments. Right panel shows \"蛇長\" then large \"3 / 50\", a progress bar with exactly 6 percent green fill and 94 percent empty grey, \"過關進度 6%\" and \"長到 50 格即可過關\". There is only ONE blue shield collectible on the board. HUD shield count \"保命次數 0\" means zero collected shield charges, not a timer. No countdown, coins, food-total score or stars. Footer arrow keys / WASD with Traditional Chinese text \"方向鍵 / WASD 移動\". All text clear, sharp, Traditional Chinese. No watermark, no hardware, no perspective. Board cell count and snake segment count are essential.\nLEVEL 2: stage chip \"2\" highlighted green, others muted. Right title \"第二關\", subtitle \"道具挑戰\".\nBoard cells: ordinary red apple row 3 col 8; special food a small purple/gold glowing berry with a tiny sparkling star detail row 3 col 3; ONE blue shield with white cross or check mark row 8 col 3; ONE orange/red flame with yellow core row 7 col 8. Snake as specified above at row 6 cols 2,3,4. All remaining board cells are empty. No walls, bombs or exit. The four exterior board edges have small wrapping arrows, as in the reference.\nRight legend list with clear colorful item icons and exact text:\n\"普通食物 +1 格\"\n\"特殊食物 +2 格\"\n\"火焰 −2 格\"\n\"護盾 +1 次保命\"\nBelow legend, \"邊界可穿越\".\nConstraints: level 2 must NOT have bombs, solid maze walls or any exit. Only one shield currently on the board, not two. Flame is a single cell object, not an area or border. Snake 3 cells exactly. Show \"保命次數 0\" without timer. Do not add any other collectible.",
+      "localEditPrompt": "Use case: precise-object-edit. The input image is the edit TARGET, a polished Traditional Chinese Snake game UI screenshot, level 2. Make ONE tiny targeted correction only: shorten the GREEN FILL inside the existing progress bar to exactly 6% of the bar's inner horizontal track width. The grey unfilled part must occupy 94%. Bar track is about 430 pixels wide; green part must be about 26 pixels wide, measured from its left inner edge. The left green cap must also count within that 6%, do not enforce a minimum width that inflates it. Keep the existing bar outer frame, position, height, gloss, layout and text. Preserve \"3 / 50\" and \"過關進度 6%\" exactly. Everything else, especially the EXACT 10x10 board, the exactly THREE snake segments including head, every item position, all walls and gates if present, labels, Traditional Chinese text, shield numbers, title, icons, and art must be pixel-identical in appearance. Do not redraw or move the entire image. No additional objects. Do not change any numbers or text. The goal is accurate green fill length only."
+    },
+    {
+      "level": 3,
+      "initialProjectFile": "level-3.png",
+      "selectedProjectFile": "level-3-v2.png",
+      "generationPrompt": "Use case: ui-mockup. Asset type: high-fidelity snake videogame gameplay UI concept, 1536x1024 landscape. Create a NEW gameplay screen. Input image 1 is a VISUAL STYLE AND LAYOUT REFERENCE for the first level, preserve its bright cartoon casual-game art direction, warm ivory background, mint/cream checkerboard, rounded cards, navy Traditional Chinese typography, soft depth, top snake game title and three numbered stage chips, pause icon. Use the same overall layout: large square board left, information panel right. Precisely EXACT 10 columns and 10 rows of equal square cells, exactly 11 vertical and 11 horizontal grid lines. Outside the grid, small column labels 1..10 and row labels 1..10. Each game object centered in its specified cell and fits inside it. Three-cell emerald snake exactly: row 2 col 2 tapering tail, row 2 col 3 rounded body, row 2 col 4 head with eyes facing right. Head, body, and tail total THREE cells, no extra segments. Right panel shows \"蛇長\" then large \"3 / 50\", a progress bar with exactly 6 percent green fill and 94 percent empty grey, \"過關進度 6%\" and \"長到 50 格即可過關\". There is only ONE blue shield collectible on the board. HUD shield count \"保命次數 0\" means zero collected shield charges, not a timer. No countdown, coins, food-total score or stars. Footer arrow keys / WASD with Traditional Chinese text \"方向鍵 / WASD 移動\". All text clear, sharp, Traditional Chinese. No watermark, no hardware, no perspective. Board cell count and snake segment count are essential.\nLEVEL 3: stage chip \"3\" highlighted green, others muted. Right title \"第三關\", subtitle \"迷宮危機\".\nBoard is still EXACTLY 10x10=100 total cells INCLUDING all walls and doors. Outermost row 1 and row 10, and col 1 and col 10 are solid grey-blue stone wall tiles, INSIDE those perimeter cells, exactly 36 perimeter wall cells. No extra border grid beyond 10x10. There are exactly SIX interior wall cells: (row3,col4),(row4,col4),(row5,col4),(row6,col7),(row7,col7),(row8,col7). Do not add other interior wall cells. Two gate cells: (row6,col4) is currently OPEN, draw a thin gold dashed outline and two small posts so the floor remains visible and traversable; (row5,col7) is CLOSED, draw a golden striped metal barrier within that one cell. The doors alternate. Keep all other floor cells open, leaving a broad maze with 56 normal walkable floor cells plus two door cells, enough room for a 50-cell snake.\nSnake exactly 3 cells at row2 cols2,3,4 as specified. One red ordinary apple at row3 col8; purple/gold special berry at row8 col8; ONE blue shield at row8 col3; orange flame row5 col2; ONE black round cartoon bomb with short lit fuse row7 col5. All these are single-cell objects and MUST NOT overlap walls or doors. No wrapping arrows outside edges. NO exit tile, portal, finish door, ladder or goal flag. Doors are obstacles, not exits.\nRight HUD includes \"保命次數 0\". Legend with icons and exact short text:\n\"普通食物 +1 格\"\n\"特殊食物 +2 格\"\n\"火焰 −2 格\"\n\"炸彈 立即死亡\"\n\"護盾 +1 次保命\"\nSmall gate-state card with a gold door icon and \"門會交替開關\"; second line \"關閉前閃爍提示\".\nBoundary note \"外牆不可穿越\".\nConstraints: stay bright, friendly, clean and consistent with reference, despite dangers. Exact 10x10 grid and exactly three snake cells. No exit, no time-limited shield, no third shield. Show only six interior fixed walls, plus perimeter 36 and two gate cells.",
+      "localEditPrompt": "Use case: precise-object-edit. The input image is the edit TARGET, a polished Traditional Chinese Snake game UI screenshot, level 3. Make ONE tiny targeted correction only: shorten the GREEN FILL inside the existing progress bar to exactly 6% of the bar's inner horizontal track width. The grey unfilled part must occupy 94%. Bar track is about 255 pixels wide; green part must be about 15 pixels wide, measured from its left inner edge. The left green cap must also count within that 6%, do not enforce a minimum width that inflates it. Keep the existing bar outer frame, position, height, gloss, layout and text. Preserve \"3 / 50\" and \"過關進度 6%\" exactly. Everything else, especially the EXACT 10x10 board, the exactly THREE snake segments including head, every item position, all walls and gates if present, labels, Traditional Chinese text, shield numbers, title, icons, and art must be pixel-identical in appearance. Do not redraw or move the entire image. No additional objects. Do not change any numbers or text. The goal is accurate green fill length only."
+    }
+  ],
+  "mazeCapacity": {
+    "walkableFloorCells": 56,
+    "path50": [
+      [
+        2,
+        2
+      ],
+      [
+        3,
+        2
+      ],
+      [
+        3,
+        3
+      ],
+      [
+        2,
+        3
+      ],
+      [
+        2,
+        4
+      ],
+      [
+        2,
+        5
+      ],
+      [
+        2,
+        6
+      ],
+      [
+        2,
+        7
+      ],
+      [
+        2,
+        8
+      ],
+      [
+        2,
+        9
+      ],
+      [
+        3,
+        9
+      ],
+      [
+        3,
+        8
+      ],
+      [
+        3,
+        7
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        3,
+        5
+      ],
+      [
+        4,
+        5
+      ],
+      [
+        5,
+        5
+      ],
+      [
+        5,
+        6
+      ],
+      [
+        4,
+        6
+      ],
+      [
+        4,
+        7
+      ],
+      [
+        4,
+        8
+      ],
+      [
+        4,
+        9
+      ],
+      [
+        5,
+        9
+      ],
+      [
+        5,
+        8
+      ],
+      [
+        6,
+        8
+      ],
+      [
+        6,
+        9
+      ],
+      [
+        7,
+        9
+      ],
+      [
+        7,
+        8
+      ],
+      [
+        8,
+        8
+      ],
+      [
+        8,
+        9
+      ],
+      [
+        9,
+        9
+      ],
+      [
+        9,
+        8
+      ],
+      [
+        9,
+        7
+      ],
+      [
+        9,
+        6
+      ],
+      [
+        8,
+        6
+      ],
+      [
+        7,
+        6
+      ],
+      [
+        6,
+        6
+      ],
+      [
+        6,
+        5
+      ],
+      [
+        7,
+        5
+      ],
+      [
+        7,
+        4
+      ],
+      [
+        7,
+        3
+      ],
+      [
+        6,
+        3
+      ],
+      [
+        6,
+        2
+      ],
+      [
+        7,
+        2
+      ],
+      [
+        8,
+        2
+      ],
+      [
+        9,
+        2
+      ],
+      [
+        9,
+        3
+      ],
+      [
+        8,
+        3
+      ],
+      [
+        8,
+        4
+      ],
+      [
+        8,
+        5
+      ]
+    ],
+    "searched": 50,
+    "maxLength": 50
+  },
+  "limitations": [
+    "Progress fill is drawn approximately by the image model; use min(current length / 50, 1) for implementation.",
+    "Minor berry/shield decoration variants should use one common sprite each in implementation."
+  ]
+}

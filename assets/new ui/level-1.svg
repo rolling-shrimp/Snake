@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1536" height="1024" viewBox="0 0 1536 1024">
+  <defs>
+    <pattern id="tiles" width="76" height="76" patternUnits="userSpaceOnUse">
+      <rect width="76" height="76" fill="#fffdf4"/>
+      <rect width="38" height="38" fill="#eaf3e5"/>
+      <rect x="38" y="38" width="38" height="38" fill="#eaf3e5"/>
+      <path d="M76 0H0V76" fill="none" stroke="#aec5b2" stroke-width="2"/>
+    </pattern>
+    <g id="berry">
+      <path d="M21 10C13 4 7 8 9 15C2 20 5 35 21 43C37 35 40 20 33 15C35 8 29 4 21 10Z" fill="#e34c55" stroke="#a92d3a" stroke-width="2"/>
+      <path d="M21 11C15 8 11 4 10 1C16 2 19 4 21 8C23 4 27 2 33 1C32 5 28 9 21 11Z" fill="#4f9d54" stroke="#347a43" stroke-width="1.5"/>
+      <g fill="#fff1c7"><ellipse cx="13" cy="20" rx="1.5" ry="2.3"/><ellipse cx="21" cy="17" rx="1.5" ry="2.3"/><ellipse cx="29" cy="21" rx="1.5" ry="2.3"/><ellipse cx="16" cy="29" rx="1.5" ry="2.3"/><ellipse cx="25" cy="30" rx="1.5" ry="2.3"/></g>
+    </g>
+  </defs>
+  <rect width="1536" height="1024" fill="#f5f4ec"/>
+  <rect x="70" y="112" width="760" height="760" rx="8" fill="url(#tiles)" stroke="#587866" stroke-width="5"/>
+  <g fill="#278049" stroke="#1f653b" stroke-width="3">
+    <ellipse cx="258" cy="533" rx="30" ry="23"/>
+    <rect x="299" y="503" width="70" height="60" rx="29"/>
+    <circle cx="410" cy="533" r="32"/>
+  </g>
+  <g fill="#f6f3d9"><circle cx="401" cy="526" r="4"/><circle cx="420" cy="526" r="4"/></g>
+  <g fill="#203a30"><circle cx="402" cy="526" r="2"/><circle cx="421" cy="526" r="2"/></g>
+  <rect x="900" y="104" width="566" height="790" rx="24" fill="#fffdf6" stroke="#c8d7c7" stroke-width="3"/>
+  <text x="1183" y="170" text-anchor="middle" font-family="Microsoft JhengHei, Noto Sans CJK TC, sans-serif" font-size="42" font-weight="700" fill="#243d32">第一關</text>
+  <path d="M930 194H1436" stroke="#d8e1d4" stroke-width="2"/>
+  <text x="944" y="246" font-family="Microsoft JhengHei, Noto Sans CJK TC, sans-serif" font-size="26" fill="#42584b">蛇長</text>
+  <text x="944" y="307" font-family="Microsoft JhengHei, Noto Sans CJK TC, sans-serif" font-size="52" font-weight="700" fill="#243d32">3 / 50</text>
+  <text x="1420" y="292" text-anchor="end" font-family="Microsoft JhengHei, Noto Sans CJK TC, sans-serif" font-size="23" fill="#42584b">目標 50 格</text>
+  <text x="944" y="354" font-family="Microsoft JhengHei, Noto Sans CJK TC, sans-serif" font-size="22" fill="#42584b">過關進度　6%</text>
+  <rect x="944" y="369" width="478" height="22" rx="11" fill="#e1e7df"/>
+  <rect x="944" y="369" width="29" height="22" rx="11" fill="#5b9e68"/>
+  <rect x="930" y="416" width="506" height="318" rx="16" fill="#fafbf5" stroke="#d8e1d4" stroke-width="2"/>
+  <text x="957" y="459" font-family="Microsoft JhengHei, Noto Sans CJK TC, sans-serif" font-size="23" font-weight="700" fill="#42584b">規則提示</text>
+  <use href="#berry" x="963" y="482" width="42" height="48"/>
+  <text x="1023" y="514" font-family="Microsoft JhengHei, Noto Sans CJK TC, sans-serif" font-size="24" fill="#263b31">普通食物：草莓 +1 格</text>
+  <path d="M956 542H1410" stroke="#e4e9df" stroke-width="2"/>
+  <text x="974" y="594" font-family="Microsoft JhengHei, Noto Sans CJK TC, sans-serif" font-size="24" fill="#263b31">棋盤邊界：可以穿越</text>
+  <path d="M956 622H1410" stroke="#e4e9df" stroke-width="2"/>
+  <text x="974" y="676" font-family="Microsoft JhengHei, Noto Sans CJK TC, sans-serif" font-size="24" fill="#263b31">碰到自己的身體：死亡</text>
+  <rect x="1062" y="790" width="242" height="70" rx="14" fill="#477b54"/>
+  <text x="1183" y="836" text-anchor="middle" font-family="Microsoft JhengHei, Noto Sans CJK TC, sans-serif" font-size="30" font-weight="700" fill="#ffffff">開始</text>
+</svg>

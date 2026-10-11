@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1536" height="1024" viewBox="0 0 1536 1024">
+  <defs>
+    <pattern id="tiles" width="76" height="76" patternUnits="userSpaceOnUse">
+      <rect width="76" height="76" fill="#fffdf4"/>
+      <rect width="38" height="38" fill="#eaf3e5"/>
+      <rect x="38" y="38" width="38" height="38" fill="#eaf3e5"/>
+      <path d="M76 0H0V76" fill="none" stroke="#aec5b2" stroke-width="2"/>
+    </pattern>
+    <g id="berry">
+      <path d="M21 10C13 4 7 8 9 15C2 20 5 35 21 43C37 35 40 20 33 15C35 8 29 4 21 10Z" fill="#e34c55" stroke="#a92d3a" stroke-width="2"/>
+      <path d="M21 11C15 8 11 4 10 1C16 2 19 4 21 8C23 4 27 2 33 1C32 5 28 9 21 11Z" fill="#4f9d54" stroke="#347a43" stroke-width="1.5"/>
+      <g fill="#fff1c7"><ellipse cx="13" cy="20" rx="1.5" ry="2.3"/><ellipse cx="21" cy="17" rx="1.5" ry="2.3"/><ellipse cx="29" cy="21" rx="1.5" ry="2.3"/><ellipse cx="16" cy="29" rx="1.5" ry="2.3"/><ellipse cx="25" cy="30" rx="1.5" ry="2.3"/></g>
+    </g>
+    <g id="blueberry">
+      <circle cx="15" cy="24" r="13" fill="#3869b7" stroke="#254b8a" stroke-width="2"/>
+      <circle cx="29" cy="24" r="13" fill="#477bc5" stroke="#254b8a" stroke-width="2"/>
+      <circle cx="22" cy="14" r="13" fill="#588bd0" stroke="#254b8a" stroke-width="2"/>
+      <path d="M22 4C16 1 12 2 10 5C15 5 18 7 20 10C22 7 26 5 31 5C29 2 25 1 22 4Z" fill="#549552" stroke="#367542" stroke-width="1.5"/>
+      <g fill="#bcd4f4"><circle cx="18" cy="18" r="2"/><circle cx="29" cy="26" r="2"/><circle cx="12" cy="26" r="2"/></g>
+    </g>
+    <g id="shield">
+      <path d="M22 3L39 9V22C39 34 31 42 22 47C13 42 5 34 5 22V9Z" fill="#4c8ed8" stroke="#285e9f" stroke-width="3"/>
+      <path d="M22 10V39C29 35 34 29 34 21V13Z" fill="#9bc4ed"/>
+    </g>
+    <g id="flame">
+      <path d="M23 2C26 13 39 16 38 30C37 42 28 48 20 46C9 44 4 36 7 26C9 19 15 15 16 8C21 12 22 17 21 22C27 18 26 10 23 2Z" fill="#e47735" stroke="#a34a2c" stroke-width="2"/>
+      <path d="M22 25C28 31 27 39 21 42C16 40 14 36 16 31C19 33 21 30 22 25Z" fill="#ffd16c"/>
+    </g>
+    <g id="bomb">
+      <circle cx="22" cy="27" r="17" fill="#343a3a" stroke="#202727" stroke-width="3"/>
+      <path d="M22 10L27 4L34 4" fill="none" stroke="#77563b" stroke-width="4" stroke-linecap="round"/>
+      <circle cx="36" cy="4" r="3" fill="#d99a45"/>
+      <circle cx="16" cy="21" r="3" fill="#a4adab"/>
+    </g>
+  </defs>
+  <rect width="1536" height="1024" fill="#f5f4ec"/>
+  <rect x="70" y="24" width="298" height="62" rx="12" fill="#e3eee1" stroke="#bfd1be" stroke-width="2"/>
+  <text x="219" y="64" text-anchor="middle" font-family="Microsoft JhengHei, Noto Sans CJK TC, sans-serif" font-size="24" font-weight="700" fill="#31523a">第二關過關</text>
+  <rect x="384" y="24" width="446" height="62" rx="12" fill="#fffdf6" stroke="#d4dccf" stroke-width="2"/>
+  <text x="406" y="62" font-family="Microsoft JhengHei, Noto Sans CJK TC, sans-serif" font-size="21" fill="#42584b">成績卡　通關蛇長：50 格</text>
+  <rect x="70" y="112" width="760" height="760" rx="4" fill="url(#tiles)"/>
+  <g fill="#66747a" stroke="#42545b" stroke-width="2">
+    <rect x="70" y="112" width="760" height="76"/>
+    <rect x="70" y="796" width="760" height="76"/>
+    <rect x="70" y="188" width="76" height="608"/>
+    <rect x="754" y="188" width="76" height="608"/>
+    <rect x="374" y="340" width="76" height="76"/>
+    <rect x="374" y="416" width="76" height="76"/>
+    <rect x="374" y="644" width="76" height="76"/>
+  </g>
+  <g fill="#8b999d" opacity="0.45">
+    <path d="M78 126L92 118H128L138 128V170L126 180H88L78 170Z"/>
+    <path d="M154 126L168 118H204L214 128V170L202 180H164L154 170Z"/>
+    <path d="M78 202L92 194H128L138 204V246L126 256H88L78 246Z"/>
+    <path d="M762 202L776 194H812L822 204V246L810 256H772L762 246Z"/>
+  </g>
+  <g stroke="#9b762c" stroke-width="7" fill="none" stroke-linecap="round">
+    <path d="M389 580V632M435 580V632"/>
+    <path d="M389 580H435" stroke-dasharray="7 8" stroke-width="4"/>
+  </g>
+  <path d="M70 112H830V872H70Z M146 112V872 M222 112V872 M298 112V872 M374 112V872 M450 112V872 M526 112V872 M602 112V872 M678 112V872 M754 112V872 M70 188H830 M70 264H830 M70 340H830 M70 416H830 M70 492H830 M70 568H830 M70 644H830 M70 720H830 M70 796H830" fill="none" stroke="#a9b8af" stroke-width="2"/>
+  <rect x="70" y="112" width="760" height="760" rx="4" fill="none" stroke="#4d6658" stroke-width="5"/>
+  <g fill="#278049" stroke="#1f653b" stroke-width="3">
+    <ellipse cx="184" cy="226" rx="30" ry="23"/>
+    <rect x="223" y="196" width="70" height="60" rx="29"/>
+    <circle cx="336" cy="226" r="32"/>
+  </g>
+  <g fill="#f6f3d9"><circle cx="327" cy="219" r="4"/><circle cx="346" cy="219" r="4"/></g>
+  <g fill="#203a30"><circle cx="328" cy="219" r="2"/><circle cx="347" cy="219" r="2"/></g>
+  <rect x="900" y="54" width="566" height="920" rx="24" fill="#fffdf6" stroke="#c8d7c7" stroke-width="3"/>
+  <text x="1183" y="112" text-anchor="middle" font-family="Microsoft JhengHei, Noto Sans CJK TC, sans-serif" font-size="42" font-weight="700" fill="#243d32">第三關</text>
+  <path d="M930 136H1436" stroke="#d8e1d4" stroke-width="2"/>
+  <text x="944" y="184" font-family="Microsoft JhengHei, Noto Sans CJK TC, sans-serif" font-size="24" fill="#42584b">蛇長</text>
+  <text x="944" y="239" font-family="Microsoft JhengHei, Noto Sans CJK TC, sans-serif" font-size="46" font-weight="700" fill="#243d32">3 / 50</text>
+  <text x="1420" y="226" text-anchor="end" font-family="Microsoft JhengHei, Noto Sans CJK TC, sans-serif" font-size="22" fill="#42584b">目標 50 格</text>
+  <text x="944" y="278" font-family="Microsoft JhengHei, Noto Sans CJK TC, sans-serif" font-size="21" fill="#42584b">護盾保命次數　0</text>
+  <text x="944" y="320" font-family="Microsoft JhengHei, Noto Sans CJK TC, sans-serif" font-size="21" fill="#42584b">過關進度　6%</text>
+  <rect x="944" y="334" width="478" height="19" rx="9" fill="#e1e7df"/>
+  <rect x="944" y="334" width="29" height="19" rx="9" fill="#5b9e68"/>
+  <rect x="930" y="372" width="506" height="354" rx="16" fill="#fafbf5" stroke="#d8e1d4" stroke-width="2"/>
+  <text x="957" y="411" font-family="Microsoft JhengHei, Noto Sans CJK TC, sans-serif" font-size="22" font-weight="700" fill="#42584b">規則提示</text>
+  <use href="#berry" x="957" y="421" width="38" height="42"/>
+  <text x="1010" y="451" font-family="Microsoft JhengHei, Noto Sans CJK TC, sans-serif" font-size="21" fill="#263b31">普通食物：草莓 +1 格</text>
+  <path d="M950 466H1416" stroke="#e4e9df" stroke-width="2"/>
+  <use href="#blueberry" x="957" y="469" width="38" height="42"/>
+  <text x="1010" y="499" font-family="Microsoft JhengHei, Noto Sans CJK TC, sans-serif" font-size="21" fill="#263b31">特殊食物：藍莓 +2 格</text>
+  <path d="M950 514H1416" stroke="#e4e9df" stroke-width="2"/>
+  <use href="#shield" x="958" y="515" width="38" height="42"/>
+  <text x="1010" y="547" font-family="Microsoft JhengHei, Noto Sans CJK TC, sans-serif" font-size="21" fill="#263b31">護盾：保命次數 +1</text>
+  <path d="M950 562H1416" stroke="#e4e9df" stroke-width="2"/>
+  <use href="#flame" x="958" y="563" width="38" height="42"/>
+  <text x="1010" y="595" font-family="Microsoft JhengHei, Noto Sans CJK TC, sans-serif" font-size="21" fill="#263b31">火焰：蛇長 −2 格</text>
+  <path d="M950 610H1416" stroke="#e4e9df" stroke-width="2"/>
+  <use href="#bomb" x="958" y="611" width="38" height="42"/>
+  <text x="1010" y="643" font-family="Microsoft JhengHei, Noto Sans CJK TC, sans-serif" font-size="21" fill="#263b31">炸彈：立即死亡</text>
+  <text x="956" y="768" font-family="Microsoft JhengHei, Noto Sans CJK TC, sans-serif" font-size="22" fill="#263b31">不能穿牆</text>
+  <text x="956" y="804" font-family="Microsoft JhengHei, Noto Sans CJK TC, sans-serif" font-size="22" fill="#263b31">門目前：開啟</text>
+  <rect x="1062" y="856" width="242" height="68" rx="14" fill="#477b54"/>
+  <text x="1183" y="901" text-anchor="middle" font-family="Microsoft JhengHei, Noto Sans CJK TC, sans-serif" font-size="30" font-weight="700" fill="#ffffff">開始</text>
+</svg>

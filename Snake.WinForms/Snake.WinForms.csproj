@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Snake</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="..\assets\new ui\*.svg" Link="assets\new ui\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <InternalsVisibleTo Include="Snake.Tests" />
+  </ItemGroup>
+</Project>
