@@ -1,0 +1,47 @@
+ prompt 重點整理 
+請你幫我設置 design_by_contract，你可以參考C:\Users\wbcwb\Desktop\SDD_Coding\whack_a_mole\WhackAMole\ 的design by contract格式，請遵照該格式，針對 use_case.md 的每個項目設置contract ，請參考C:\Users\wbcwb\Desktop\SDD_Coding\whack_a_mole\WhackAMole\的方式， 一個use case 例如遊戲顯示 10×10 棋盤、停在安全起點的 3 格蛇與「開始」按鈕，就針對這個做contract 一個use case一個contract
+也請幫我規劃測試，測試目標也一樣請參考 C:\Users\wbcwb\Desktop\SDD_Coding\whack_a_mole\WhackAMole 的 test_spec 格式，測試目標要設置為必須符合 design_by_contract的規範，一個use cse 一個contract 一個測試
+
+
+重新討論use case，我希望一般食物為草莓，特殊食物為藍莓
+ui spec需要調整，請務必按照use case的內容設計，use case沒有提到要顯示的，在assets/ui資料夾保留舊的圖片，設置一個old ui保留這些圖片，不要再有ui資料夾，assets裡面我只要看到 old ui 資料夾和 new ui資料夾，新作的請你放在new ui， ui_spec要遵守的是new ui
+
+還有exceptional_spec需要設置，請你也一樣按照whakeAmole專案的 exceptional_spec格式設計
+
+
+
+已建立 WinForms 初版，專案位於 Snake.WinForms/Snake.WinForms.csproj。
+
+- Snake.WinForms/SnakeGame.cs 實作 17 項合約操作與三關規則，包含 250 毫秒移動、草莓與藍莓效果、護盾救援、物件補充及第三關門的切換與預警。
+- Snake.WinForms/GameForm.cs 依新版預覽繪製可縮放的 10×10 棋盤、狀態與規則提示、結果畫面和按鈕，並接收方向鍵操作。
+- Snake.WinForms/OutputContractViolationException.cs 與 UI 呼叫邊界處理合約違約和未知故障。
+- 第三關座標未由 use case 指定；目前配置為 6 個內牆格、2 扇交替開關的門，並保留 56 格連續路線。`assets` 內容未更動。
+
+建置檢查成功，0 個警告、0 個錯誤。這次沒有新增或執行測試；測試規格仍待後續驗收。
+
+
+
+請按照 test_spec.md 完成測試
+
+剛才的工作階段被中斷了，所以我還沒開始修改或執行任何測試。檢查後發現兩件事：`test_spec.md` 目前寫的是「只規劃測試標準，不撰寫或執行測試程式」；而專案裡已有遊戲程式，但還沒有獨立的測試專案。這和你現在要求「完成測試」的方向有落差。
+
+
+
+因為沒有測試專案，我請你規劃測試，包含設置測試專案 plan mode 
+
+
+請你先做一份session record， 內容是目前session的所有一問一答
+
+ctrl + / 切換到新threads 貼上 plan mode計畫請ai執行
+
+ 
+ 
+ 遊戲第三關出現牆壁的原因，是討論遊戲內容時就已經提及的:
+ 
+ 棋盤包含外圍牆壁、固定迷宮內牆與交替開關的門；牆壁與門占用的格子計入全畫面的 100 格。
+- 第三關不能穿越邊界；撞到外圍牆壁、迷宮內牆、關閉的門或自己的身體，構成死亡事件。
+
+
+
+
+
