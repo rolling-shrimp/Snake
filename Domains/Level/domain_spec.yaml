@@ -1,0 +1,201 @@
+domain:
+  name: Level
+  bounded_context: snake-game
+  aggregate_root: Level
+  purpose: "擁有目前關卡、目標、進度、邊界政策與關卡推進規則。"
+
+aggregate:
+  name: Level
+  fields:
+    - name: level_id
+      path: level.level_id
+      type: LevelId
+      required: true
+    - name: number
+      path: level.number
+      type: LevelNumber
+      required: true
+      initial_value: 1
+
+value_objects:
+  LevelId:
+    opaque: true
+    description: "Level Aggregate 的領域專屬識別型別。"
+
+enums:
+  LevelNumber:
+    values:
+      - 1
+      - 2
+      - 3
+  BoundaryPolicy:
+    values:
+      - Wrap
+      - Blocked
+
+configuration:
+  levels:
+    - number: 1
+      target_length: 20
+      boundary_policy: Wrap
+      allowed_domains:
+        - Food
+      allowed_food_types:
+        - Ordinary
+    - number: 2
+      target_length: 20
+      boundary_policy: Wrap
+      allowed_domains:
+        - Food
+        - Fire
+        - Shield
+      allowed_food_types:
+        - Ordinary
+        - Special
+    - number: 3
+      target_length: 50
+      boundary_policy: Blocked
+      allowed_domains:
+        - Food
+        - Fire
+        - Shield
+        - Bomb
+        - DoorAndMaze
+      allowed_food_types:
+        - Ordinary
+        - Special
+
+derived_values:
+  - name: target_length
+    path: level.target_length
+    formula: "configuration.levels[level.number].target_length"
+  - name: boundary_policy
+    path: level.boundary_policy
+    formula: "configuration.levels[level.number].boundary_policy"
+  - name: progress_percent
+    path: level.progress_percent
+    formula: "min(100, max(0, Snake.length / level.target_length * 100))"
+  - name: is_complete
+    path: level.is_complete
+    formula: "Snake.length >= level.target_length"
+
+domain_relations:
+  - relation_id: LEVEL-REL-001
+    target_domain: Game
+    target_spec: ../Game/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+  - relation_id: LEVEL-REL-002
+    target_domain: Snake
+    target_spec: ../Snake/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+  - relation_id: LEVEL-REL-003
+    target_domain: Board
+    target_spec: ../Board/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+  - relation_id: LEVEL-REL-004
+    target_domain: Food
+    target_spec: ../Food/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+  - relation_id: LEVEL-REL-005
+    target_domain: Fire
+    target_spec: ../Fire/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+  - relation_id: LEVEL-REL-006
+    target_domain: Shield
+    target_spec: ../Shield/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+  - relation_id: LEVEL-REL-007
+    target_domain: Bomb
+    target_spec: ../Bomb/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+  - relation_id: LEVEL-REL-008
+    target_domain: DoorAndMaze
+    target_spec: ../DoorAndMaze/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+  - relation_id: LEVEL-REL-009
+    target_domain: GameResult
+    target_spec: ../GameResult/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+
+rules:
+  invariants:
+    - rule_id: LEVEL-INV-001
+      description: "關卡編號只能是 1、2、3。"
+      field_refs:
+        - level.number
+    - rule_id: LEVEL-INV-002
+      description: "關卡只能依 1 → 2 → 3 的順序前進，不得跳關或倒退。"
+      field_refs:
+        - level.number
+
+  policy:
+    - rule_id: LEVEL-POLICY-001
+      description: "第一、二關目標為 20；第三關目標為 50。"
+      field_refs:
+        - level.number
+        - level.target_length
+    - rule_id: LEVEL-POLICY-002
+      description: "第一、二關使用 Wrap；第三關使用 Blocked。"
+      field_refs:
+        - level.number
+        - level.boundary_policy
+    - rule_id: LEVEL-POLICY-003
+      description: "各關只允許 configuration.levels 所列的 Domain 與食物種類出現。"
+      field_refs:
+        - level.number
+
+  progress:
+    - rule_id: LEVEL-PROGRESS-001
+      description: "進度依 Snake.length / target_length 計算，最低 0%、最高 100%。"
+      field_refs:
+        - level.target_length
+        - level.progress_percent
+    - rule_id: LEVEL-PROGRESS-002
+      description: "第一、二關長度 3 的進度為 15%；第三關長度 3 的進度為 6%。"
+      field_refs:
+        - level.number
+        - level.progress_percent
+    - rule_id: LEVEL-PROGRESS-003
+      description: "蛇長超過目標時仍保留實際長度，只有進度限制為 100%。"
+      when: "Snake.length > level.target_length。"
+      then: "level.progress_percent 為 100，實際長度不截斷。"
+      field_refs:
+        - level.target_length
+        - level.progress_percent
+
+  completion:
+    - rule_id: LEVEL-COMPLETE-001
+      description: "Snake.length 達到或超過目標時立即完成目前關卡。"
+      when: "level.is_complete == true。"
+      then: "回報關卡通過，停止該移動步後續效果與物件補充。"
+      field_refs:
+        - level.is_complete
+    - rule_id: LEVEL-COMPLETE-002
+      description: "第一、二關完成後建立下一關，Snake 重設為 3，Shield 狀態清零。"
+      when: "level.number 為 1 或 2 且關卡通過。"
+      then: "level.number 增加 1，要求相關 Domain 準備下一關 Ready 狀態。"
+      field_refs:
+        - level.number
+    - rule_id: LEVEL-COMPLETE-003
+      description: "第三關達標時完成整輪。"
+      when: "level.number == 3 且 level.is_complete == true。"
+      then: "回報整輪完成。"
+      field_refs:
+        - level.number
+        - level.is_complete
+    - rule_id: LEVEL-COMPLETE-004
+      description: "第三關蛇長 49 取得 Special Food 後成為 51，應以 51 完成關卡。"
+      when: "第三關 Snake.length 為 49 且套用 +2。"
+      then: "實際長度為 51，進度為 100%，關卡完成。"
+      field_refs:
+        - level.number
+        - level.progress_percent

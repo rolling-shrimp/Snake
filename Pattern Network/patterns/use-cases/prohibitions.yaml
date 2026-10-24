@@ -1,0 +1,46 @@
+schema_version: 1
+
+pattern_node:
+  id: use-cases
+  name: UseCases
+
+prohibitions:
+  - id: PN-UC-PRO-001
+    title: "禁止外層專案參考"
+    description: "UseCases 不得參考 WinForms 或其他外層產品專案。"
+    severity: error
+    enforcement: automated
+    remediation: "把外部能力改成由 UseCases 擁有的 Port，實作留在外層。"
+    exceptions: []
+
+  - id: PN-UC-PRO-002
+    title: "禁止 UI framework"
+    description: "UseCases 不得使用 System.Windows.Forms 或 System.Drawing。"
+    severity: error
+    enforcement: automated
+    remediation: "以 Command、Query、Result 與純資料型別表達應用契約。"
+    exceptions: []
+
+  - id: PN-UC-PRO-003
+    title: "禁止未分類輸入"
+    description: "Execute 的輸入型別必須以 Command 或 Query 結尾。"
+    severity: error
+    enforcement: automated
+    remediation: "依是否改變狀態將輸入命名為 Command 或 Query。"
+    exceptions: []
+
+  - id: PN-UC-PRO-004
+    title: "禁止以例外表達預期失敗"
+    description: "可預期的輸入錯誤或業務條件不成立不得只以例外傳遞。"
+    severity: error
+    enforcement: manual
+    remediation: "回傳含穩定 FailureCode 與安全 FailureMessage 的失敗 Result。"
+    exceptions: []
+
+  - id: PN-UC-PRO-005
+    title: "禁止 UI 契約直接暴露 Entity"
+    description: "Command、Query 與 Result 的公開欄位不得直接使用 Entities 型別。"
+    severity: error
+    enforcement: automated
+    remediation: "建立由 UseCases 擁有且符合實際輸入或輸出粒度的契約型別。"
+    exceptions: []

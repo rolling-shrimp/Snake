@@ -1,0 +1,59 @@
+use_case: start-first-level
+bounded_context: snake-game
+aggregate: game
+frame_type: CBF
+
+spec_refs:
+  domain: domain_spec.yaml
+
+input:
+  type: none
+  source: "第一關待開始畫面的「開始」按鈕 click trigger。"
+  fields: []
+  trigger:
+    command: start_first_level
+    source: start_button
+    interaction: click
+    required_level: 1
+    required_phase: GamePhase.Ready
+
+output:
+  type: void
+  fields: []
+  result_representation: "是否在同一程序內交接 activate-first-level-play。"
+
+types: []
+
+domain_to_technical_mapping:
+  - domain_rules:
+      - DOM-START-FIRST-LEVEL-IN-001
+    target: start_first_level
+    description: "玩家 click trigger 映射為一次 start_first_level 命令處理。"
+  - domain_rules:
+      - DOM-START-FIRST-LEVEL-PRE-001
+    target: "level = 1 and GamePhase.Ready"
+    description: "GamePhase.Ready 與第一關編號共同映射前置條件。"
+  - domain_rules:
+      - DOM-START-FIRST-LEVEL-INV-002
+      - DOM-START-FIRST-LEVEL-POST-001
+      - DOM-START-FIRST-LEVEL-POST-002
+    target: "serialized same-process handoff"
+    description: "命令驗證與 use case handoff 在同一個序列化操作邊界內完成；成功時只交接一次 activate-first-level-play。"
+
+state_mappings:
+  - mapping_id: TECH-START-FIRST-LEVEL-STATE-001
+    description: "CBF 不直接寫入 Playing phase、食物、蛇長或移動計時，避免 handoff 未完成時留下部分效果。"
+  - mapping_id: TECH-START-FIRST-LEVEL-STATE-002
+    description: "一個成功接受的命令只交接一次 activate-first-level-play。"
+  - mapping_id: TECH-START-FIRST-LEVEL-STATE-003
+    description: "命令驗證與 handoff 採序列化處理，同一時刻不得有兩個開始命令同時進入成功路徑。"
+
+error_mappings: []
+
+no_op_mappings:
+  - mapping_id: TECH-START-FIRST-LEVEL-NOOP-001
+    condition: "Level 不是 1 或 Phase 不是 GamePhase.Ready。"
+    behavior: "直接結束，無例外且無狀態變更。"
+  - mapping_id: TECH-START-FIRST-LEVEL-NOOP-002
+    condition: "重複 click。"
+    behavior: "不得再次交接 RIF，也不得重設物件或移動時序。"

@@ -1,0 +1,357 @@
+# 1. Use Case 分類與 Concern 具體化規則
+classification_rules:
+  use_case_directory_pattern: "Domains/<Domain>/<frame-type>/<use-case>/"
+  frame_type_directory_case: lowercase
+  frame_type_value_case: uppercase
+  concern_reference_field: concern_ref
+  concrete_check_id_field: check_id
+  concern_coverage: all
+  allow_multiple_checks_per_concern: true
+  allow_not_applicable: false
+
+# 2. Problem Frame Type 定義
+frame_types:
+  CBF:
+    name: Commanded Behaviour Frame
+    purpose: "命令式行為框架。用於要求程式接收命令並執行一項業務行為，例如玩家要求開始第一關。"
+    development_reading_order:
+      strategy: entity_first
+      applicable_scenario: "執行會改變系統狀態的任務型業務命令，例如建立 Sprint、提交訂單或開始關卡。"
+      steps:
+        - order: 1
+          pattern_node: Entities
+          artifacts:
+            - Aggregate
+            - Domain Event
+          purpose: "先建立領域狀態變更、不變式與成功後產生的事件。"
+
+        - order: 2
+          pattern_node: UseCases
+          artifacts:
+            - Command
+            - Command Use Case
+            - Port
+          purpose: "定義命令輸入、應用流程與外部能力介面。"
+
+        - order: 3
+          pattern_node: WinForms
+          artifacts:
+            - Outer Port Implementation
+          purpose: "需要持久化、Outbox 或其他外部能力時，實作 UseCases 定義的 Port。"
+
+        - order: 4
+          pattern_node: WinForms
+          artifacts:
+            - Presenter
+            - Form
+          purpose: "將使用者操作轉成 Command，並呈現命令結果。"
+
+        - order: 5
+          pattern_node: WinForms
+          artifacts:
+            - Program
+            - Composition Root
+            - Configuration
+          purpose: "完成依賴注入、設定與系統接線。"
+    concern_status: defined
+    frame_concerns:
+      - concern_id: CBF-CONCERN-001
+        name: command_integrity
+        description: "命令來源、行為與輸入不得遺失或錯置。"
+
+      - concern_id: CBF-CONCERN-002
+        name: precondition_validation
+        description: "執行效果前須確認角色、階段與業務條件。"
+
+      - concern_id: CBF-CONCERN-003
+        name: execution_uniqueness
+        description: "重複或併發命令的處理政策必須明確且被遵守。"
+
+      - concern_id: CBF-CONCERN-004
+        name: outcome_integrity
+        description: "接受的命令須完成全部結果；拒絕的命令不得留下部分效果。"
+
+  SWF:
+    name: Simple Workpiece Frame
+    purpose: "簡單工件框架。用於要求程式直接變更某個狀態或資料，例如更改訂單狀態或貪吃蛇長度。"
+    development_reading_order:
+      strategy: state_update_first
+      applicable_scenario: "僅單純確立或修改某個狀態的命令。"
+      steps:
+        - order: 1
+          pattern_node: Entities
+          artifacts:
+            - Aggregate
+            - State Update Method
+          purpose: "先定義狀態屬性、合法更新方法與更新後不變式。"
+
+        - order: 2
+          pattern_node: UseCases
+          artifacts:
+            - Command
+            - Command Use Case
+          purpose: "協調單一狀態更新命令並回傳 Result。"
+
+        - order: 3
+          pattern_node: WinForms
+          artifacts:
+            - Presenter
+            - Form
+          purpose: "接收操作並呈現狀態更新結果。"
+
+        - order: 4
+          pattern_node: WinForms
+          artifacts:
+            - Program
+            - Composition Root
+          purpose: "組裝 Aggregate、Use Case、Presenter 與 Form。"
+    concern_status: pending
+    frame_concerns: []
+
+  IDF:
+    name: Information Display Frame
+    purpose: "資訊顯示框架。用於要求程式顯示資料，例如顯示商品清單、棋盤或遊戲狀態。"
+    development_reading_order:
+      strategy: read_model_first
+      applicable_scenario: "唯讀查詢與資料顯示，例如查詢 Sprint 詳情、瀏覽商品清單或顯示遊戲狀態。"
+      steps:
+        - order: 1
+          pattern_node: UseCases
+          artifacts:
+            - Query Result
+            - Read Model
+          purpose: "先定義 UI 所需且不暴露 Entity 的唯讀輸出結構。"
+
+        - order: 2
+          pattern_node: UseCases
+          artifacts:
+            - Projection
+          purpose: "定義如何將領域來源轉譯成 Query Result 或 Read Model。"
+
+        - order: 3
+          pattern_node: UseCases
+          artifacts:
+            - Query
+            - Query Use Case
+            - Port
+          purpose: "定義查詢輸入、唯讀流程與資料來源介面。"
+
+        - order: 4
+          pattern_node: WinForms
+          artifacts:
+            - Presenter
+            - ViewModel
+            - Form
+          purpose: "將 Query Result 轉成 ViewModel 並顯示。"
+
+        - order: 5
+          pattern_node: WinForms
+          artifacts:
+            - Program
+            - Composition Root
+          purpose: "完成查詢 Port、Use Case、Presenter 與 Form 的接線。"
+    concern_status: defined
+    frame_concerns:
+      - concern_id: IDF-CONCERN-001
+        name: display_completeness
+        description: "必要資訊不得遺漏。"
+
+      - concern_id: IDF-CONCERN-002
+        name: information_correctness
+        description: "顯示值、規則、計算及空間狀態須符合來源事實。"
+
+      - concern_id: IDF-CONCERN-003
+        name: visibility_scope
+        description: "只顯示目前角色、階段與 use case 允許的資訊。"
+
+      - concern_id: IDF-CONCERN-004
+        name: side_effect_free
+        description: "顯示不得修改 Domain 狀態、推進時間或觸發業務行為。"
+
+  RBF:
+    name: Required Behaviour Frame
+    purpose: "必要行為框架。用於要求程式在指定條件成立時執行業務行為，例如訂單付款成功後寄送付款成功 Email。"
+    development_reading_order:
+      strategy: condition_driven
+      applicable_scenario: "系統在特定條件成立時自動發動動作，而非由使用者直接下令。"
+      steps:
+        - order: 1
+          pattern_node: Entities
+          artifacts:
+            - Domain State
+            - Invariant
+            - Condition
+          purpose: "先定義觸發自動行為所需的領域條件與事實。"
+
+        - order: 2
+          pattern_node: UseCases
+          artifacts:
+            - Required Behaviour Policy
+            - Precondition
+          purpose: "定義條件判斷與符合條件後必須發動的行為。"
+
+        - order: 3
+          pattern_node: UseCases
+          artifacts:
+            - Command
+            - Command Use Case
+          purpose: "把自動行為轉成明確的命令流程。"
+
+        - order: 4
+          pattern_node: Entities
+          artifacts:
+            - Aggregate
+            - State Change
+          purpose: "由目標 Aggregate 執行狀態變更並維持不變式。"
+
+        - order: 5
+          pattern_node: WinForms
+          artifacts:
+            - Event Source Adapter
+            - Outer Port Implementation
+          purpose: "接收外部條件來源或實作自動動作所需的外部能力。"
+
+        - order: 6
+          pattern_node: WinForms
+          artifacts:
+            - Program
+            - Composition Root
+          purpose: "完成條件來源、政策、命令與外部能力的接線。"
+    concern_status: pending
+    frame_concerns: []
+
+  TF:
+    name: Transformation Frame
+    purpose: "轉換框架。用於監聽事件以維護或更新讀取模型，或執行資料格式與輸入／輸出的轉換政策。"
+    development_reading_order:
+      strategy: event_to_projection
+      applicable_scenario: "監聽事件以維護讀取模型，或執行資料格式轉譯與封存政策。"
+      steps:
+        - order: 1
+          pattern_node: Entities
+          artifacts:
+            - Domain Event
+          purpose: "先確認觸發轉換的事件與事件資料契約。"
+
+        - order: 2
+          pattern_node: UseCases
+          artifacts:
+            - Projector
+            - Transformation Policy
+          purpose: "定義事件如何轉譯成目標資料格式。"
+
+        - order: 3
+          pattern_node: UseCases
+          artifacts:
+            - Read Model Result
+            - Archive Port
+          purpose: "定義轉換輸出與寫入 Read Model 或 Archive 所需的 Port。"
+
+        - order: 4
+          pattern_node: WinForms
+          artifacts:
+            - Outer Port Implementation
+          purpose: "實作 Read Model、Archive 或其他外部輸出能力。"
+
+        - order: 5
+          pattern_node: WinForms
+          artifacts:
+            - Program
+            - Composition Root
+          purpose: "完成事件、Projector 與輸出 Port 的接線。"
+    concern_status: pending
+    frame_concerns: []
+
+  RIF:
+    name: Reactive Invocation Frame
+    purpose: "反應式調用框架。用於監聽特定領域事件並自動觸發後續命令，以維持跨 Aggregate 的最終一致性。"
+    development_reading_order:
+      strategy: event_driven_wiring
+      applicable_scenario: "監聽特定 Domain Event 並自動觸發後續命令，以維持跨 Aggregate 的最終一致性。"
+      steps:
+        - order: 1
+          pattern_node: Entities
+          artifacts:
+            - Domain Event
+          purpose: "先確認既有或新產生的觸發事件與事件資料。"
+
+        - order: 2
+          pattern_node: UseCases
+          artifacts:
+            - Reactor
+            - Reaction Policy
+          purpose: "定義事件符合什麼條件時必須產生後續反應。"
+
+        - order: 3
+          pattern_node: UseCases
+          artifacts:
+            - Command
+            - Command Use Case
+          purpose: "把反應政策轉接成目標 Aggregate 的明確命令。"
+
+        - order: 4
+          pattern_node: Entities
+          artifacts:
+            - Target Aggregate
+            - Domain Behaviour
+          purpose: "由目標 Aggregate 執行命令並維持不變式。"
+
+        - order: 5
+          pattern_node: WinForms
+          artifacts:
+            - Outer Port Implementation
+          purpose: "需要外部事件或副作用時，實作 Reactor 所需的外層能力。"
+
+        - order: 6
+          pattern_node: WinForms
+          artifacts:
+            - Program
+            - Composition Root
+          purpose: "完成事件、Reactor、Command 與目標 Aggregate 的接線。"
+    concern_status: defined
+    frame_concerns:
+      - concern_id: RIF-CONCERN-001
+        name: trigger_integrity
+        description: "只回應正確的前置行為，且同一有效觸發不得重複反應。"
+
+      - concern_id: RIF-CONCERN-002
+        name: reaction_completeness
+        description: "觸發後必須完成所有必要後續行為。"
+
+      - concern_id: RIF-CONCERN-003
+        name: reaction_order
+        description: "相依動作及時間順序必須正確。"
+
+      - concern_id: RIF-CONCERN-004
+        name: invariant_preservation
+        description: "反應完成後，欄位、物件與狀態必須保持一致。"
+
+  CF:
+    name: Connection Frame
+    purpose: "連線框架。用於規格化不同獨立程序或進程之間的通訊與事件傳遞。"
+    development_reading_order:
+      strategy: connection_first
+      applicable_scenario: "規格化分離程序之間的通訊與中繼，例如 Message Broker 或 Event Bus。"
+      steps:
+        - order: 1
+          pattern_node: UseCases
+          artifacts:
+            - Message Contract
+            - Connection Port
+          purpose: "先定義跨程序訊息格式與應用程式需要的通訊介面。"
+
+        - order: 2
+          pattern_node: WinForms
+          artifacts:
+            - Message Broker Adapter
+            - Event Bus Adapter
+          purpose: "在目前最外層專案實作跨程序中繼通訊。"
+
+        - order: 3
+          pattern_node: WinForms
+          artifacts:
+            - Program
+            - Composition Root
+          purpose: "獨立完成 Connection Port、Broker Adapter 與訂閱發布的接線。"
+    concern_status: pending
+    frame_concerns: []

@@ -1,0 +1,173 @@
+schema_version: 1
+
+doctrine:
+  id: PN-DOCTRINE-ROOT
+  title: "Pattern Network 共用架構與 C# 準則"
+  language:
+    keys: en
+    descriptions: zh-TW
+  scope: product_pattern_projects
+
+rule_precedence:
+  - "根層規則適用於所有產品 pattern 節點。"
+  - "節點 doctrine 可以縮小適用範圍或補充規則，但不得靜默覆寫根層規則。"
+  - "例外必須由根層或節點明確列出；未列出的情況一律不視為例外。"
+
+naming:
+  solution_name:
+    source: solution_file_name_without_extension
+    validation_pattern: "^[A-Z][A-Za-z0-9]*(\\.[A-Z][A-Za-z0-9]*)*$"
+    invalid_name_policy: reject_without_normalization
+  product_project:
+    format: "{solution_name}.{pattern_node_name}"
+    directory_format: "{project_name}"
+    project_file_format: "{project_name}.csproj"
+    assembly_name_format: "{project_name}"
+    root_namespace_format: "{project_name}"
+    applies_to: product_pattern_nodes
+    exclusions:
+      - test_projects
+      - pattern_network_harness
+
+architecture:
+  dependency_direction:
+    - from: WinForms
+      to: UseCases
+    - from: UseCases
+      to: Entities
+  forbidden_dependencies:
+    - from: Entities
+      to: UseCases
+    - from: Entities
+      to: WinForms
+    - from: UseCases
+      to: WinForms
+    - from: WinForms
+      to: Entities
+  contract_ownership:
+    - workflow: domain_behavior
+      input_grain: domain_value
+      output_grain: domain_state_or_event
+      owner: Entities
+    - workflow: application_use_case
+      input_grain: command_or_query
+      output_grain: result
+      owner: UseCases
+    - workflow: user_interaction
+      input_grain: winforms_event
+      output_grain: view_model
+      owner: WinForms
+
+generated_code:
+  excluded_patterns:
+    - "**/*.Designer.cs"
+    - "**/*.g.cs"
+    - "**/*.g.i.cs"
+    - "**/obj/**"
+  reason: "框架產生碼不屬於手寫 C# 規則的管轄範圍。"
+
+rules:
+  - id: PN-CS-CLASS-001
+    category: class_declaration
+    title: "手寫類別使用普通 public class"
+    statement: "自行撰寫的類別必須宣告為 public class，不得加入 sealed、abstract、partial 或 static 修飾詞。"
+    rationale: "讓類別宣告保持一致，框架產生的 partial 類別依 generated_code 例外處理。"
+    enforcement: automated
+
+  - id: PN-CS-CLASS-002
+    category: type_declaration
+    title: "禁止 record"
+    statement: "資料型別不得使用 record 或 record struct；列舉仍可使用 enum。"
+    rationale: "所有手寫資料型別使用明確的普通類別語意。"
+    enforcement: automated
+
+  - id: PN-CS-FILE-001
+    category: file_layout
+    title: "一個類別一個同名檔案"
+    statement: "每個類別各自放在與類名相同的 .cs 檔案，測試輔助類別亦同。"
+    rationale: "讓檔案與型別可以確定性對應。"
+    enforcement: automated
+
+  - id: PN-CS-CLASS-003
+    category: inheritance
+    title: "允許框架契約所需繼承"
+    statement: "普通 public class 可以依框架契約繼承基底型別；繼承不改變類別宣告規則。"
+    rationale: "WinForms Form 等框架型別需要繼承，但不因此放寬其他修飾詞。"
+    enforcement: manual
+
+  - id: PN-CS-FIELD-001
+    category: field
+    title: "實例欄位格式"
+    statement: "實例欄位必須使用 private 與 _camelCase。"
+    rationale: "欄位與參數、區域變數清楚區分。"
+    enforcement: automated
+
+  - id: PN-CS-FIELD-002
+    category: field
+    title: "禁止 readonly 與 static 欄位"
+    statement: "實例欄位不得宣告 readonly 或 static；編譯期 const 是唯一例外。"
+    rationale: "維持既定欄位宣告形式。"
+    enforcement: automated
+
+  - id: PN-CS-CONST-001
+    category: constant
+    title: "常數命名"
+    statement: "編譯期常數使用 const，名稱採 UPPER_SNAKE_CASE；不得使用 static readonly 取代。"
+    rationale: "常數與一般狀態欄位具有可辨識的命名。"
+    enforcement: automated
+
+  - id: PN-CS-NAME-001
+    category: naming
+    title: "識別字命名"
+    statement: "區域變數與參數使用 camelCase；類別、方法、屬性與列舉使用 PascalCase。"
+    rationale: "統一公開與區域識別字格式。"
+    enforcement: automated
+
+  - id: PN-CS-DI-001
+    category: dependency_injection
+    title: "建構式依賴欄位命名"
+    statement: "建構式外部物件參數使用 camelCase，保存它的私人欄位使用對應的 _camelCase。"
+    rationale: "依賴來源與保存位置保持一對一可追溯。"
+    enforcement: automated
+
+  - id: PN-CS-METHOD-001
+    category: method
+    title: "一般方法使用實例方法"
+    statement: "手寫一般方法不得宣告 static；只有框架契約確實要求時才使用 override。"
+    rationale: "避免以靜態狀態或工具方法隱藏物件責任。"
+    enforcement: automated
+
+  - id: PN-CS-FLOW-001
+    category: control_flow
+    title: "控制流程一律使用大括號"
+    statement: "if、else if、else、for、foreach、while 與 do 的主體即使只有一行也必須使用大括號。"
+    rationale: "避免後續修改造成控制流程歧義。"
+    enforcement: automated
+
+  - id: PN-CS-ENTRY-001
+    category: application_entry
+    title: "使用頂層程式入口"
+    statement: "可執行應用程式使用 C# 頂層陳述式，不宣告 static Program.Main。"
+    rationale: "保持入口精簡並符合專案既定形式。"
+    enforcement: automated
+
+  - id: PN-NAME-001
+    category: project_naming
+    title: "產品專案名稱由公式推導"
+    statement: "產品專案名稱必須由 SolutionName 與 PatternNodeName 依 {solution_name}.{pattern_node_name} 組合，不得寫死產品前綴。"
+    rationale: "Pattern Network 必須能套用到不同 solution。"
+    enforcement: automated
+
+  - id: PN-ARCH-001
+    category: dependency
+    title: "產品相依保持單向"
+    statement: "產品專案只能依 WinForms 到 UseCases 到 Entities 的方向參考。"
+    rationale: "內層規則不能依賴外層呈現或框架。"
+    enforcement: automated
+
+  - id: PN-ARCH-002
+    category: test_dependency
+    title: "測試專案不屬於產品 pattern 節點"
+    statement: "測試專案可以直接參考受測產品節點，但不參與產品專案命名與相依方向計算。"
+    rationale: "測試需要跨層驗證，且不構成執行期產品相依。"
+    enforcement: manual

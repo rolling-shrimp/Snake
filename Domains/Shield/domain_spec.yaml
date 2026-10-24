@@ -1,0 +1,213 @@
+domain:
+  name: Shield
+  bounded_context: snake-game
+  aggregate_root: Shield
+  purpose: "擁有護盾物件、保命次數、出現紀錄與保命規則。"
+
+aggregate:
+  name: Shield
+  fields:
+    - name: shield_id
+      path: shield.shield_id
+      type: ShieldId
+      required: true
+    - name: active_item
+      path: shield.active_item
+      type: ShieldItem
+      required: false
+    - name: pending_spawn
+      path: shield.pending_spawn
+      type: boolean
+      required: true
+      initial_value: false
+    - name: remaining_charges
+      path: shield.remaining_charges
+      type: integer
+      required: true
+      initial_value: 0
+    - name: spawned_count
+      path: shield.spawned_count
+      type: integer
+      required: true
+      initial_value: 0
+
+value_objects:
+  ShieldId:
+    opaque: true
+    description: "Shield Aggregate 的領域專屬識別型別。"
+  ShieldItemId:
+    opaque: true
+    description: "一次護盾出現實例的領域專屬識別型別。"
+  ShieldItem:
+    fields:
+      - name: shield_item_id
+        type: ShieldItemId
+        required: true
+      - name: position
+        type: Board.GridPosition
+        required: true
+
+enums: {}
+
+configuration:
+  allowed_levels: [2, 3]
+  max_spawned_per_level: 2
+  max_active: 1
+  duration_limit: none
+  protected_death_causes:
+    - SelfCollision
+    - WallCollision
+    - ClosedDoorCollision
+    - Bomb
+    - FatalFire
+
+derived_values:
+  - name: can_rescue
+    path: shield.can_rescue
+    formula: "shield.remaining_charges > 0"
+
+domain_relations:
+  - relation_id: SHIELD-REL-001
+    target_domain: Game
+    target_spec: ../Game/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+  - relation_id: SHIELD-REL-002
+    target_domain: Board
+    target_spec: ../Board/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+  - relation_id: SHIELD-REL-003
+    target_domain: Level
+    target_spec: ../Level/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+  - relation_id: SHIELD-REL-004
+    target_domain: Snake
+    target_spec: ../Snake/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+  - relation_id: SHIELD-REL-005
+    target_domain: Fire
+    target_spec: ../Fire/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+  - relation_id: SHIELD-REL-006
+    target_domain: Bomb
+    target_spec: ../Bomb/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+  - relation_id: SHIELD-REL-007
+    target_domain: DoorAndMaze
+    target_spec: ../DoorAndMaze/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+  - relation_id: SHIELD-REL-008
+    target_domain: GameResult
+    target_spec: ../GameResult/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+
+rules:
+  invariants:
+    - rule_id: SHIELD-INV-001
+      description: "remaining_charges 不得小於 0，spawned_count 每關介於 0 至 2。"
+      field_refs:
+        - shield.remaining_charges
+        - shield.spawned_count
+    - rule_id: SHIELD-INV-002
+      description: "同時最多存在一個 ShieldItem，且位置必須由 Board 判定合法。"
+      field_refs:
+        - shield.active_item
+    - rule_id: SHIELD-INV-003
+      description: "護盾採次數制，沒有持續時間倒數。"
+      field_refs:
+        - shield.remaining_charges
+
+  collect_and_spawn:
+    - rule_id: SHIELD-COLLECT-001
+      description: "蛇頭吃到 ShieldItem 時，物件消失且 remaining_charges 增加 1。"
+      when: "Snake head 接觸 ShieldItem.position。"
+      then: "移除 active_item 並增加一次保命次數。"
+      field_refs:
+        - shield.active_item
+        - shield.remaining_charges
+    - rule_id: SHIELD-SPAWN-001
+      description: "第二、三關開始時產生第一個 ShieldItem。"
+      when: "Game 開始 Level 2 或 Level 3。"
+      then: "在 Board 合法格位建立 ShieldItem，spawned_count 成為 1。"
+      field_refs:
+        - shield.active_item
+        - shield.spawned_count
+    - rule_id: SHIELD-SPAWN-002
+      description: "第一個 ShieldItem 被吃掉後才產生第二個；第二個之後不再產生。"
+      when: "active_item 被吃掉。"
+      then: "spawned_count 小於 2 時建立下一個；等於 2 時停止產生。"
+      field_refs:
+        - shield.active_item
+        - shield.spawned_count
+    - rule_id: SHIELD-SPAWN-003
+      description: "每次產生 ShieldItem 都建立新的 ShieldItemId。"
+      when: "建立 ShieldItem。"
+      then: "配置未使用過的新 ShieldItemId。"
+      field_refs:
+        - shield.active_item
+    - rule_id: SHIELD-SPAWN-004
+      description: "沒有合法空格時保留 pending_spawn，不得重疊產生。"
+      when: "需要產生 ShieldItem 但 Board 沒有合法格位。"
+      then: "將 pending_spawn 設為 true。"
+      field_refs:
+        - shield.pending_spawn
+    - rule_id: SHIELD-SPAWN-005
+      description: "已顯示的 ShieldItem 保留到被吃掉或關卡結束。"
+      field_refs:
+        - shield.active_item
+
+  rescue:
+    - rule_id: SHIELD-RESCUE-001
+      description: "有剩餘次數時，可保護設定中的五種死亡原因。"
+      when: "收到 protected_death_causes 之一且 shield.can_rescue == true。"
+      then: "remaining_charges 減少 1 並接受保命。"
+      otherwise: "沒有剩餘次數時拒絕保命。"
+      field_refs:
+        - shield.remaining_charges
+        - shield.can_rescue
+    - rule_id: SHIELD-RESCUE-002
+      description: "保命後 Snake 回到安全起點並保留受擊前完整長度。"
+      when: "SHIELD-RESCUE-001 接受保命。"
+      then: "要求 Snake 以受擊前長度安全重設；FatalFire 不提交致死減長。"
+      field_refs:
+        - shield.remaining_charges
+    - rule_id: SHIELD-RESCUE-003
+      description: "與安全蛇身衝突的棋盤物件必須移至其他 Board 合法格位。"
+      when: "Snake 安全重設位置與現有物件衝突。"
+      then: "要求各物件 Domain 重新取得合法位置。"
+      field_refs:
+        - shield.shield_id
+    - rule_id: SHIELD-RESCUE-004
+      description: "保命不補發已使用的護盾，也不重設 spawned_count。"
+      field_refs:
+        - shield.spawned_count
+    - rule_id: SHIELD-RESCUE-005
+      description: "非致死 Fire 不消耗 remaining_charges。"
+      when: "FireOutcome == NonFatal。"
+      then: "remaining_charges 保持不變。"
+      field_refs:
+        - shield.remaining_charges
+    - rule_id: SHIELD-RESCUE-006
+      description: "保命完成後 Game 維持 Playing，不需要再次開始。"
+      when: "Snake 安全重設與物件搬移完成。"
+      then: "回報保命流程完成。"
+      field_refs:
+        - shield.shield_id
+
+  reset:
+    - rule_id: SHIELD-RESET-001
+      description: "進入下一關或重玩時，remaining_charges、spawned_count、active_item 與 pending_spawn 全部重設。"
+      when: "Game 要求關卡初始化或重玩初始化。"
+      then: "數量設為 0，清除活動與等待物件。"
+      field_refs:
+        - shield.remaining_charges
+        - shield.spawned_count
+        - shield.active_item
+        - shield.pending_spawn

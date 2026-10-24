@@ -1,0 +1,87 @@
+use_case: show-first-level-status
+bounded_context: snake-game
+aggregate: game
+frame_type: IDF
+
+spec_refs:
+  requirement: "frame.yaml#use_case.requirement"
+  domain: domain_spec.yaml
+  technical: technical_spec.yaml
+
+scenarios:
+  - id: SCN-FIRST-LEVEL-STATUS-001
+    title: "成功取得第一關待開始狀態"
+    description: "第一關處於待開始階段時，應取得第一關、3/20 與 15%，且不得改變遊戲狀態。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - IDF-LEVEL-STATUS-001
+        - IDF-LEVEL-STATUS-002
+        - IDF-LEVEL-STATUS-003
+        - IDF-LEVEL-STATUS-005
+        - IDF-LEVEL-STATUS-004
+      domain_rules:
+        - DOM-FIRST-LEVEL-STATUS-IN-001
+        - DOM-FIRST-LEVEL-STATUS-OUT-001
+        - DOM-FIRST-LEVEL-STATUS-OUT-002
+        - DOM-FIRST-LEVEL-STATUS-OUT-003
+        - DOM-FIRST-LEVEL-STATUS-PRE-001
+        - DOM-FIRST-LEVEL-STATUS-INV-001
+        - DOM-FIRST-LEVEL-STATUS-POST-001
+        - DOM-FIRST-LEVEL-STATUS-POST-002
+      technical_contracts:
+        - FirstLevelStatusRspDTO.LevelName
+        - FirstLevelStatusRspDTO.CurrentLength
+        - FirstLevelStatusRspDTO.TargetLength
+        - FirstLevelStatusRspDTO.ProgressPercent
+        - TECH-FIRST-LEVEL-STATUS-STATE-001
+    given:
+      - state: first_level_ready
+        params:
+          level: 1
+          current_length: 3
+          target_length: 20
+    when:
+      action: execute_use_case
+      input: null
+    then:
+      output:
+        type: FirstLevelStatusRspDTO
+        fields:
+          level_name: "第一關"
+          current_length: 3
+          target_length: 20
+          progress_percent: 15
+        excludes:
+          - shield_count
+          - second_level_status
+          - third_level_status
+      domain_state:
+        unchanged: true
+
+  - id: SCN-FIRST-LEVEL-STATUS-002
+    title: "失敗：非第一關待開始階段"
+    description: "目前階段不符時，應拒絕取得第一關待開始狀態並保留原狀態。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - IDF-LEVEL-STATUS-005
+        - IDF-LEVEL-STATUS-004
+      domain_rules:
+        - DOM-FIRST-LEVEL-STATUS-PRE-001
+        - DOM-FIRST-LEVEL-STATUS-ERR-001
+      technical_contracts:
+        - TECH-FIRST-LEVEL-STATUS-ERR-001
+    given:
+      - state: first_level_playing
+        params:
+          level: 1
+    when:
+      action: execute_use_case
+      input: null
+    then:
+      error:
+        domain_code: INVALID_GAME_PHASE
+        technical_type: InvalidOperationException
+      domain_state:
+        unchanged: true

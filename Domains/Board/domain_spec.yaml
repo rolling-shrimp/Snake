@@ -1,0 +1,154 @@
+domain:
+  name: Board
+  bounded_context: snake-game
+  aggregate_root: Board
+  purpose: "擁有棋盤座標、尺寸、占用與合法格位規則。"
+
+aggregate:
+  name: Board
+  fields:
+    - name: board_id
+      path: board.board_id
+      type: BoardId
+      required: true
+
+value_objects:
+  BoardId:
+    opaque: true
+    description: "Board Aggregate 的領域專屬識別型別。"
+
+  GridPosition:
+    fields:
+      - name: x
+        type: integer
+        required: true
+      - name: y
+        type: integer
+        required: true
+
+enums: {}
+
+configuration:
+  rows: 10
+  columns: 10
+
+derived_values:
+  - name: rows
+    path: board.rows
+    formula: "configuration.rows"
+
+  - name: columns
+    path: board.columns
+    formula: "configuration.columns"
+
+  - name: total_cells
+    path: board.total_cells
+    formula: "configuration.rows * configuration.columns"
+
+  - name: occupied_cells
+    path: board.occupied_cells
+    formula: "彙整 Snake、Food、Fire、Shield、Bomb 與 DoorAndMaze 提供的占用格位。"
+
+  - name: object_occupied_cells
+    path: board.object_occupied_cells
+    formula: "彙整 Food、Fire、Shield 與 Bomb 提供的活動物件格位。"
+
+  - name: legal_spawn_cells
+    path: board.legal_spawn_cells
+    formula: "全部棋盤格扣除不可走格位與 occupied_cells。"
+
+domain_relations:
+  - relation_id: BOARD-REL-001
+    target_domain: Game
+    target_spec: ../Game/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+  - relation_id: BOARD-REL-002
+    target_domain: Level
+    target_spec: ../Level/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+  - relation_id: BOARD-REL-003
+    target_domain: Snake
+    target_spec: ../Snake/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+  - relation_id: BOARD-REL-004
+    target_domain: Food
+    target_spec: ../Food/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+  - relation_id: BOARD-REL-005
+    target_domain: Fire
+    target_spec: ../Fire/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+  - relation_id: BOARD-REL-006
+    target_domain: Shield
+    target_spec: ../Shield/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+  - relation_id: BOARD-REL-007
+    target_domain: Bomb
+    target_spec: ../Bomb/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+  - relation_id: BOARD-REL-008
+    target_domain: DoorAndMaze
+    target_spec: ../DoorAndMaze/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+
+rules:
+  invariants:
+    - rule_id: BOARD-INV-001
+      description: "棋盤固定為 10×10，共 100 格。"
+      field_refs:
+        - board.total_cells
+
+    - rule_id: BOARD-INV-002
+      description: "合法 GridPosition 的 x、y 均介於 0 至 9。"
+      field_refs:
+        - board.board_id
+
+    - rule_id: BOARD-INV-003
+      description: "同一有效狀態中，蛇、物件、牆壁與不可通行門不得占用同一格。"
+      field_refs:
+        - board.occupied_cells
+
+  placement:
+    - rule_id: BOARD-PLACE-001
+      description: "新物件只能放在 legal_spawn_cells。"
+      when: "任一位置型 Domain 要求產生物件。"
+      then: "只回傳未被蛇、牆壁、門或其他物件占用的可走格位。"
+      field_refs:
+        - board.legal_spawn_cells
+
+    - rule_id: BOARD-PLACE-002
+      description: "沒有合法空格時不得以重疊位置取代。"
+      when: "board.legal_spawn_cells 為空。"
+      then: "回報無合法格位，由要求方保留待產生狀態。"
+      field_refs:
+        - board.legal_spawn_cells
+
+    - rule_id: BOARD-PLACE-003
+      description: "安全起點必須能放置完整蛇身且不造成立即碰撞。"
+      when: "Snake 要求初始或保命安置。"
+      then: "回傳可容納完整蛇身的連續合法格位。"
+      field_refs:
+        - board.legal_spawn_cells
+
+  boundary:
+    - rule_id: BOARD-BOUNDARY-001
+      description: "Level 使用 Wrap 政策時，越界座標換算至相對邊界。"
+      when: "下一格超出棋盤且 Level.boundary_policy == Wrap。"
+      then: "回傳相對邊界內的 GridPosition。"
+      field_refs:
+        - board.board_id
+
+    - rule_id: BOARD-BOUNDARY-002
+      description: "Level 使用 Blocked 政策時，越界不得產生新的合法位置。"
+      when: "下一格超出棋盤且 Level.boundary_policy == Blocked。"
+      then: "回報邊界碰撞。"
+      field_refs:
+        - board.board_id

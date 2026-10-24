@@ -1,0 +1,113 @@
+use_case: start-first-level
+bounded_context: snake-game
+aggregate: game
+frame_type: CBF
+
+spec_refs:
+  requirement: "frame.yaml#use_case.requirement"
+  domain: domain_spec.yaml
+  technical: technical_spec.yaml
+
+scenarios:
+  - id: SCN-START-FIRST-LEVEL-001
+    title: "成功接受第一關開始命令"
+    description: "第一關處於待開始階段時，玩家點擊開始按鈕應接受命令並交接一次啟動遊玩反應。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - CBF-START-FIRST-LEVEL-001
+        - CBF-START-FIRST-LEVEL-002
+        - CBF-START-FIRST-LEVEL-003
+        - CBF-START-FIRST-LEVEL-004
+      domain_rules:
+        - DOM-START-FIRST-LEVEL-IN-001
+        - DOM-START-FIRST-LEVEL-OUT-001
+        - DOM-START-FIRST-LEVEL-PRE-001
+        - DOM-START-FIRST-LEVEL-INV-001
+        - DOM-START-FIRST-LEVEL-INV-002
+        - DOM-START-FIRST-LEVEL-POST-001
+        - DOM-START-FIRST-LEVEL-POST-002
+      technical_contracts:
+        - TECH-START-FIRST-LEVEL-STATE-001
+        - TECH-START-FIRST-LEVEL-STATE-002
+    given:
+      - state: first_level_ready
+        params:
+          level: 1
+          start_button_available: true
+          accepted_start_command_count: 0
+    when:
+      action: click_start_button
+      input: null
+    then:
+      output: void
+      use_case_handoff:
+        target: activate-first-level-play
+        count: 1
+      domain_state:
+        partial_playing_state_created_by_cbf: false
+
+  - id: SCN-START-FIRST-LEVEL-002
+    title: "正常忽略非待開始階段的開始命令"
+    description: "第一關不在待開始階段時，點擊開始命令應正常忽略。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - CBF-START-FIRST-LEVEL-002
+        - CBF-START-FIRST-LEVEL-004
+      domain_rules:
+        - DOM-START-FIRST-LEVEL-PRE-001
+        - DOM-START-FIRST-LEVEL-INV-001
+        - DOM-START-FIRST-LEVEL-NOOP-001
+      technical_contracts:
+        - TECH-START-FIRST-LEVEL-NOOP-001
+    given:
+      - state: first_level_playing
+        params:
+          level: 1
+    when:
+      action: click_start_button
+      input: null
+    then:
+      output: void
+      error: null
+      use_case_handoff:
+        target: activate-first-level-play
+        count: 0
+      domain_state:
+        unchanged: true
+
+  - id: SCN-START-FIRST-LEVEL-003
+    title: "正常忽略重複開始命令"
+    description: "同一待開始狀態連續收到開始命令時，只能接受並交接一次。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - CBF-START-FIRST-LEVEL-003
+        - CBF-START-FIRST-LEVEL-004
+      domain_rules:
+        - DOM-START-FIRST-LEVEL-INV-002
+        - DOM-START-FIRST-LEVEL-POST-002
+        - DOM-START-FIRST-LEVEL-NOOP-002
+      technical_contracts:
+        - TECH-START-FIRST-LEVEL-STATE-002
+        - TECH-START-FIRST-LEVEL-STATE-003
+        - TECH-START-FIRST-LEVEL-NOOP-002
+    given:
+      - state: first_level_ready
+        params:
+          level: 1
+          start_button_available: true
+          accepted_start_command_count: 0
+    when:
+      action: click_start_button_repeatedly
+      input:
+        click_count: 2
+    then:
+      output: void
+      error: null
+      use_case_handoff:
+        target: activate-first-level-play
+        count: 1
+      domain_state:
+        duplicate_partial_effects: false

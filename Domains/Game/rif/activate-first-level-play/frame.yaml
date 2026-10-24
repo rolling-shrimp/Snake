@@ -1,0 +1,55 @@
+bounded_context: snake-game
+aggregate: game
+
+# 1. 問題框架（Problem Frame）
+use_case:
+  name: activate-first-level-play
+  requirement: "遊戲隱藏「開始」按鈕，立即產生普通食物，蛇開始自動前進。"
+frame_type: RIF
+
+# 2. 問題世界事實（World Facts）
+world_facts:
+  trigger:
+    preceding_use_case: start-first-level
+    condition: start_command_accepted
+  execution_scope: same_process
+  state_transition:
+    from: first_level_ready
+    to: first_level_playing
+  start_button:
+    visible_after_reaction: false
+  ordinary_food:
+    appearance: strawberry
+    spawn_timing: immediate
+    quantity: 1
+    position_policy: legal_unoccupied_cell
+  snake:
+    length: 3
+    movement: automatic
+    movement_interval_milliseconds: 250
+  reaction_order:
+    - hide_start_button
+    - spawn_ordinary_food
+    - start_snake_movement
+
+# 3. 框架關注點（Frame Concerns）
+frame_concerns:
+  - concern_ref: RIF-CONCERN-001
+    check_id: RIF-ACTIVATE-FIRST-LEVEL-001
+    description: "確保只有 start-first-level 命令成功接受後才執行第一關遊玩啟動反應，且每個成功接受的命令最多反應一次。"
+
+  - concern_ref: RIF-CONCERN-002
+    check_id: RIF-ACTIVATE-FIRST-LEVEL-002
+    description: "確保開始按鈕隱藏、第一關切換為遊玩中、普通食物產生及蛇開始移動形成完整一致的狀態。"
+
+  - concern_ref: RIF-CONCERN-003
+    check_id: RIF-ACTIVATE-FIRST-LEVEL-004
+    description: "確保開始按鈕先隱藏並產生普通食物，再啟動每 250 毫秒一次的蛇移動。"
+
+  - concern_ref: RIF-CONCERN-004
+    check_id: RIF-ACTIVATE-FIRST-LEVEL-003
+    description: "確保普通食物立即出現在可走且未被蛇或其他物件占用的合法格位。"
+
+  - concern_ref: RIF-CONCERN-004
+    check_id: RIF-ACTIVATE-FIRST-LEVEL-005
+    description: "確保啟動遊玩時蛇長維持 3 格，不因開始命令遺失或重複套用 Domain 狀態。"

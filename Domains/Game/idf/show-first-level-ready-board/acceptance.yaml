@@ -1,0 +1,93 @@
+use_case: show-first-level-ready-board
+bounded_context: snake-game
+aggregate: game
+frame_type: IDF
+
+spec_refs:
+  requirement: "frame.yaml#use_case.requirement"
+  domain: domain_spec.yaml
+  technical: technical_spec.yaml
+
+scenarios:
+  - id: SCN-READY-BOARD-001
+    title: "成功取得第一關待開始棋盤"
+    description: "第一關處於待開始階段時，應取得 10×10 棋盤、三格蛇與開始按鈕，且不得改變遊戲狀態。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - IDF-READY-BOARD-001
+        - IDF-READY-BOARD-002
+        - IDF-READY-BOARD-003
+        - IDF-READY-BOARD-004
+      domain_rules:
+        - DOM-READY-BOARD-IN-001
+        - DOM-READY-BOARD-OUT-001
+        - DOM-READY-BOARD-OUT-002
+        - DOM-READY-BOARD-OUT-003
+        - DOM-READY-BOARD-PRE-001
+        - DOM-READY-BOARD-INV-001
+        - DOM-READY-BOARD-POST-001
+        - DOM-READY-BOARD-POST-002
+      technical_contracts:
+        - FirstLevelReadyBoardRspDTO.BoardRows
+        - FirstLevelReadyBoardRspDTO.BoardColumns
+        - FirstLevelReadyBoardRspDTO.SnakeCells
+        - FirstLevelReadyBoardRspDTO.IsStartButtonVisible
+        - GridPositionDTO.X
+        - GridPositionDTO.Y
+        - TECH-READY-BOARD-STATE-001
+    given:
+      - state: first_level_ready
+        params:
+          level: 1
+          board_rows: 10
+          board_columns: 10
+          snake_cells: THREE_VALID_SAFE_START_CELLS
+          board_object_count: 0
+          clock_running: false
+    when:
+      action: execute_use_case
+      input: null
+    then:
+      output:
+        type: FirstLevelReadyBoardRspDTO
+        fields:
+          board_rows: 10
+          board_columns: 10
+          snake_cells:
+            count: 3
+            all_in_bounds: true
+            all_unique: true
+          is_start_button_visible: true
+      domain_state:
+        unchanged: true
+        snake_moved: false
+        board_object_count: 0
+        clock_running: false
+
+  - id: SCN-READY-BOARD-002
+    title: "失敗：非第一關待開始階段"
+    description: "目前階段不符時，應拒絕取得待開始棋盤資料並保留原狀態。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - IDF-READY-BOARD-003
+        - IDF-READY-BOARD-004
+      domain_rules:
+        - DOM-READY-BOARD-PRE-001
+        - DOM-READY-BOARD-ERR-001
+      technical_contracts:
+        - TECH-READY-BOARD-ERR-001
+    given:
+      - state: first_level_playing
+        params:
+          level: 1
+    when:
+      action: execute_use_case
+      input: null
+    then:
+      error:
+        domain_code: INVALID_GAME_PHASE
+        technical_type: InvalidOperationException
+      domain_state:
+        unchanged: true

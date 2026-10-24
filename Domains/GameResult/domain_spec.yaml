@@ -1,0 +1,129 @@
+domain:
+  name: GameResult
+  bounded_context: snake-game
+  aggregate_root: GameResult
+  purpose: "擁有關卡通過、失敗、死亡原因與最終蛇長結果。"
+
+aggregate:
+  name: GameResult
+  fields:
+    - name: game_result_id
+      path: game_result.game_result_id
+      type: GameResultId
+      required: true
+    - name: level_results
+      path: game_result.level_results
+      type: "List<LevelResult>"
+      required: true
+      initial_value: []
+
+value_objects:
+  GameResultId:
+    opaque: true
+    description: "GameResult Aggregate 的領域專屬識別型別。"
+  LevelResultId:
+    opaque: true
+    description: "一筆關卡結果的領域專屬識別型別。"
+  LevelResult:
+    fields:
+      - name: level_result_id
+        type: LevelResultId
+        required: true
+      - name: level
+        type: Level.LevelNumber
+        required: true
+      - name: outcome
+        type: LevelOutcome
+        required: true
+      - name: final_length
+        type: integer
+        required: true
+      - name: death_cause
+        type: DeathCause
+        required: false
+
+enums:
+  LevelOutcome:
+    values:
+      - Passed
+      - Failed
+  DeathCause:
+    values:
+      - SelfCollision
+      - WallCollision
+      - ClosedDoorCollision
+      - Bomb
+      - FatalFire
+
+configuration: {}
+
+derived_values:
+  - name: latest_result
+    path: game_result.latest_result
+    formula: "level_results 的最後一筆；沒有結果時為空。"
+
+domain_relations:
+  - relation_id: RESULT-REL-001
+    target_domain: Game
+    target_spec: ../Game/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+  - relation_id: RESULT-REL-002
+    target_domain: Level
+    target_spec: ../Level/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+  - relation_id: RESULT-REL-003
+    target_domain: Snake
+    target_spec: ../Snake/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+
+rules:
+  invariants:
+    - rule_id: RESULT-INV-001
+      description: "final_length 不得小於 0。"
+      field_refs:
+        - game_result.level_results
+    - rule_id: RESULT-INV-002
+      description: "Failed 結果必須有 death_cause；Passed 結果不得有 death_cause。"
+      field_refs:
+        - game_result.level_results
+    - rule_id: RESULT-INV-003
+      description: "每筆 LevelResult 都有新的 LevelResultId。"
+      field_refs:
+        - game_result.level_results
+
+  record:
+    - rule_id: RESULT-RECORD-001
+      description: "第一、二關通過時，記錄實際通關蛇長。"
+      when: "Level 1 或 Level 2 回報通過。"
+      then: "新增 Passed LevelResult 並保留實際 final_length。"
+      field_refs:
+        - game_result.level_results
+    - rule_id: RESULT-RECORD-002
+      description: "第三關通過時記錄實際蛇長，即使超過 50 也不得截斷。"
+      when: "Level 3 回報通過。"
+      then: "新增 Passed LevelResult 並保留實際 final_length。"
+      field_refs:
+        - game_result.level_results
+    - rule_id: RESULT-RECORD-003
+      description: "沒有 Shield 保命的死亡事件建立 Failed LevelResult。"
+      when: "Game 確認死亡事件未被 Shield 消除。"
+      then: "新增 Failed LevelResult，記錄關卡、非負 final_length 與 death_cause。"
+      field_refs:
+        - game_result.level_results
+    - rule_id: RESULT-RECORD-004
+      description: "FatalFire 的 final_length 最低為 0。"
+      when: "死亡原因為 FatalFire。"
+      then: "final_length 記為 0，不保存負數。"
+      field_refs:
+        - game_result.level_results
+
+  reset:
+    - rule_id: RESULT-RESET-001
+      description: "重玩時清除整輪 level_results。"
+      when: "Game 接受重玩。"
+      then: "清空 level_results，保留 GameResult Aggregate identity。"
+      field_refs:
+        - game_result.level_results

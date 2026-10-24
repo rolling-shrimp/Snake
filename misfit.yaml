@@ -1,0 +1,288 @@
+schema_version: 1
+
+catalog:
+  id: PROJECT-MISFITS
+  title: "專案不適配與必要驗證清單"
+  purpose: "集中列出開發時必須轉成單元測試的 use case acceptance 情境，以及所有 Pattern Network 架構 Gate。"
+
+notices:
+  acceptance_implementation:
+    requirement: required_unit_tests
+    source_of_truth: "Domains/**/acceptance.yaml"
+    test_project_name_formula: "{solution_name}.Test"
+    solution_name_source: solution_file_name_without_extension
+    example: "Snake.sln -> Snake.Test"
+    traceability: "每一個單元測試必須保留對應的 scenario_id，並完整驗證來源 acceptance.yaml 的 Given／When／Then。"
+    duplication_policy: "misfit.yaml 只保存情境索引；Given／When／Then 由 acceptance.yaml 唯一擁有。"
+
+  pattern_gate_execution:
+    requirement: required_architecture_gate
+    source_of_truth: "Pattern Network/patterns/**/gate.yaml"
+    runner: PatternNetwork.Gates
+    unit_test_conversion_required: false
+    traceability: "架構違規以 gate check ID 與 rule_refs 追溯，不轉成 {solution_name}.Test 的 use case 單元測試。"
+
+acceptance_scenarios:
+  - domain: Game
+    bounded_context: snake-game
+    aggregate: game
+    frame_type: CBF
+    use_case: start-first-level
+    source: "Domains/Game/cbf/start-first-level/acceptance.yaml"
+    scenarios:
+      - scenario_id: SCN-START-FIRST-LEVEL-001
+        title: "成功接受第一關開始命令"
+        description: "第一關處於待開始階段時，玩家點擊開始按鈕應接受命令並交接一次啟動遊玩反應。"
+
+      - scenario_id: SCN-START-FIRST-LEVEL-002
+        title: "正常忽略非待開始階段的開始命令"
+        description: "第一關不在待開始階段時，點擊開始命令應正常忽略。"
+
+      - scenario_id: SCN-START-FIRST-LEVEL-003
+        title: "正常忽略重複開始命令"
+        description: "同一待開始狀態連續收到開始命令時，只能接受並交接一次。"
+
+  - domain: Game
+    bounded_context: snake-game
+    aggregate: game
+    frame_type: IDF
+    use_case: show-first-level-ready-board
+    source: "Domains/Game/idf/show-first-level-ready-board/acceptance.yaml"
+    scenarios:
+      - scenario_id: SCN-READY-BOARD-001
+        title: "成功取得第一關待開始棋盤"
+        description: "第一關處於待開始階段時，應取得 10×10 棋盤、三格蛇與開始按鈕，且不得改變遊戲狀態。"
+
+      - scenario_id: SCN-READY-BOARD-002
+        title: "失敗：非第一關待開始階段"
+        description: "目前階段不符時，應拒絕取得待開始棋盤資料並保留原狀態。"
+
+  - domain: Game
+    bounded_context: snake-game
+    aggregate: game
+    frame_type: IDF
+    use_case: show-first-level-rules
+    source: "Domains/Game/idf/show-first-level-rules/acceptance.yaml"
+    scenarios:
+      - scenario_id: SCN-FIRST-LEVEL-RULES-001
+        title: "成功取得第一關規則提示"
+        description: "第一關處於待開始階段時，應依序取得普通食物、邊界穿越與撞身死亡三項提示。"
+
+      - scenario_id: SCN-FIRST-LEVEL-RULES-002
+        title: "失敗：非第一關待開始階段"
+        description: "目前階段不符時，應拒絕取得第一關規則並保留原狀態。"
+
+  - domain: Game
+    bounded_context: snake-game
+    aggregate: game
+    frame_type: IDF
+    use_case: show-first-level-status
+    source: "Domains/Game/idf/show-first-level-status/acceptance.yaml"
+    scenarios:
+      - scenario_id: SCN-FIRST-LEVEL-STATUS-001
+        title: "成功取得第一關待開始狀態"
+        description: "第一關處於待開始階段時，應取得第一關、3/20 與 15%，且不得改變遊戲狀態。"
+
+      - scenario_id: SCN-FIRST-LEVEL-STATUS-002
+        title: "失敗：非第一關待開始階段"
+        description: "目前階段不符時，應拒絕取得第一關待開始狀態並保留原狀態。"
+
+  - domain: Game
+    bounded_context: snake-game
+    aggregate: game
+    frame_type: RIF
+    use_case: activate-first-level-play
+    source: "Domains/Game/rif/activate-first-level-play/acceptance.yaml"
+    scenarios:
+      - scenario_id: SCN-ACTIVATE-FIRST-LEVEL-001
+        title: "成功啟動第一關遊玩"
+        description: "有效開始 trigger 應建立完整 Playing 狀態、產生合法草莓並啟動 250 毫秒移動。"
+
+      - scenario_id: SCN-ACTIVATE-FIRST-LEVEL-002
+        title: "正常忽略錯誤來源的 trigger"
+        description: "trigger 並非來自成功接受的開始命令時，不得執行任何遊玩啟動反應。"
+
+      - scenario_id: SCN-ACTIVATE-FIRST-LEVEL-003
+        title: "正常忽略重複 trigger"
+        description: "已處理的開始 trigger 再次送達時，不得重生草莓或重設移動時序。"
+
+pattern_gates:
+  - pattern_node:
+      id: entities
+      name: Entities
+    gate_id: PN-ENTITIES-GATE
+    source: "Pattern Network/patterns/entities/gate.yaml"
+    checks:
+      - check_id: PN-ENT-GATE-001
+        checker: project_identity
+        severity: error
+        rule_refs:
+          - PN-NAME-001
+
+      - check_id: PN-ENT-GATE-002
+        checker: project_references
+        severity: error
+        rule_refs:
+          - PN-ARCH-001
+          - PN-ENT-PRO-001
+
+      - check_id: PN-ENT-GATE-003
+        checker: csharp_global_rules
+        severity: error
+        rule_refs:
+          - PN-CS-CLASS-001
+          - PN-CS-CLASS-002
+          - PN-CS-FILE-001
+          - PN-CS-FIELD-001
+          - PN-CS-FIELD-002
+          - PN-CS-CONST-001
+          - PN-CS-NAME-001
+          - PN-CS-METHOD-001
+          - PN-CS-FLOW-001
+
+      - check_id: PN-ENT-GATE-004
+        checker: forbidden_namespaces
+        severity: error
+        rule_refs:
+          - PN-ENT-004
+          - PN-ENT-PRO-002
+
+      - check_id: PN-ENT-GATE-005
+        checker: entity_boundaries
+        severity: error
+        rule_refs:
+          - PN-ENT-002
+          - PN-ENT-003
+          - PN-ENT-PRO-003
+          - PN-ENT-PRO-004
+
+      - check_id: PN-ENT-GATE-006
+        checker: manual_review
+        severity: error
+        rule_refs:
+          - PN-ENT-001
+          - PN-ENT-PRO-005
+
+  - pattern_node:
+      id: use-cases
+      name: UseCases
+    gate_id: PN-USECASES-GATE
+    source: "Pattern Network/patterns/use-cases/gate.yaml"
+    checks:
+      - check_id: PN-UC-GATE-001
+        checker: project_identity
+        severity: error
+        rule_refs:
+          - PN-NAME-001
+
+      - check_id: PN-UC-GATE-002
+        checker: project_references
+        severity: error
+        rule_refs:
+          - PN-ARCH-001
+          - PN-UC-PRO-001
+
+      - check_id: PN-UC-GATE-003
+        checker: csharp_global_rules
+        severity: error
+        rule_refs:
+          - PN-CS-CLASS-001
+          - PN-CS-CLASS-002
+          - PN-CS-FILE-001
+          - PN-CS-FIELD-001
+          - PN-CS-FIELD-002
+          - PN-CS-CONST-001
+          - PN-CS-NAME-001
+          - PN-CS-DI-001
+          - PN-CS-METHOD-001
+          - PN-CS-FLOW-001
+
+      - check_id: PN-UC-GATE-004
+        checker: forbidden_namespaces
+        severity: error
+        rule_refs:
+          - PN-UC-PRO-002
+
+      - check_id: PN-UC-GATE-005
+        checker: use_case_contracts
+        severity: error
+        rule_refs:
+          - PN-UC-001
+          - PN-UC-002
+          - PN-UC-003
+          - PN-UC-PRO-003
+
+      - check_id: PN-UC-GATE-006
+        checker: use_case_entity_exposure
+        severity: error
+        rule_refs:
+          - PN-UC-005
+          - PN-UC-PRO-005
+
+      - check_id: PN-UC-GATE-007
+        checker: manual_review
+        severity: error
+        rule_refs:
+          - PN-UC-004
+          - PN-UC-006
+          - PN-UC-PRO-004
+
+  - pattern_node:
+      id: winforms
+      name: WinForms
+    gate_id: PN-WINFORMS-GATE
+    source: "Pattern Network/patterns/winforms/gate.yaml"
+    checks:
+      - check_id: PN-UI-GATE-001
+        checker: project_identity
+        severity: error
+        rule_refs:
+          - PN-NAME-001
+
+      - check_id: PN-UI-GATE-002
+        checker: project_references
+        severity: error
+        rule_refs:
+          - PN-ARCH-001
+          - PN-UI-003
+          - PN-UI-PRO-001
+
+      - check_id: PN-UI-GATE-003
+        checker: csharp_global_rules
+        severity: error
+        rule_refs:
+          - PN-CS-CLASS-001
+          - PN-CS-CLASS-002
+          - PN-CS-FILE-001
+          - PN-CS-FIELD-001
+          - PN-CS-FIELD-002
+          - PN-CS-CONST-001
+          - PN-CS-NAME-001
+          - PN-CS-DI-001
+          - PN-CS-METHOD-001
+          - PN-CS-FLOW-001
+
+      - check_id: PN-UI-GATE-004
+        checker: winforms_boundaries
+        severity: error
+        rule_refs:
+          - PN-UI-002
+          - PN-UI-003
+          - PN-UI-006
+          - PN-UI-PRO-002
+          - PN-UI-PRO-004
+
+      - check_id: PN-UI-GATE-005
+        checker: top_level_program
+        severity: error
+        rule_refs:
+          - PN-CS-ENTRY-001
+          - PN-UI-005
+
+      - check_id: PN-UI-GATE-006
+        checker: manual_review
+        severity: error
+        rule_refs:
+          - PN-UI-001
+          - PN-UI-004
+          - PN-UI-PRO-003

@@ -1,0 +1,132 @@
+use_case: show-first-level-rules
+bounded_context: snake-game
+aggregate: game
+frame_type: IDF
+
+domain_refs:
+  - domain: Game
+    path: ../../domain_spec.yaml
+    aggregate: Game
+  - domain: Level
+    path: ../../../Level/domain_spec.yaml
+    aggregate: Level
+  - domain: Food
+    path: ../../../Food/domain_spec.yaml
+    aggregate: Food
+  - domain: Board
+    path: ../../../Board/domain_spec.yaml
+    aggregate: Board
+  - domain: Snake
+    path: ../../../Snake/domain_spec.yaml
+    aggregate: Snake
+
+traceability:
+  requirement: "frame.yaml#use_case.requirement"
+  frame_checks:
+    - IDF-FIRST-LEVEL-RULES-001
+    - IDF-FIRST-LEVEL-RULES-002
+    - IDF-FIRST-LEVEL-RULES-003
+    - IDF-FIRST-LEVEL-RULES-004
+
+contract:
+  input:
+    data: none
+    rules:
+      - rule_id: DOM-FIRST-LEVEL-RULES-IN-001
+        description: "沒有外部輸入資料；規則內容由 Game Domain 的第一關規則提供。"
+        domain_field_refs:
+          - game.phase
+          - level.number
+          - level.boundary_policy
+        domain_rule_refs:
+          - GAME-REL-001
+          - LEVEL-POLICY-003
+
+  output:
+    data: FirstLevelRules
+    rules:
+      - rule_id: DOM-FIRST-LEVEL-RULES-OUT-001
+        description: "輸出普通食物使蛇長增加 1 格的提示。"
+        domain_field_refs:
+          - food.ordinary_length_delta
+        domain_rule_refs:
+          - FOOD-EFFECT-001
+      - rule_id: DOM-FIRST-LEVEL-RULES-OUT-002
+        description: "輸出第一關邊界可以穿越的提示。"
+        domain_field_refs:
+          - level.boundary_policy
+        domain_rule_refs:
+          - LEVEL-POLICY-002
+          - BOARD-BOUNDARY-001
+      - rule_id: DOM-FIRST-LEVEL-RULES-OUT-003
+        description: "輸出蛇撞到自己的身體會死亡的提示。"
+        domain_field_refs:
+          - snake.body_cells
+        domain_rule_refs:
+          - SNAKE-MOVE-004
+      - rule_id: DOM-FIRST-LEVEL-RULES-OUT-004
+        description: "只輸出上述三項規則，順序依普通食物、邊界穿越、撞身死亡排列。"
+        domain_field_refs:
+          - level.number
+          - level.boundary_policy
+        domain_rule_refs:
+          - LEVEL-POLICY-003
+          - FOOD-EFFECT-001
+          - BOARD-BOUNDARY-001
+          - SNAKE-MOVE-004
+
+  preconditions:
+    - rule_id: DOM-FIRST-LEVEL-RULES-PRE-001
+      description: "Game 已初始化，關卡為第一關，階段為待開始。"
+      domain_field_refs:
+        - game.phase
+        - level.number
+      domain_rule_refs:
+        - GAME-INV-001
+        - GAME-REL-001
+
+  invariants:
+    - rule_id: DOM-FIRST-LEVEL-RULES-INV-001
+      description: "本 use case 只讀取規則，不得產生物件、修改蛇長、推進時間或改變 Game Domain。"
+      domain_field_refs: []
+      domain_rule_refs: []
+
+  process:
+    - order: 1
+      action: "讀取第一關允許顯示的三項規則。"
+    - order: 2
+      action: "依固定順序建立規則提示資料。"
+    - order: 3
+      action: "回傳規則提示，不修改任何遊戲狀態。"
+
+  postconditions:
+    - rule_id: DOM-FIRST-LEVEL-RULES-POST-001
+      description: "輸出恰好包含三項第一關規則，內容及效果與 Domain 規則一致。"
+      domain_field_refs:
+        - level.number
+        - level.boundary_policy
+      domain_rule_refs:
+        - LEVEL-POLICY-003
+        - FOOD-EFFECT-001
+        - BOARD-BOUNDARY-001
+        - SNAKE-MOVE-004
+    - rule_id: DOM-FIRST-LEVEL-RULES-POST-002
+      description: "輸出不包含特殊食物、護盾、火焰、炸彈、牆壁或門的規則；完成後 Game Domain 保持不變。"
+      domain_field_refs:
+        - level.number
+      domain_rule_refs:
+        - LEVEL-POLICY-003
+
+  contract_violations:
+    - rule_id: DOM-FIRST-LEVEL-RULES-ERR-001
+      condition: "目前不是第一關待開始階段。"
+      domain_code: INVALID_GAME_PHASE
+      state_guarantee: "不得回傳部分規則資料，原狀態保持不變。"
+      domain_field_refs:
+        - game.phase
+        - level.number
+        - game.can_start
+      domain_rule_refs:
+        - GAME-REL-003
+
+  not_applicable: []

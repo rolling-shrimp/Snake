@@ -1,0 +1,175 @@
+use_case: activate-first-level-play
+bounded_context: snake-game
+aggregate: game
+frame_type: RIF
+
+domain_refs:
+  - domain: Game
+    path: ../../domain_spec.yaml
+    aggregate: Game
+  - domain: Level
+    path: ../../../Level/domain_spec.yaml
+    aggregate: Level
+  - domain: Board
+    path: ../../../Board/domain_spec.yaml
+    aggregate: Board
+  - domain: Snake
+    path: ../../../Snake/domain_spec.yaml
+    aggregate: Snake
+  - domain: Food
+    path: ../../../Food/domain_spec.yaml
+    aggregate: Food
+
+traceability:
+  requirement: "frame.yaml#use_case.requirement"
+  frame_checks:
+    - RIF-ACTIVATE-FIRST-LEVEL-001
+    - RIF-ACTIVATE-FIRST-LEVEL-002
+    - RIF-ACTIVATE-FIRST-LEVEL-004
+    - RIF-ACTIVATE-FIRST-LEVEL-003
+    - RIF-ACTIVATE-FIRST-LEVEL-005
+
+contract:
+  input:
+    data: StartFirstLevelAcceptedTrigger
+    rules:
+      - rule_id: DOM-ACTIVATE-FIRST-LEVEL-IN-001
+        description: "Input 是 start-first-level 成功接受命令後產生的一次同程序 trigger；沒有 payload 欄位。"
+        domain_field_refs: []
+        domain_rule_refs: []
+
+  output:
+    data: void
+    rules:
+      - rule_id: DOM-ACTIVATE-FIRST-LEVEL-OUT-001
+        description: "Output 為 void；結果保存在 Game Domain 與可見遊戲狀態。"
+        domain_field_refs:
+          - game.phase
+          - food.active_items
+          - game.movement_active
+        domain_rule_refs:
+          - GAME-REL-002
+
+  preconditions:
+    - rule_id: DOM-ACTIVATE-FIRST-LEVEL-PRE-001
+      description: "trigger 必須來自一次成功接受的 start-first-level 命令，且尚未被處理。"
+      domain_field_refs: []
+      domain_rule_refs: []
+    - rule_id: DOM-ACTIVATE-FIRST-LEVEL-PRE-002
+      description: "Game 的關卡為第一關，階段仍為待開始，蛇長為 3，棋盤尚未產生物件。"
+      domain_field_refs:
+        - game.phase
+        - level.number
+        - snake.body_cells
+        - board.object_occupied_cells
+        - snake.length
+      domain_rule_refs:
+        - GAME-REL-001
+        - GAME-REL-002
+
+  invariants:
+    - rule_id: DOM-ACTIVATE-FIRST-LEVEL-INV-001
+      description: "同一個有效 trigger 最多執行一次完整反應。"
+      domain_field_refs:
+        - game.phase
+        - game.can_start
+      domain_rule_refs:
+        - GAME-REL-003
+    - rule_id: DOM-ACTIVATE-FIRST-LEVEL-INV-002
+      description: "反應完成後，phase、按鈕、食物、蛇長與移動時序必須形成一致狀態，不得留下部分結果。"
+      domain_field_refs:
+        - game.phase
+        - snake.body_cells
+        - food.active_items
+        - game.can_start
+        - game.movement_active
+      domain_rule_refs:
+        - GAME-INV-002
+        - FOOD-SPAWN-001
+        - GAME-REL-002
+
+  process:
+    - order: 1
+      action: "驗證 trigger 來源、處理狀態與第一關待開始狀態。"
+    - order: 2
+      action: "隱藏「開始」按鈕。"
+    - order: 3
+      action: "立即在合法且未占用的格位產生一個普通食物。"
+    - order: 4
+      action: "將第一關切換為 Playing，啟動每 250 毫秒一次的蛇移動。"
+
+  postconditions:
+    - rule_id: DOM-ACTIVATE-FIRST-LEVEL-POST-001
+      description: "第一關 phase 為 Playing，開始按鈕不再顯示。"
+      domain_field_refs:
+        - game.phase
+        - game.can_start
+      domain_rule_refs:
+        - GAME-REL-002
+    - rule_id: DOM-ACTIVATE-FIRST-LEVEL-POST-002
+      description: "棋盤恰好有一個普通食物，外觀為草莓，位置合法且未與蛇或其他物件重疊。"
+      domain_field_refs:
+        - food.active_items
+        - snake.body_cells
+        - board.legal_spawn_cells
+      domain_rule_refs:
+        - LEVEL-POLICY-003
+        - FOOD-SPAWN-001
+        - FOOD-INV-001
+        - BOARD-PLACE-001
+    - rule_id: DOM-ACTIVATE-FIRST-LEVEL-POST-003
+      description: "蛇長仍為 3，不因啟動遊玩而增加、減少或重設位置資料。"
+      domain_field_refs:
+        - snake.body_cells
+        - snake.length
+      domain_rule_refs:
+        - SNAKE-RESET-001
+        - GAME-REL-002
+    - rule_id: DOM-ACTIVATE-FIRST-LEVEL-POST-004
+      description: "蛇開始自動移動，移動間隔為 250 毫秒，沒有關卡倒數。"
+      domain_field_refs:
+        - game.phase
+        - game.movement_active
+        - snake.movement_interval_milliseconds
+        - snake.level_time_limit
+      domain_rule_refs:
+        - SNAKE-MOVE-001
+        - SNAKE-MOVE-002
+        - GAME-REL-002
+    - rule_id: DOM-ACTIVATE-FIRST-LEVEL-POST-005
+      description: "按鈕隱藏與食物產生先於第一次自動移動，所有反應完成後才對外呈現 Playing 狀態。"
+      domain_field_refs:
+        - game.phase
+        - food.active_items
+        - game.can_start
+        - game.movement_active
+      domain_rule_refs:
+        - FOOD-SPAWN-001
+        - GAME-REL-002
+
+  contract_violations: []
+
+  not_applicable:
+    - rule_id: DOM-ACTIVATE-FIRST-LEVEL-NOOP-001
+      condition: "trigger 來源錯誤、未成功接受或目前狀態不符。"
+      behavior: ignore
+      error: none
+      state_guarantee: "不執行遊玩啟動反應，原狀態保持不變。"
+      domain_field_refs:
+        - game.phase
+        - level.number
+        - game.can_start
+      domain_rule_refs:
+        - GAME-REL-003
+    - rule_id: DOM-ACTIVATE-FIRST-LEVEL-NOOP-002
+      condition: "同一 trigger 已被處理。"
+      behavior: ignore
+      error: none
+      state_guarantee: "不重生食物、不重設移動時序，也不重複套用狀態。"
+      domain_field_refs:
+        - game.phase
+        - food.active_items
+        - game.can_start
+        - game.movement_active
+      domain_rule_refs:
+        - GAME-REL-003

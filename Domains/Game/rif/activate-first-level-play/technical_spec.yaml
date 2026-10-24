@@ -1,0 +1,80 @@
+use_case: activate-first-level-play
+bounded_context: snake-game
+aggregate: game
+frame_type: RIF
+
+spec_refs:
+  domain: domain_spec.yaml
+
+input:
+  type: none
+  source: "start-first-level 成功接受後的一次同程序 handoff trigger。"
+  fields: []
+  trigger:
+    name: start_first_level_accepted
+    source_use_case: start-first-level
+    transport: same_process
+    payload_fields: []
+
+output:
+  type: void
+  fields: []
+  result_representation: "Game Domain 與可見遊戲狀態的具體變更。"
+
+types: []
+
+concrete_values:
+  - domain_outcome: "第一關進入 Playing。"
+    representation: GamePhase.Playing
+  - domain_outcome: "開始按鈕隱藏。"
+    representation: "UI 由 Phase 不再是 GamePhase.Ready 推導，不新增布林欄位。"
+  - domain_outcome: "普通食物。"
+    representation: GameObjectType.Strawberry
+  - domain_outcome: "食物數量。"
+    representation: 1
+  - domain_outcome: "食物位置。"
+    representation: "棋盤內合法且未被蛇或其他物件占用的格位。"
+  - domain_outcome: "蛇長。"
+    representation: "int 值 3。"
+  - domain_outcome: "移動間隔。"
+    representation: "int 值 250 毫秒。"
+
+domain_to_technical_mapping:
+  - domain_rules:
+      - DOM-ACTIVATE-FIRST-LEVEL-PRE-001
+    target: start_first_level_accepted
+    description: "有效且未處理的 handoff trigger 映射來源前置條件。"
+  - domain_rules:
+      - DOM-ACTIVATE-FIRST-LEVEL-PRE-002
+    target: "level = 1 and GamePhase.Ready"
+    description: "第一關 Ready 狀態映射遊戲狀態前置條件。"
+  - domain_rules:
+      - DOM-ACTIVATE-FIRST-LEVEL-POST-002
+    target: GameObjectType.Strawberry
+    description: "普通食物以 GameObjectType.Strawberry 表示，不建立新物件種類。"
+  - domain_rules:
+      - DOM-ACTIVATE-FIRST-LEVEL-IN-001
+    target: same_process
+    description: "本 use case 在同一程序內完成，不建立 HTTP、UUID、訊息佇列或跨程序 domain event。"
+
+state_mappings:
+  - mapping_id: TECH-ACTIVATE-FIRST-LEVEL-STATE-001
+    description: "將 phase 設為 GamePhase.Playing；開始按鈕由畫面狀態推導為隱藏。"
+  - mapping_id: TECH-ACTIVATE-FIRST-LEVEL-STATE-002
+    description: "建立一個 GameObjectType.Strawberry，位置必須通過合法格位檢查。"
+  - mapping_id: TECH-ACTIVATE-FIRST-LEVEL-STATE-003
+    description: "蛇長保持 3，不得因啟動流程改變。"
+  - mapping_id: TECH-ACTIVATE-FIRST-LEVEL-STATE-004
+    description: "啟動移動時序，下一次移動間隔為 250 毫秒。"
+  - mapping_id: TECH-ACTIVATE-FIRST-LEVEL-STATE-005
+    description: "隱藏按鈕、建立草莓、設定 Playing 與啟動移動必須形成一次完整反應，不得公開部分狀態。"
+
+error_mappings: []
+
+no_op_mappings:
+  - mapping_id: TECH-ACTIVATE-FIRST-LEVEL-NOOP-001
+    condition: "無效來源、未接受 trigger 或狀態不符。"
+    behavior: "直接結束，無例外且無狀態變更。"
+  - mapping_id: TECH-ACTIVATE-FIRST-LEVEL-NOOP-002
+    condition: "已處理 trigger 再次送達。"
+    behavior: "直接結束，不重生草莓、不重設移動計時。"

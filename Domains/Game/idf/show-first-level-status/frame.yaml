@@ -1,0 +1,40 @@
+bounded_context: snake-game
+aggregate: game
+
+# 1. 問題框架（Problem Frame）
+use_case:
+  name: show-first-level-status
+  requirement: "遊戲顯示第一關資訊：目前蛇長 `3/20`、過關進度 15%。"
+frame_type: IDF
+
+# 2. 問題世界事實（World Facts）
+world_facts:
+  presentation_phase: first_level_ready
+  level_status:
+    level_name: "第一關"
+    current_length: 3
+    target_length: 20
+    progress_percent: 15
+    progress_formula: "current_length / target_length"
+
+# 3. 框架關注點（Frame Concerns）
+frame_concerns:
+  - concern_ref: IDF-CONCERN-001
+    check_id: IDF-LEVEL-STATUS-001
+    description: "確保畫面同時顯示第一關名稱、目前蛇長、目標蛇長與過關進度。"
+
+  - concern_ref: IDF-CONCERN-002
+    check_id: IDF-LEVEL-STATUS-002
+    description: "確保待開始狀態顯示目前蛇長 3、目標蛇長 20，文字結果為 `3/20`。"
+
+  - concern_ref: IDF-CONCERN-002
+    check_id: IDF-LEVEL-STATUS-003
+    description: "確保過關進度依 3 除以 20 計算並顯示為 15%。"
+
+  - concern_ref: IDF-CONCERN-003
+    check_id: IDF-LEVEL-STATUS-005
+    description: "確保第一關待開始畫面只顯示第一關狀態，不顯示第二、三關或護盾資訊。"
+
+  - concern_ref: IDF-CONCERN-004
+    check_id: IDF-LEVEL-STATUS-004
+    description: "確保顯示關卡資訊不會修改蛇長、目標或遊戲階段。"

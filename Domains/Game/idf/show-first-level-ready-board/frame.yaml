@@ -1,0 +1,41 @@
+bounded_context: snake-game
+aggregate: game
+
+# 1. 問題框架（Problem Frame）
+use_case:
+  name: show-first-level-ready-board
+  requirement: "遊戲顯示 10×10 棋盤、停在安全起點的 3 格蛇與「開始」按鈕。"
+frame_type: IDF
+
+# 2. 問題世界事實（World Facts）
+world_facts:
+  presentation_phase: first_level_ready
+  board:
+    rows: 10
+    columns: 10
+  snake:
+    length: 3
+    placement: safe_start
+    movement: stopped
+  start_button:
+    visible: true
+    enabled: true
+  board_objects: none
+
+# 3. 框架關注點（Frame Concerns）
+frame_concerns:
+  - concern_ref: IDF-CONCERN-001
+    check_id: IDF-READY-BOARD-001
+    description: "確保待開始畫面同時顯示 10×10 棋盤、安全起點上的 3 格蛇與「開始」按鈕。"
+
+  - concern_ref: IDF-CONCERN-002
+    check_id: IDF-READY-BOARD-002
+    description: "確保三格蛇身位於棋盤的合法安全起點，沒有超出棋盤或彼此重疊。"
+
+  - concern_ref: IDF-CONCERN-003
+    check_id: IDF-READY-BOARD-003
+    description: "確保只有第一關待開始狀態呈現「開始」按鈕，且棋盤尚未出現遊戲物件。"
+
+  - concern_ref: IDF-CONCERN-004
+    check_id: IDF-READY-BOARD-004
+    description: "確保畫面呈現期間蛇保持停止，不因繪製畫面而推進時間或開始移動。"

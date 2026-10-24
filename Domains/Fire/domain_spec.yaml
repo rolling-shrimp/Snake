@@ -1,0 +1,158 @@
+domain:
+  name: Fire
+  bounded_context: snake-game
+  aggregate_root: Fire
+  purpose: "擁有火焰實例、減長、FatalFire 與補充規則。"
+
+aggregate:
+  name: Fire
+  fields:
+    - name: fire_id
+      path: fire.fire_id
+      type: FireId
+      required: true
+    - name: active_item
+      path: fire.active_item
+      type: FireItem
+      required: false
+    - name: pending_spawn
+      path: fire.pending_spawn
+      type: boolean
+      required: true
+      initial_value: false
+
+value_objects:
+  FireId:
+    opaque: true
+    description: "Fire Aggregate 的領域專屬識別型別。"
+  FireItemId:
+    opaque: true
+    description: "一次火焰出現實例的領域專屬識別型別。"
+  FireItem:
+    fields:
+      - name: fire_item_id
+        type: FireItemId
+        required: true
+      - name: position
+        type: Board.GridPosition
+        required: true
+
+enums:
+  FireOutcome:
+    values:
+      - NonFatal
+      - FatalFire
+
+configuration:
+  allowed_levels: [2, 3]
+  length_delta: -2
+  max_active: 1
+
+derived_values:
+  - name: active_count
+    path: fire.active_count
+    formula: "0 when active_item is null; otherwise 1"
+
+domain_relations:
+  - relation_id: FIRE-REL-001
+    target_domain: Game
+    target_spec: ../Game/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+  - relation_id: FIRE-REL-002
+    target_domain: Board
+    target_spec: ../Board/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+  - relation_id: FIRE-REL-003
+    target_domain: Level
+    target_spec: ../Level/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+  - relation_id: FIRE-REL-004
+    target_domain: Snake
+    target_spec: ../Snake/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+  - relation_id: FIRE-REL-005
+    target_domain: Shield
+    target_spec: ../Shield/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+
+rules:
+  invariants:
+    - rule_id: FIRE-INV-001
+      description: "第二、三關同時最多存在一個 FireItem；第一關不得存在。"
+      field_refs:
+        - fire.active_item
+        - fire.active_count
+    - rule_id: FIRE-INV-002
+      description: "FireItem.position 必須由 Board 判定為合法且未占用。"
+      field_refs:
+        - fire.active_item
+
+  effects:
+    - rule_id: FIRE-EFFECT-001
+      description: "只有蛇頭接觸 FireItem.position 才觸發火焰。"
+      when: "Snake head 接觸 FireItem.position。"
+      then: "移除 FireItem，要求 Snake 計算 length_delta -2。"
+      field_refs:
+        - fire.active_item
+    - rule_id: FIRE-EFFECT-002
+      description: "減長後仍至少為 1 時為 NonFatal，套用減長且不消耗 Shield。"
+      when: "Snake LengthChangeResult.is_depleted == false。"
+      then: "回報 NonFatal，套用有效長度並等待 Level 更新進度。"
+      field_refs:
+        - fire.fire_id
+    - rule_id: FIRE-EFFECT-003
+      description: "減長候選值小於等於 0 時產生 FatalFire。"
+      when: "Snake LengthChangeResult.is_depleted == true。"
+      then: "回報 FatalFire，先交由 Shield 判定是否保命。"
+      field_refs:
+        - fire.fire_id
+    - rule_id: FIRE-EFFECT-004
+      description: "FatalFire 沒有 Shield 保命時，Snake 有效長度保存為 0。"
+      when: "FatalFire 且 Shield 拒絕保命。"
+      then: "要求 Snake 提交 effective_length 0，並由 Game 結束整輪。"
+      field_refs:
+        - fire.fire_id
+    - rule_id: FIRE-EFFECT-005
+      description: "FatalFire 由 Shield 保命時，不提交致死減長。"
+      when: "FatalFire 且 Shield 接受保命。"
+      then: "保留受擊前 Snake 長度並等待安全重設。"
+      field_refs:
+        - fire.fire_id
+
+  spawn:
+    - rule_id: FIRE-SPAWN-001
+      description: "第二、三關開始時立即產生一個 FireItem。"
+      when: "Game 開始 Level 2 或 Level 3。"
+      then: "向 Board 取得合法格位並建立 FireItem。"
+      field_refs:
+        - fire.active_item
+    - rule_id: FIRE-SPAWN-002
+      description: "每次產生或補充火焰都建立新的 FireItemId。"
+      when: "建立 FireItem。"
+      then: "配置未使用過的新 FireItemId。"
+      field_refs:
+        - fire.active_item
+    - rule_id: FIRE-SPAWN-003
+      description: "FireItem 觸發後，必須先完成減長、護盾、通關或死亡判定，再決定補充。"
+      when: "FireItem 已觸發。"
+      then: "等待協作結果；Game 仍為 Playing 時才補充。"
+      field_refs:
+        - fire.active_item
+    - rule_id: FIRE-SPAWN-004
+      description: "沒有合法空格時保留 pending_spawn，不得重疊產生。"
+      when: "需要產生 FireItem 但 Board 沒有合法格位。"
+      then: "將 pending_spawn 設為 true。"
+      field_refs:
+        - fire.pending_spawn
+    - rule_id: FIRE-SPAWN-005
+      description: "關卡結束後停止產生 FireItem 並清除 pending_spawn。"
+      when: "目前 Level 結束。"
+      then: "清除活動與等待狀態。"
+      field_refs:
+        - fire.active_item
+        - fire.pending_spawn

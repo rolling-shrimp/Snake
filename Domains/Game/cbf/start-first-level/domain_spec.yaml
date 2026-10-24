@@ -1,0 +1,116 @@
+use_case: start-first-level
+bounded_context: snake-game
+aggregate: game
+frame_type: CBF
+
+domain_refs:
+  - domain: Game
+    path: ../../domain_spec.yaml
+    aggregate: Game
+  - domain: Level
+    path: ../../../Level/domain_spec.yaml
+    aggregate: Level
+
+traceability:
+  requirement: "frame.yaml#use_case.requirement"
+  frame_checks:
+    - CBF-START-FIRST-LEVEL-001
+    - CBF-START-FIRST-LEVEL-002
+    - CBF-START-FIRST-LEVEL-003
+    - CBF-START-FIRST-LEVEL-004
+
+contract:
+  input:
+    data: StartFirstLevelCommandTrigger
+    rules:
+      - rule_id: DOM-START-FIRST-LEVEL-IN-001
+        description: "Input 是玩家在第一關待開始畫面點擊「開始」所產生的一次命令 trigger；沒有業務資料欄位。"
+        domain_field_refs:
+          - game.phase
+          - level.number
+          - game.can_start
+        domain_rule_refs:
+          - GAME-REL-002
+          - GAME-REL-003
+
+  output:
+    data: void
+    rules:
+      - rule_id: DOM-START-FIRST-LEVEL-OUT-001
+        description: "Output 為 void；命令結果由是否交接 activate-first-level-play 表示。"
+        domain_field_refs: []
+        domain_rule_refs: []
+
+  preconditions:
+    - rule_id: DOM-START-FIRST-LEVEL-PRE-001
+      description: "關卡為第一關、階段為待開始，且「開始」動作目前可用。"
+      domain_field_refs:
+        - game.phase
+        - level.number
+        - game.can_start
+      domain_rule_refs:
+        - GAME-INV-001
+        - GAME-REL-001
+        - GAME-REL-002
+
+  invariants:
+    - rule_id: DOM-START-FIRST-LEVEL-INV-001
+      description: "CBF 只負責辨識、驗證與交接命令，不得自行留下部分 Playing 狀態。"
+      domain_field_refs: []
+      domain_rule_refs: []
+    - rule_id: DOM-START-FIRST-LEVEL-INV-002
+      description: "同一個第一關待開始狀態最多接受一次開始命令。"
+      domain_field_refs:
+        - game.phase
+        - game.can_start
+      domain_rule_refs:
+        - GAME-REL-003
+
+  process:
+    - order: 1
+      action: "辨識來自「開始」按鈕的玩家命令。"
+    - order: 2
+      action: "驗證目前是否符合第一關待開始條件。"
+    - order: 3
+      action: "若命令有效且尚未接受，標記本次命令已接受並交接 activate-first-level-play 一次。"
+    - order: 4
+      action: "若階段不符或命令已接受，結束本次處理且不產生其他效果。"
+
+  postconditions:
+    - rule_id: DOM-START-FIRST-LEVEL-POST-001
+      description: "有效命令只被接受一次。"
+      domain_field_refs:
+        - game.phase
+        - game.can_start
+      domain_rule_refs:
+        - GAME-REL-002
+        - GAME-REL-003
+    - rule_id: DOM-START-FIRST-LEVEL-POST-002
+      description: "命令被接受後，恰好交接一次 activate-first-level-play use case。"
+      domain_field_refs: []
+      domain_rule_refs: []
+
+  contract_violations: []
+
+  not_applicable:
+    - rule_id: DOM-START-FIRST-LEVEL-NOOP-001
+      condition: "目前不是第一關待開始階段。"
+      behavior: ignore
+      error: none
+      state_guarantee: "不交接 RIF，原狀態保持不變。"
+      domain_field_refs:
+        - game.phase
+        - level.number
+        - game.can_start
+      domain_rule_refs:
+        - GAME-REL-003
+    - rule_id: DOM-START-FIRST-LEVEL-NOOP-002
+      condition: "同一待開始狀態的開始命令已被接受。"
+      behavior: ignore
+      error: none
+      state_guarantee: "不重複交接 RIF，也不重設已產生的狀態、物件或計時。"
+      domain_field_refs:
+        - game.phase
+        - game.can_start
+      domain_rule_refs:
+        - GAME-REL-003

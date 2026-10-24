@@ -1,0 +1,24 @@
+namespace {{ namespace_name }};
+
+public class {{ entity_name }}
+{
+{% for field in fields %}
+    private {{ field.type }} _{{ field.name }};
+{% endfor %}
+
+    public {{ entity_name }}({{ constructor_parameters }})
+    {
+{{ constructor_body | indent(8, true) }}
+    }
+
+{% for property in properties %}
+    public {{ property.type }} {{ property.name }} => _{{ property.field_name }};
+{% endfor %}
+
+{% for operation in operations %}
+    public {{ operation.return_type }} {{ operation.name }}({{ operation.parameters }})
+    {
+{{ operation.body | indent(8, true) }}
+    }
+{% endfor %}
+}

@@ -1,0 +1,164 @@
+domain:
+  name: Food
+  bounded_context: snake-game
+  aggregate_root: Food
+  purpose: "擁有普通與特殊食物實例、成長效果、產生及補充規則。"
+
+aggregate:
+  name: Food
+  fields:
+    - name: food_id
+      path: food.food_id
+      type: FoodId
+      required: true
+    - name: active_items
+      path: food.active_items
+      type: "List<FoodItem>"
+      required: true
+      initial_value: []
+    - name: pending_types
+      path: food.pending_types
+      type: "UniqueList<FoodType>"
+      required: true
+      initial_value: []
+
+value_objects:
+  FoodId:
+    opaque: true
+    description: "Food Aggregate 的領域專屬識別型別。"
+  FoodItemId:
+    opaque: true
+    description: "一次食物出現實例的領域專屬識別型別。"
+  FoodItem:
+    fields:
+      - name: food_item_id
+        type: FoodItemId
+        required: true
+      - name: type
+        type: FoodType
+        required: true
+      - name: position
+        type: Board.GridPosition
+        required: true
+
+enums:
+  FoodType:
+    values:
+      - Ordinary
+      - Special
+
+configuration:
+  max_active_per_type: 1
+  types:
+    Ordinary:
+      allowed_levels: [1, 2, 3]
+      length_delta: 1
+    Special:
+      allowed_levels: [2, 3]
+      length_delta: 2
+
+derived_values:
+  - name: ordinary_length_delta
+    path: food.ordinary_length_delta
+    formula: "configuration.types.Ordinary.length_delta"
+  - name: special_length_delta
+    path: food.special_length_delta
+    formula: "configuration.types.Special.length_delta"
+  - name: ordinary_active_count
+    path: food.ordinary_active_count
+    formula: "count(active_items where type == Ordinary)"
+  - name: special_active_count
+    path: food.special_active_count
+    formula: "count(active_items where type == Special)"
+
+domain_relations:
+  - relation_id: FOOD-REL-001
+    target_domain: Game
+    target_spec: ../Game/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+  - relation_id: FOOD-REL-002
+    target_domain: Board
+    target_spec: ../Board/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+  - relation_id: FOOD-REL-003
+    target_domain: Level
+    target_spec: ../Level/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+  - relation_id: FOOD-REL-004
+    target_domain: Snake
+    target_spec: ../Snake/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+
+rules:
+  invariants:
+    - rule_id: FOOD-INV-001
+      description: "每種 FoodType 同時最多存在一個 active item。"
+      field_refs:
+        - food.active_items
+        - food.ordinary_active_count
+        - food.special_active_count
+    - rule_id: FOOD-INV-002
+      description: "FoodItem.position 必須由 Board 判定為合法且未占用。"
+      field_refs:
+        - food.active_items
+
+  effects:
+    - rule_id: FOOD-EFFECT-001
+      description: "蛇頭接觸 Ordinary 時，移除該 FoodItem 並輸出 length_delta +1。"
+      when: "Snake head 接觸 Ordinary FoodItem.position。"
+      then: "移除該 item，輸出 +1，等待 Snake 與 Level 完成長度及通關判定。"
+      field_refs:
+        - food.active_items
+    - rule_id: FOOD-EFFECT-002
+      description: "蛇頭接觸 Special 時，移除該 FoodItem 並輸出 length_delta +2。"
+      when: "Snake head 接觸 Special FoodItem.position。"
+      then: "移除該 item，輸出 +2，等待 Snake 與 Level 完成長度及通關判定。"
+      field_refs:
+        - food.active_items
+    - rule_id: FOOD-EFFECT-003
+      description: "只有蛇頭接觸食物格位才觸發效果。"
+      when: "Snake body 的非頭部格位經過 FoodItem.position。"
+      then: "不移除食物，也不輸出 length_delta。"
+      field_refs:
+        - food.active_items
+
+  spawn:
+    - rule_id: FOOD-SPAWN-001
+      description: "關卡開始時立即產生 Level 允許的每種食物。"
+      when: "Game 開始目前 Level。"
+      then: "第一關產生 Ordinary；第二、三關產生 Ordinary 與 Special。"
+      field_refs:
+        - food.active_items
+    - rule_id: FOOD-SPAWN-002
+      description: "每次產生或補充食物都建立新的 FoodItemId。"
+      when: "建立 FoodItem。"
+      then: "配置未使用過的新 FoodItemId，不沿用被吃掉 item 的 ID。"
+      field_refs:
+        - food.active_items
+    - rule_id: FOOD-SPAWN-003
+      description: "新食物位置必須由 Board.legal_spawn_cells 取得。"
+      field_refs:
+        - food.active_items
+    - rule_id: FOOD-SPAWN-004
+      description: "食物被吃掉後，若 Game 仍在目前 Level Playing 且未通關，補充同類食物。"
+      when: "FoodItem 被移除且 Level 尚未完成。"
+      then: "建立相同 FoodType 的新 FoodItem。"
+      otherwise: "Level 已結束時不補充。"
+      field_refs:
+        - food.active_items
+    - rule_id: FOOD-SPAWN-005
+      description: "無合法空格時保留待補類型，不得重疊產生。"
+      when: "需要產生食物但 Board 沒有合法空格。"
+      then: "將 FoodType 加入 pending_types。"
+      field_refs:
+        - food.pending_types
+    - rule_id: FOOD-SPAWN-006
+      description: "關卡結束後停止產生食物並清除 pending_types。"
+      when: "目前 Level 結束。"
+      then: "停止補充並清除等待狀態。"
+      field_refs:
+        - food.pending_types

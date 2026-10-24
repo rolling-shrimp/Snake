@@ -1,0 +1,91 @@
+use_case: show-first-level-rules
+bounded_context: snake-game
+aggregate: game
+frame_type: IDF
+
+spec_refs:
+  requirement: "frame.yaml#use_case.requirement"
+  domain: domain_spec.yaml
+  technical: technical_spec.yaml
+
+scenarios:
+  - id: SCN-FIRST-LEVEL-RULES-001
+    title: "成功取得第一關規則提示"
+    description: "第一關處於待開始階段時，應依序取得普通食物、邊界穿越與撞身死亡三項提示。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - IDF-FIRST-LEVEL-RULES-001
+        - IDF-FIRST-LEVEL-RULES-002
+        - IDF-FIRST-LEVEL-RULES-003
+        - IDF-FIRST-LEVEL-RULES-004
+      domain_rules:
+        - DOM-FIRST-LEVEL-RULES-IN-001
+        - DOM-FIRST-LEVEL-RULES-OUT-001
+        - DOM-FIRST-LEVEL-RULES-OUT-002
+        - DOM-FIRST-LEVEL-RULES-OUT-003
+        - DOM-FIRST-LEVEL-RULES-OUT-004
+        - DOM-FIRST-LEVEL-RULES-PRE-001
+        - DOM-FIRST-LEVEL-RULES-INV-001
+        - DOM-FIRST-LEVEL-RULES-POST-001
+        - DOM-FIRST-LEVEL-RULES-POST-002
+      technical_contracts:
+        - FirstLevelRulesRspDTO.RuleHints
+        - RuleHintDTO.Code
+        - RuleHintDTO.Text
+        - TECH-FIRST-LEVEL-RULES-STATE-001
+    given:
+      - state: first_level_ready
+        params:
+          level: 1
+    when:
+      action: execute_use_case
+      input: null
+    then:
+      output:
+        type: FirstLevelRulesRspDTO
+        fields:
+          rule_hints:
+            - code: ORDINARY_FOOD_GROWTH
+              text: "普通食物 +1 格"
+            - code: BOUNDARY_WRAP
+              text: "邊界可以穿越"
+            - code: SELF_COLLISION_DEATH
+              text: "撞到自己的身體會死亡"
+        excludes:
+          - special_food
+          - shield
+          - fire
+          - bomb
+          - wall
+          - door
+      domain_state:
+        unchanged: true
+        board_object_count: 0
+
+  - id: SCN-FIRST-LEVEL-RULES-002
+    title: "失敗：非第一關待開始階段"
+    description: "目前階段不符時，應拒絕取得第一關規則並保留原狀態。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - IDF-FIRST-LEVEL-RULES-003
+        - IDF-FIRST-LEVEL-RULES-004
+      domain_rules:
+        - DOM-FIRST-LEVEL-RULES-PRE-001
+        - DOM-FIRST-LEVEL-RULES-ERR-001
+      technical_contracts:
+        - TECH-FIRST-LEVEL-RULES-ERR-001
+    given:
+      - state: first_level_playing
+        params:
+          level: 1
+    when:
+      action: execute_use_case
+      input: null
+    then:
+      error:
+        domain_code: INVALID_GAME_PHASE
+        technical_type: InvalidOperationException
+      domain_state:
+        unchanged: true

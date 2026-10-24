@@ -1,0 +1,143 @@
+use_case: activate-first-level-play
+bounded_context: snake-game
+aggregate: game
+frame_type: RIF
+
+spec_refs:
+  requirement: "frame.yaml#use_case.requirement"
+  domain: domain_spec.yaml
+  technical: technical_spec.yaml
+
+scenarios:
+  - id: SCN-ACTIVATE-FIRST-LEVEL-001
+    title: "成功啟動第一關遊玩"
+    description: "有效開始 trigger 應建立完整 Playing 狀態、產生合法草莓並啟動 250 毫秒移動。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - RIF-ACTIVATE-FIRST-LEVEL-001
+        - RIF-ACTIVATE-FIRST-LEVEL-002
+        - RIF-ACTIVATE-FIRST-LEVEL-004
+        - RIF-ACTIVATE-FIRST-LEVEL-003
+        - RIF-ACTIVATE-FIRST-LEVEL-005
+      domain_rules:
+        - DOM-ACTIVATE-FIRST-LEVEL-IN-001
+        - DOM-ACTIVATE-FIRST-LEVEL-OUT-001
+        - DOM-ACTIVATE-FIRST-LEVEL-PRE-001
+        - DOM-ACTIVATE-FIRST-LEVEL-PRE-002
+        - DOM-ACTIVATE-FIRST-LEVEL-INV-001
+        - DOM-ACTIVATE-FIRST-LEVEL-INV-002
+        - DOM-ACTIVATE-FIRST-LEVEL-POST-001
+        - DOM-ACTIVATE-FIRST-LEVEL-POST-002
+        - DOM-ACTIVATE-FIRST-LEVEL-POST-003
+        - DOM-ACTIVATE-FIRST-LEVEL-POST-004
+        - DOM-ACTIVATE-FIRST-LEVEL-POST-005
+      technical_contracts:
+        - TECH-ACTIVATE-FIRST-LEVEL-STATE-001
+        - TECH-ACTIVATE-FIRST-LEVEL-STATE-002
+        - TECH-ACTIVATE-FIRST-LEVEL-STATE-003
+        - TECH-ACTIVATE-FIRST-LEVEL-STATE-004
+        - TECH-ACTIVATE-FIRST-LEVEL-STATE-005
+    given:
+      - state: first_level_ready
+        params:
+          level: 1
+          snake_length: 3
+          board_object_count: 0
+          start_button_visible: true
+          valid_food_cell_available: true
+      - trigger: start_first_level_accepted
+        params:
+          source_use_case: start-first-level
+          already_processed: false
+    when:
+      action: handle_start_accepted_trigger
+      input: null
+    then:
+      output: void
+      reaction_order:
+        - hide_start_button
+        - spawn_ordinary_food
+        - start_snake_movement
+      domain_state:
+        phase: Playing
+        start_button_visible: false
+        snake_length: 3
+        board_objects:
+          count: 1
+          only_type: Strawberry
+          position_is_legal: true
+        movement:
+          is_active: true
+          interval_milliseconds: 250
+        level_countdown_exists: false
+
+  - id: SCN-ACTIVATE-FIRST-LEVEL-002
+    title: "正常忽略錯誤來源的 trigger"
+    description: "trigger 並非來自成功接受的開始命令時，不得執行任何遊玩啟動反應。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - RIF-ACTIVATE-FIRST-LEVEL-001
+        - RIF-ACTIVATE-FIRST-LEVEL-002
+      domain_rules:
+        - DOM-ACTIVATE-FIRST-LEVEL-PRE-001
+        - DOM-ACTIVATE-FIRST-LEVEL-PRE-002
+        - DOM-ACTIVATE-FIRST-LEVEL-INV-002
+        - DOM-ACTIVATE-FIRST-LEVEL-NOOP-001
+      technical_contracts:
+        - TECH-ACTIVATE-FIRST-LEVEL-NOOP-001
+    given:
+      - state: first_level_ready
+        params:
+          level: 1
+          snake_length: 3
+          board_object_count: 0
+      - trigger: invalid_source
+        params:
+          already_processed: false
+    when:
+      action: handle_start_accepted_trigger
+      input: null
+    then:
+      output: void
+      error: null
+      domain_state:
+        unchanged: true
+
+  - id: SCN-ACTIVATE-FIRST-LEVEL-003
+    title: "正常忽略重複 trigger"
+    description: "已處理的開始 trigger 再次送達時，不得重生草莓或重設移動時序。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - RIF-ACTIVATE-FIRST-LEVEL-001
+        - RIF-ACTIVATE-FIRST-LEVEL-003
+        - RIF-ACTIVATE-FIRST-LEVEL-005
+      domain_rules:
+        - DOM-ACTIVATE-FIRST-LEVEL-INV-001
+        - DOM-ACTIVATE-FIRST-LEVEL-INV-002
+        - DOM-ACTIVATE-FIRST-LEVEL-NOOP-002
+      technical_contracts:
+        - TECH-ACTIVATE-FIRST-LEVEL-NOOP-002
+    given:
+      - state: first_level_playing
+        params:
+          level: 1
+          snake_length: 3
+          strawberry_count: 1
+          movement_interval_milliseconds: 250
+      - trigger: start_first_level_accepted
+        params:
+          source_use_case: start-first-level
+          already_processed: true
+    when:
+      action: handle_start_accepted_trigger
+      input: null
+    then:
+      output: void
+      error: null
+      domain_state:
+        unchanged: true
+        strawberry_count: 1
+        movement_timer_reset: false

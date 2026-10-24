@@ -1,0 +1,88 @@
+use_case: show-first-level-status
+bounded_context: snake-game
+aggregate: game
+frame_type: IDF
+
+spec_refs:
+  domain: domain_spec.yaml
+
+input:
+  type: none
+  source: "Game Domain 已擁有的第一關待開始狀態。"
+  fields: []
+
+output:
+  type: FirstLevelStatusRspDTO
+  fields:
+    - name: LevelName
+      csharp_type: string
+      required: true
+      constraints:
+        - "固定為「第一關」。"
+      domain_rules:
+        - DOM-FIRST-LEVEL-STATUS-OUT-001
+    - name: CurrentLength
+      csharp_type: int
+      required: true
+      constraints:
+        - "固定為 3。"
+      domain_rules:
+        - DOM-FIRST-LEVEL-STATUS-OUT-002
+    - name: TargetLength
+      csharp_type: int
+      required: true
+      constraints:
+        - "固定為 20。"
+      domain_rules:
+        - DOM-FIRST-LEVEL-STATUS-OUT-002
+    - name: ProgressPercent
+      csharp_type: int
+      required: true
+      constraints:
+        - "固定為 15。"
+      domain_rules:
+        - DOM-FIRST-LEVEL-STATUS-OUT-003
+
+types:
+  - name: FirstLevelStatusRspDTO
+    fields:
+      - name: LevelName
+        csharp_type: string
+      - name: CurrentLength
+        csharp_type: int
+      - name: TargetLength
+        csharp_type: int
+      - name: ProgressPercent
+        csharp_type: int
+
+excluded_fields:
+  - Phase
+  - shield_count
+  - other_level_data
+  - internal_timing
+
+domain_to_technical_mapping:
+  - domain_rules:
+      - DOM-FIRST-LEVEL-STATUS-OUT-001
+    target: FirstLevelStatusRspDTO.LevelName
+    description: "Domain 關卡名稱映射至 LevelName。"
+  - domain_rules:
+      - DOM-FIRST-LEVEL-STATUS-OUT-002
+    target: "FirstLevelStatusRspDTO.CurrentLength, FirstLevelStatusRspDTO.TargetLength"
+    description: "Domain 目前蛇長與目標蛇長分別映射至 CurrentLength、TargetLength。"
+  - domain_rules:
+      - DOM-FIRST-LEVEL-STATUS-OUT-003
+    target: FirstLevelStatusRspDTO.ProgressPercent
+    description: "Domain 進度計算結果映射至 ProgressPercent，不得由 UI 以不同公式重新計算。"
+
+state_mappings:
+  - mapping_id: TECH-FIRST-LEVEL-STATUS-STATE-001
+    description: "本操作不得寫入 Game Domain 或推進遊戲狀態。"
+
+error_mappings:
+  - mapping_id: TECH-FIRST-LEVEL-STATUS-ERR-001
+    domain_code: INVALID_GAME_PHASE
+    technical_type: InvalidOperationException
+    description: "例外必須在產生部分 Output 或修改狀態前發生。"
+
+no_op_mappings: []

@@ -1,0 +1,69 @@
+schema_version: 1
+
+gate:
+  id: PN-WINFORMS-GATE
+  pattern_node_id: winforms
+  project_name_formula: "{solution_name}.{pattern_node_name}"
+
+checks:
+  - id: PN-UI-GATE-001
+    checker: project_identity
+    severity: error
+    rule_refs:
+      - PN-NAME-001
+    parameters:
+      target_framework: net8.0-windows
+      use_windows_forms: true
+
+  - id: PN-UI-GATE-002
+    checker: project_references
+    severity: error
+    rule_refs:
+      - PN-ARCH-001
+      - PN-UI-003
+      - PN-UI-PRO-001
+    parameters:
+      required_pattern_nodes:
+        - UseCases
+      forbidden_pattern_nodes:
+        - Entities
+
+  - id: PN-UI-GATE-003
+    checker: csharp_global_rules
+    severity: error
+    rule_refs:
+      - PN-CS-CLASS-001
+      - PN-CS-CLASS-002
+      - PN-CS-FILE-001
+      - PN-CS-FIELD-001
+      - PN-CS-FIELD-002
+      - PN-CS-CONST-001
+      - PN-CS-NAME-001
+      - PN-CS-DI-001
+      - PN-CS-METHOD-001
+      - PN-CS-FLOW-001
+
+  - id: PN-UI-GATE-004
+    checker: winforms_boundaries
+    severity: error
+    rule_refs:
+      - PN-UI-002
+      - PN-UI-003
+      - PN-UI-006
+      - PN-UI-PRO-002
+      - PN-UI-PRO-004
+
+  - id: PN-UI-GATE-005
+    checker: top_level_program
+    severity: error
+    rule_refs:
+      - PN-CS-ENTRY-001
+      - PN-UI-005
+
+  - id: PN-UI-GATE-006
+    checker: manual_review
+    severity: error
+    rule_refs:
+      - PN-UI-001
+      - PN-UI-004
+      - PN-UI-PRO-003

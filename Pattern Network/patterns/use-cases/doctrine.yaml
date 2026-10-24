@@ -1,0 +1,73 @@
+schema_version: 1
+
+doctrine:
+  id: PN-USECASES-DOCTRINE
+  title: "UseCases 節點準則"
+  inherits: ../../doctrine.yaml
+
+pattern_node:
+  id: use-cases
+  name: UseCases
+  role: application_boundary
+
+project:
+  target_framework: net8.0
+  use_windows_forms: false
+  allowed_project_references:
+    - Entities
+
+responsibility:
+  owns:
+    - command
+    - query
+    - use_case
+    - result
+    - external_dependency_port
+    - application_orchestration
+  excludes:
+    - domain_invariant_implementation
+    - winforms_control
+    - concrete_io_adapter
+
+contract:
+  input_grain: command_or_query
+  output_grain: result
+  owner: UseCases
+  entry_method: Execute
+  expected_failure:
+    transport: result
+    required_fields:
+      - IsSuccess
+      - FailureCode
+      - FailureMessage
+
+rules:
+  - id: PN-UC-001
+    title: "Command 與 Query 分離"
+    statement: "改變狀態的輸入型別以 Command 結尾；唯讀輸入型別以 Query 結尾。"
+    enforcement: automated
+
+  - id: PN-UC-002
+    title: "Use Case 使用單一 Execute 入口"
+    statement: "Use Case 的公開應用入口為 Execute，接受一個 Command 或 Query 並回傳對應 Result。"
+    enforcement: automated
+
+  - id: PN-UC-003
+    title: "預期失敗使用 Result"
+    statement: "輸入或業務條件不成立等預期失敗，必須以含 FailureCode 與 FailureMessage 的 Result 回傳。"
+    enforcement: automated
+
+  - id: PN-UC-004
+    title: "Query 不得改變領域狀態"
+    statement: "接受 Query 的 Use Case 不得呼叫會改變 Entity 或 Aggregate 狀態的行為。"
+    enforcement: manual
+
+  - id: PN-UC-005
+    title: "公開契約不得洩漏 Entity"
+    statement: "UI 可見的 Command、Query 與 Result 不得直接暴露 Entities 型別。"
+    enforcement: automated
+
+  - id: PN-UC-006
+    title: "外部能力以 Port 表達"
+    statement: "時鐘、亂數、儲存與外部服務等能力由 UseCases 擁有介面，具體實作留在外層。"
+    enforcement: manual

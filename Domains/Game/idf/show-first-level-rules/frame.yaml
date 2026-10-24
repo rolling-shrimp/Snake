@@ -1,0 +1,37 @@
+bounded_context: snake-game
+aggregate: game
+
+# 1. 問題框架（Problem Frame）
+use_case:
+  name: show-first-level-rules
+  requirement: "遊戲顯示普通食物增加 1 格、邊界可以穿越及撞到身體會死亡的規則提示。"
+frame_type: IDF
+
+# 2. 問題世界事實（World Facts）
+world_facts:
+  presentation_phase: first_level_ready
+  rule_hints:
+    ordinary_food:
+      length_delta: 1
+    board_boundary:
+      behavior: wrap_to_opposite_edge
+    self_collision:
+      result: death
+
+# 3. 框架關注點（Frame Concerns）
+frame_concerns:
+  - concern_ref: IDF-CONCERN-001
+    check_id: IDF-FIRST-LEVEL-RULES-001
+    description: "確保規則提示同時包含普通食物增加 1 格、邊界可以穿越及撞到蛇身會死亡。"
+
+  - concern_ref: IDF-CONCERN-002
+    check_id: IDF-FIRST-LEVEL-RULES-002
+    description: "確保每一項提示與第一關實際規則一致，不改變食物、邊界或碰撞效果。"
+
+  - concern_ref: IDF-CONCERN-003
+    check_id: IDF-FIRST-LEVEL-RULES-003
+    description: "確保第一關提示不顯示特殊食物、護盾、火焰、炸彈、牆壁或門等其他關卡規則。"
+
+  - concern_ref: IDF-CONCERN-004
+    check_id: IDF-FIRST-LEVEL-RULES-004
+    description: "確保顯示規則提示不會產生物件、改變蛇長或推進遊戲狀態。"

@@ -1,0 +1,249 @@
+domain:
+  name: Game
+  bounded_context: snake-game
+  aggregate_root: Game
+  purpose: "協調一輪遊戲的生命週期與跨 Domain 行為，不擁有其他 Domain 的內部欄位。"
+
+aggregate:
+  name: Game
+  fields:
+    - name: game_id
+      path: game.game_id
+      type: GameId
+      required: true
+    - name: phase
+      path: game.phase
+      type: GamePhase
+      required: true
+      initial_value: Ready
+
+value_objects:
+  GameId:
+    opaque: true
+    description: "Game Aggregate 的領域專屬識別型別。"
+
+enums:
+  GamePhase:
+    values:
+      - Ready
+      - Playing
+      - GameOver
+      - Completed
+
+configuration: {}
+
+derived_values:
+  - name: can_start
+    path: game.can_start
+    formula: "game.phase == Ready"
+  - name: movement_active
+    path: game.movement_active
+    formula: "game.phase == Playing"
+
+domain_relations:
+  - relation_id: GAME-LINK-001
+    role: snake
+    target_domain: Snake
+    target_spec: ../Snake/domain_spec.yaml
+    target_identity: SnakeId
+    cardinality: one
+    ownership: reference_only
+  - relation_id: GAME-LINK-002
+    role: board
+    target_domain: Board
+    target_spec: ../Board/domain_spec.yaml
+    target_identity: BoardId
+    cardinality: one
+    ownership: reference_only
+  - relation_id: GAME-LINK-003
+    role: level
+    target_domain: Level
+    target_spec: ../Level/domain_spec.yaml
+    target_identity: LevelId
+    cardinality: one
+    ownership: reference_only
+  - relation_id: GAME-LINK-004
+    role: food
+    target_domain: Food
+    target_spec: ../Food/domain_spec.yaml
+    target_identity: FoodId
+    cardinality: one
+    ownership: reference_only
+  - relation_id: GAME-LINK-005
+    role: fire
+    target_domain: Fire
+    target_spec: ../Fire/domain_spec.yaml
+    target_identity: FireId
+    cardinality: one
+    ownership: reference_only
+  - relation_id: GAME-LINK-006
+    role: shield
+    target_domain: Shield
+    target_spec: ../Shield/domain_spec.yaml
+    target_identity: ShieldId
+    cardinality: one
+    ownership: reference_only
+  - relation_id: GAME-LINK-007
+    role: bomb
+    target_domain: Bomb
+    target_spec: ../Bomb/domain_spec.yaml
+    target_identity: BombId
+    cardinality: one
+    ownership: reference_only
+  - relation_id: GAME-LINK-008
+    role: door_and_maze
+    target_domain: DoorAndMaze
+    target_spec: ../DoorAndMaze/domain_spec.yaml
+    target_identity: DoorAndMazeId
+    cardinality: one
+    ownership: reference_only
+  - relation_id: GAME-LINK-009
+    role: game_result
+    target_domain: GameResult
+    target_spec: ../GameResult/domain_spec.yaml
+    target_identity: GameResultId
+    cardinality: one
+    ownership: reference_only
+
+rules:
+  invariants:
+    - rule_id: GAME-INV-001
+      description: "phase 只能是 Ready、Playing、GameOver、Completed。"
+      field_refs:
+        - game.phase
+    - rule_id: GAME-INV-002
+      description: "只有 Playing 階段允許移動、方向輸入、物件產生與門週期更新。"
+      when: "game.phase 不是 Playing。"
+      then: "不得要求相關 Domain 執行遊玩中行為。"
+      field_refs:
+        - game.phase
+        - game.movement_active
+
+  collaboration:
+    - rule_id: GAME-REL-001
+      description: "新遊戲建立每局各一個相關 Domain Aggregate，並進入第一關 Ready。"
+      when: "建立新 Game。"
+      then: "建立一對一 Domain relations，要求 Level 1、Board 與 Snake 準備待開始狀態。"
+      relation_refs:
+        - GAME-LINK-001
+        - GAME-LINK-002
+        - GAME-LINK-003
+        - GAME-LINK-004
+        - GAME-LINK-005
+        - GAME-LINK-006
+        - GAME-LINK-007
+        - GAME-LINK-008
+        - GAME-LINK-009
+      field_refs:
+        - game.phase
+    - rule_id: GAME-REL-002
+      description: "Ready 階段接受開始後，完整切換為 Playing 並啟動該關相關 Domain。"
+      when: "game.can_start == true 且開始命令被接受。"
+      then: "要求 Level 啟動、Snake 開始移動、允許的物件 Domain 產生初始物件，再公開 Playing。"
+      relation_refs:
+        - GAME-LINK-001
+        - GAME-LINK-003
+        - GAME-LINK-004
+        - GAME-LINK-005
+        - GAME-LINK-006
+        - GAME-LINK-007
+        - GAME-LINK-008
+      field_refs:
+        - game.phase
+        - game.can_start
+    - rule_id: GAME-REL-003
+      description: "非 Ready 階段或已接受的重複開始命令正常忽略。"
+      when: "game.can_start == false 或同一開始命令已接受。"
+      then: "不重複啟動任何相關 Domain。"
+      field_refs:
+        - game.phase
+        - game.can_start
+    - rule_id: GAME-REL-004
+      description: "物件觸發後，先處理效果、護盾、通關或死亡，再決定是否補充物件。"
+      when: "Food、Fire、Shield 或 Bomb 回報接觸結果。"
+      then: "依 Snake → Level → Shield → GameResult → 物件補充的必要順序完成協作。"
+      relation_refs:
+        - GAME-LINK-001
+        - GAME-LINK-003
+        - GAME-LINK-004
+        - GAME-LINK-005
+        - GAME-LINK-006
+        - GAME-LINK-007
+        - GAME-LINK-009
+      field_refs:
+        - game.phase
+    - rule_id: GAME-REL-005
+      description: "死亡事件先交由 Shield 判定；保命成功時維持 Playing。"
+      when: "Snake、Fire、Bomb 或 DoorAndMaze 回報死亡事件。"
+      then: "Shield 接受時協調安全重設與物件處理，phase 保持 Playing。"
+      otherwise: "Shield 拒絕時記錄 Failed 結果並切換為 GameOver。"
+      relation_refs:
+        - GAME-LINK-001
+        - GAME-LINK-005
+        - GAME-LINK-006
+        - GAME-LINK-007
+        - GAME-LINK-008
+        - GAME-LINK-009
+      field_refs:
+        - game.phase
+    - rule_id: GAME-REL-006
+      description: "第一、二關通過時先記錄結果，再準備下一關 Ready。"
+      when: "Level 1 或 Level 2 回報通過。"
+      then: "要求 GameResult 記錄、Level 前進、Snake 與物件 Domains 重設，最後將 phase 設為 Ready。"
+      relation_refs:
+        - GAME-LINK-001
+        - GAME-LINK-003
+        - GAME-LINK-004
+        - GAME-LINK-005
+        - GAME-LINK-006
+        - GAME-LINK-007
+        - GAME-LINK-008
+        - GAME-LINK-009
+      field_refs:
+        - game.phase
+    - rule_id: GAME-REL-007
+      description: "第三關通過時記錄實際結果並完成整輪。"
+      when: "Level 3 回報通過。"
+      then: "要求 GameResult 記錄後將 phase 設為 Completed。"
+      relation_refs:
+        - GAME-LINK-003
+        - GAME-LINK-009
+      field_refs:
+        - game.phase
+    - rule_id: GAME-REL-008
+      description: "GameOver 或 Completed 時停止所有遊玩中活動。"
+      when: "game.phase 為 GameOver 或 Completed。"
+      then: "停止 Snake、物件補充與 DoorAndMaze 週期。"
+      relation_refs:
+        - GAME-LINK-001
+        - GAME-LINK-004
+        - GAME-LINK-005
+        - GAME-LINK-006
+        - GAME-LINK-007
+        - GAME-LINK-008
+      field_refs:
+        - game.phase
+        - game.movement_active
+    - rule_id: GAME-REL-009
+      description: "只有 GameOver 或 Completed 接受重玩；其他階段忽略。"
+      when: "收到重玩要求。"
+      then: "終局階段執行重玩。"
+      otherwise: "保持所有 Domain 狀態不變。"
+      field_refs:
+        - game.phase
+    - rule_id: GAME-REL-010
+      description: "重玩清除整輪資料並直接建立第一關 Playing，不再次進入 Ready。"
+      when: "GAME-REL-009 接受重玩。"
+      then: "重設 Level、Snake、Board、物件、DoorAndMaze、Shield、GameResult；立即產生普通食物並開始移動。"
+      relation_refs:
+        - GAME-LINK-001
+        - GAME-LINK-002
+        - GAME-LINK-003
+        - GAME-LINK-004
+        - GAME-LINK-005
+        - GAME-LINK-006
+        - GAME-LINK-007
+        - GAME-LINK-008
+        - GAME-LINK-009
+      field_refs:
+        - game.phase

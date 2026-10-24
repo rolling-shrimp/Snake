@@ -1,0 +1,121 @@
+use_case: show-first-level-status
+bounded_context: snake-game
+aggregate: game
+frame_type: IDF
+
+domain_refs:
+  - domain: Game
+    path: ../../domain_spec.yaml
+    aggregate: Game
+  - domain: Level
+    path: ../../../Level/domain_spec.yaml
+    aggregate: Level
+  - domain: Snake
+    path: ../../../Snake/domain_spec.yaml
+    aggregate: Snake
+
+traceability:
+  requirement: "frame.yaml#use_case.requirement"
+  frame_checks:
+    - IDF-LEVEL-STATUS-001
+    - IDF-LEVEL-STATUS-002
+    - IDF-LEVEL-STATUS-003
+    - IDF-LEVEL-STATUS-005
+    - IDF-LEVEL-STATUS-004
+
+contract:
+  input:
+    data: none
+    rules:
+      - rule_id: DOM-FIRST-LEVEL-STATUS-IN-001
+        description: "沒有外部輸入資料；Game Domain 從目前的第一關待開始狀態讀取關卡與蛇長資料。"
+        domain_field_refs:
+          - game.phase
+          - level.number
+          - snake.body_cells
+        domain_rule_refs:
+          - GAME-REL-001
+
+  output:
+    data: FirstLevelStatus
+    rules:
+      - rule_id: DOM-FIRST-LEVEL-STATUS-OUT-001
+        description: "輸出關卡名稱「第一關」。"
+        domain_field_refs:
+          - level.number
+        domain_rule_refs:
+          - GAME-REL-001
+      - rule_id: DOM-FIRST-LEVEL-STATUS-OUT-002
+        description: "輸出目前蛇長 3 與目標蛇長 20。"
+        domain_field_refs:
+          - snake.length
+          - level.target_length
+        domain_rule_refs:
+          - LEVEL-POLICY-001
+          - LEVEL-PROGRESS-002
+      - rule_id: DOM-FIRST-LEVEL-STATUS-OUT-003
+        description: "輸出依目前蛇長除以目標蛇長計算的進度 15%。"
+        domain_field_refs:
+          - snake.length
+          - level.target_length
+          - level.progress_percent
+        domain_rule_refs:
+          - LEVEL-PROGRESS-001
+          - LEVEL-PROGRESS-002
+
+  preconditions:
+    - rule_id: DOM-FIRST-LEVEL-STATUS-PRE-001
+      description: "Game 已初始化，關卡為第一關，階段為待開始。"
+      domain_field_refs:
+        - game.phase
+        - level.number
+      domain_rule_refs:
+        - GAME-INV-001
+        - GAME-REL-001
+
+  invariants:
+    - rule_id: DOM-FIRST-LEVEL-STATUS-INV-001
+      description: "本 use case 只讀取狀態，不得修改蛇長、目標、進度、階段或任何 Game Domain 資料。"
+      domain_field_refs: []
+      domain_rule_refs: []
+
+  process:
+    - order: 1
+      action: "讀取第一關名稱、目前蛇長與目標蛇長。"
+    - order: 2
+      action: "依目前蛇長除以目標蛇長計算顯示進度。"
+    - order: 3
+      action: "建立第一關狀態顯示資料並回傳。"
+
+  postconditions:
+    - rule_id: DOM-FIRST-LEVEL-STATUS-POST-001
+      description: "輸出固定為第一關、3/20 與 15%，且各值彼此一致。"
+      domain_field_refs:
+        - level.number
+        - snake.length
+        - level.target_length
+        - level.progress_percent
+      domain_rule_refs:
+        - LEVEL-POLICY-001
+        - LEVEL-PROGRESS-001
+        - LEVEL-PROGRESS-002
+    - rule_id: DOM-FIRST-LEVEL-STATUS-POST-002
+      description: "輸出不包含第二、三關或護盾狀態；完成後 Game Domain 保持不變。"
+      domain_field_refs:
+        - level.number
+      domain_rule_refs:
+        - GAME-REL-001
+
+  contract_violations:
+    - rule_id: DOM-FIRST-LEVEL-STATUS-ERR-001
+      condition: "目前不是第一關待開始階段。"
+      domain_code: INVALID_GAME_PHASE
+      state_guarantee: "不得回傳部分狀態資料，原狀態保持不變。"
+      domain_field_refs:
+        - game.phase
+        - level.number
+        - game.can_start
+      domain_rule_refs:
+        - GAME-REL-003
+
+  not_applicable: []

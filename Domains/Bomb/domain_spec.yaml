@@ -1,0 +1,142 @@
+domain:
+  name: Bomb
+  bounded_context: snake-game
+  aggregate_root: Bomb
+  purpose: "擁有炸彈實例、直接死亡效果與補充規則。"
+
+aggregate:
+  name: Bomb
+  fields:
+    - name: bomb_id
+      path: bomb.bomb_id
+      type: BombId
+      required: true
+    - name: active_item
+      path: bomb.active_item
+      type: BombItem
+      required: false
+    - name: pending_spawn
+      path: bomb.pending_spawn
+      type: boolean
+      required: true
+      initial_value: false
+
+value_objects:
+  BombId:
+    opaque: true
+    description: "Bomb Aggregate 的領域專屬識別型別。"
+  BombItemId:
+    opaque: true
+    description: "一次炸彈出現實例的領域專屬識別型別。"
+  BombItem:
+    fields:
+      - name: bomb_item_id
+        type: BombItemId
+        required: true
+      - name: position
+        type: Board.GridPosition
+        required: true
+
+enums: {}
+
+configuration:
+  allowed_levels: [3]
+  max_active: 1
+  death_cause: Bomb
+
+derived_values:
+  - name: active_count
+    path: bomb.active_count
+    formula: "0 when active_item is null; otherwise 1"
+
+domain_relations:
+  - relation_id: BOMB-REL-001
+    target_domain: Game
+    target_spec: ../Game/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+  - relation_id: BOMB-REL-002
+    target_domain: Board
+    target_spec: ../Board/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+  - relation_id: BOMB-REL-003
+    target_domain: Level
+    target_spec: ../Level/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+  - relation_id: BOMB-REL-004
+    target_domain: Snake
+    target_spec: ../Snake/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+  - relation_id: BOMB-REL-005
+    target_domain: Shield
+    target_spec: ../Shield/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+  - relation_id: BOMB-REL-006
+    target_domain: GameResult
+    target_spec: ../GameResult/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+
+rules:
+  invariants:
+    - rule_id: BOMB-INV-001
+      description: "只有第三關可以存在 BombItem，且同時最多一個。"
+      field_refs:
+        - bomb.active_item
+        - bomb.active_count
+    - rule_id: BOMB-INV-002
+      description: "BombItem.position 必須由 Board 判定為合法且未占用。"
+      field_refs:
+        - bomb.active_item
+
+  effects:
+    - rule_id: BOMB-EFFECT-001
+      description: "只有蛇頭接觸 BombItem.position 才觸發炸彈。"
+      when: "Snake head 接觸 BombItem.position。"
+      then: "移除 BombItem 並回報 Bomb 死亡事件。"
+      field_refs:
+        - bomb.active_item
+    - rule_id: BOMB-EFFECT-002
+      description: "Bomb 死亡事件先交由 Shield 判定保命；沒有保命才結束整輪。"
+      when: "BOMB-EFFECT-001 回報死亡事件。"
+      then: "要求 Shield 嘗試保命。"
+      field_refs:
+        - bomb.bomb_id
+
+  spawn:
+    - rule_id: BOMB-SPAWN-001
+      description: "第三關開始時立即產生一個 BombItem。"
+      when: "Game 開始 Level 3。"
+      then: "向 Board 取得合法格位並建立 BombItem。"
+      field_refs:
+        - bomb.active_item
+    - rule_id: BOMB-SPAWN-002
+      description: "每次產生或補充炸彈都建立新的 BombItemId。"
+      when: "建立 BombItem。"
+      then: "配置未使用過的新 BombItemId。"
+      field_refs:
+        - bomb.active_item
+    - rule_id: BOMB-SPAWN-003
+      description: "炸彈觸發後，保命完成且 Game 仍為 Playing 時才補充。"
+      when: "Bomb 死亡事件由 Shield 保命。"
+      then: "在另一個 Board 合法格位建立新 BombItem。"
+      otherwise: "Game 已結束時不補充。"
+      field_refs:
+        - bomb.active_item
+    - rule_id: BOMB-SPAWN-004
+      description: "沒有合法空格時保留 pending_spawn，不得重疊產生。"
+      when: "需要產生 BombItem 但 Board 沒有合法格位。"
+      then: "將 pending_spawn 設為 true。"
+      field_refs:
+        - bomb.pending_spawn
+    - rule_id: BOMB-SPAWN-005
+      description: "關卡結束後停止產生 BombItem 並清除 pending_spawn。"
+      when: "Level 3 結束。"
+      then: "清除活動與等待狀態。"
+      field_refs:
+        - bomb.active_item
+        - bomb.pending_spawn

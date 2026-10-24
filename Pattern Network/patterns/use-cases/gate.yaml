@@ -1,0 +1,77 @@
+schema_version: 1
+
+gate:
+  id: PN-USECASES-GATE
+  pattern_node_id: use-cases
+  project_name_formula: "{solution_name}.{pattern_node_name}"
+
+checks:
+  - id: PN-UC-GATE-001
+    checker: project_identity
+    severity: error
+    rule_refs:
+      - PN-NAME-001
+    parameters:
+      target_framework: net8.0
+      use_windows_forms: false
+
+  - id: PN-UC-GATE-002
+    checker: project_references
+    severity: error
+    rule_refs:
+      - PN-ARCH-001
+      - PN-UC-PRO-001
+    parameters:
+      required_pattern_nodes:
+        - Entities
+      forbidden_pattern_nodes:
+        - WinForms
+
+  - id: PN-UC-GATE-003
+    checker: csharp_global_rules
+    severity: error
+    rule_refs:
+      - PN-CS-CLASS-001
+      - PN-CS-CLASS-002
+      - PN-CS-FILE-001
+      - PN-CS-FIELD-001
+      - PN-CS-FIELD-002
+      - PN-CS-CONST-001
+      - PN-CS-NAME-001
+      - PN-CS-DI-001
+      - PN-CS-METHOD-001
+      - PN-CS-FLOW-001
+
+  - id: PN-UC-GATE-004
+    checker: forbidden_namespaces
+    severity: error
+    rule_refs:
+      - PN-UC-PRO-002
+    parameters:
+      namespaces:
+        - System.Windows.Forms
+        - System.Drawing
+
+  - id: PN-UC-GATE-005
+    checker: use_case_contracts
+    severity: error
+    rule_refs:
+      - PN-UC-001
+      - PN-UC-002
+      - PN-UC-003
+      - PN-UC-PRO-003
+
+  - id: PN-UC-GATE-006
+    checker: use_case_entity_exposure
+    severity: error
+    rule_refs:
+      - PN-UC-005
+      - PN-UC-PRO-005
+
+  - id: PN-UC-GATE-007
+    checker: manual_review
+    severity: error
+    rule_refs:
+      - PN-UC-004
+      - PN-UC-006
+      - PN-UC-PRO-004

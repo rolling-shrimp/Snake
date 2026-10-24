@@ -1,0 +1,37 @@
+bounded_context: snake-game
+aggregate: game
+
+# 1. 問題框架（Problem Frame）
+use_case:
+  name: start-first-level
+  requirement: "玩家點擊「開始」按鈕。"
+frame_type: CBF
+
+# 2. 問題世界事實（World Facts）
+world_facts:
+  actor: player
+  command:
+    name: start_first_level
+    source: start_button
+    interaction: click
+  required_phase: first_level_ready
+  succeeding_use_case: activate-first-level-play
+  concurrency_control: single_active_start_command
+
+# 3. 框架關注點（Frame Concerns）
+frame_concerns:
+  - concern_ref: CBF-CONCERN-001
+    check_id: CBF-START-FIRST-LEVEL-001
+    description: "確保玩家點擊第一關待開始畫面的「開始」按鈕時，系統辨識為開始第一關命令。"
+
+  - concern_ref: CBF-CONCERN-002
+    check_id: CBF-START-FIRST-LEVEL-002
+    description: "確保只有第一關處於待開始狀態且「開始」按鈕可操作時，才接受開始命令。"
+
+  - concern_ref: CBF-CONCERN-003
+    check_id: CBF-START-FIRST-LEVEL-003
+    description: "確保同一個待開始狀態只接受一次開始命令，避免重複點擊建立重複的遊玩啟動流程。"
+
+  - concern_ref: CBF-CONCERN-004
+    check_id: CBF-START-FIRST-LEVEL-004
+    description: "確保開始命令被接受後接續觸發 activate-first-level-play use case；不符合前置條件時不得觸發反應或留下部分狀態。"

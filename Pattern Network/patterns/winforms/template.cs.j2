@@ -1,0 +1,21 @@
+namespace {{ namespace_name }};
+
+public class {{ presenter_name }}Presenter
+{
+    private {{ view_interface }} _view;
+{% for use_case in use_cases %}
+    private {{ use_case.type }} _{{ use_case.name }};
+{% endfor %}
+
+    public {{ presenter_name }}Presenter({{ constructor_parameters }})
+    {
+{{ constructor_body | indent(8, true) }}
+    }
+
+{% for interaction in interactions %}
+    public void {{ interaction.name }}({{ interaction.parameters }})
+    {
+{{ interaction.body | indent(8, true) }}
+    }
+{% endfor %}
+}

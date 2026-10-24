@@ -1,0 +1,41 @@
+schema_version: 1
+
+pattern_node:
+  id: winforms
+  name: WinForms
+
+prohibitions:
+  - id: PN-UI-PRO-001
+    title: "禁止直接參考 Entities"
+    description: "WinForms 只能直接參考 UseCases，不得直接參考 Entities。"
+    severity: error
+    enforcement: automated
+    remediation: "改由 Use Case 的 Command、Query 與 Result 傳遞資料。"
+    exceptions: []
+
+  - id: PN-UI-PRO-002
+    title: "禁止 Presenter 綁定控制項"
+    description: "Presenter 不得繼承或保存 Form、Control、Button、Timer 等 WinForms 型別。"
+    severity: error
+    enforcement: automated
+    remediation: "Presenter 依賴 View Interface，Form 負責控制項細節。"
+    exceptions: []
+
+  - id: PN-UI-PRO-003
+    title: "禁止 UI 業務判定"
+    description: "Form、Presenter 與 ViewModel 不得計算蛇長、碰撞、得分、關卡或其他領域結果。"
+    severity: error
+    enforcement: manual
+    remediation: "把判定放入 Entities，流程協調放入 UseCases。"
+    exceptions: []
+
+  - id: PN-UI-PRO-004
+    title: "禁止手寫 partial"
+    description: "除框架產生檔外，手寫類別不得宣告 partial。"
+    severity: error
+    enforcement: automated
+    remediation: "移除手寫 partial；Designer 內容保留在產生檔。"
+    exceptions:
+      - "*.Designer.cs"
+      - "*.g.cs"
+      - "*.g.i.cs"

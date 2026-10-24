@@ -1,0 +1,82 @@
+use_case: show-first-level-rules
+bounded_context: snake-game
+aggregate: game
+frame_type: IDF
+
+spec_refs:
+  domain: domain_spec.yaml
+
+input:
+  type: none
+  source: "Game Domain 的第一關規則。"
+  fields: []
+
+output:
+  type: FirstLevelRulesRspDTO
+  fields:
+    - name: RuleHints
+      csharp_type: "List<RuleHintDTO>"
+      required: true
+      constraints:
+        - "恰好三項。"
+        - "順序固定為普通食物、邊界穿越、撞身死亡。"
+      domain_rules:
+        - DOM-FIRST-LEVEL-RULES-OUT-001
+        - DOM-FIRST-LEVEL-RULES-OUT-002
+        - DOM-FIRST-LEVEL-RULES-OUT-003
+        - DOM-FIRST-LEVEL-RULES-OUT-004
+
+types:
+  - name: FirstLevelRulesRspDTO
+    fields:
+      - name: RuleHints
+        csharp_type: "List<RuleHintDTO>"
+  - name: RuleHintDTO
+    fields:
+      - name: Code
+        csharp_type: string
+      - name: Text
+        csharp_type: string
+
+fixed_values:
+  - order: 1
+    code: ORDINARY_FOOD_GROWTH
+    text: "普通食物 +1 格"
+  - order: 2
+    code: BOUNDARY_WRAP
+    text: "邊界可以穿越"
+  - order: 3
+    code: SELF_COLLISION_DEATH
+    text: "撞到自己的身體會死亡"
+
+excluded_fields:
+  - other_level_rules
+  - object_effects
+  - internal_domain_fields
+
+domain_to_technical_mapping:
+  - domain_rules:
+      - DOM-FIRST-LEVEL-RULES-OUT-001
+      - DOM-FIRST-LEVEL-RULES-OUT-002
+      - DOM-FIRST-LEVEL-RULES-OUT-003
+      - DOM-FIRST-LEVEL-RULES-OUT-004
+    target: FirstLevelRulesRspDTO.RuleHints
+    description: "三項 Domain 規則依指定順序各映射為一個 RuleHintDTO。"
+  - domain_rules:
+      - DOM-FIRST-LEVEL-RULES-OUT-001
+      - DOM-FIRST-LEVEL-RULES-OUT-002
+      - DOM-FIRST-LEVEL-RULES-OUT-003
+    target: "RuleHintDTO.Code, RuleHintDTO.Text"
+    description: "Code 使用固定、可測試的英文識別碼；Text 使用玩家可見的繁體中文提示。"
+
+state_mappings:
+  - mapping_id: TECH-FIRST-LEVEL-RULES-STATE-001
+    description: "本操作不得寫入 Game Domain、產生棋盤物件或推進遊戲狀態。"
+
+error_mappings:
+  - mapping_id: TECH-FIRST-LEVEL-RULES-ERR-001
+    domain_code: INVALID_GAME_PHASE
+    technical_type: InvalidOperationException
+    description: "例外必須在產生部分 Output 或修改狀態前發生。"
+
+no_op_mappings: []

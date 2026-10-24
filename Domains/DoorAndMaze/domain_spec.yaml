@@ -1,0 +1,165 @@
+domain:
+  name: DoorAndMaze
+  bounded_context: snake-game
+  aggregate_root: DoorAndMaze
+  purpose: "擁有第三關牆壁、迷宮、門實例與門週期規則。"
+
+aggregate:
+  name: DoorAndMaze
+  fields:
+    - name: door_and_maze_id
+      path: door_and_maze.door_and_maze_id
+      type: DoorAndMazeId
+      required: true
+    - name: wall_cells
+      path: door_and_maze.wall_cells
+      type: "List<Board.GridPosition>"
+      required: true
+      initial_value: []
+    - name: doors
+      path: door_and_maze.doors
+      type: "List<Door>"
+      required: true
+      initial_value: []
+
+value_objects:
+  DoorAndMazeId:
+    opaque: true
+    description: "DoorAndMaze Aggregate 的領域專屬識別型別。"
+  DoorId:
+    opaque: true
+    description: "Door entity 的領域專屬識別型別。"
+  Door:
+    fields:
+      - name: door_id
+        type: DoorId
+        required: true
+      - name: position
+        type: Board.GridPosition
+        required: true
+      - name: phase
+        type: DoorPhase
+        required: true
+
+enums:
+  DoorPhase:
+    values:
+      - Open
+      - ClosingWarning
+      - CloseDeferred
+      - Closed
+
+configuration:
+  allowed_levels: [3]
+  includes_outer_walls: true
+  includes_fixed_inner_walls: true
+  toggle_interval_milliseconds: 6000
+  closing_warning_milliseconds: 2000
+  minimum_snake_capacity: 50
+  must_reserve_object_spawn_cells: true
+
+derived_values:
+  - name: blocked_cells
+    path: door_and_maze.blocked_cells
+    formula: "wall_cells 加上 phase == Closed 的門格。"
+  - name: passable_door_cells
+    path: door_and_maze.passable_door_cells
+    formula: "phase 為 Open、ClosingWarning 或 CloseDeferred 的門格。"
+
+domain_relations:
+  - relation_id: DOOR-MAZE-REL-001
+    target_domain: Game
+    target_spec: ../Game/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+  - relation_id: DOOR-MAZE-REL-002
+    target_domain: Board
+    target_spec: ../Board/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+  - relation_id: DOOR-MAZE-REL-003
+    target_domain: Level
+    target_spec: ../Level/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+  - relation_id: DOOR-MAZE-REL-004
+    target_domain: Snake
+    target_spec: ../Snake/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+  - relation_id: DOOR-MAZE-REL-005
+    target_domain: Shield
+    target_spec: ../Shield/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+  - relation_id: DOOR-MAZE-REL-006
+    target_domain: GameResult
+    target_spec: ../GameResult/domain_spec.yaml
+    cardinality: one
+    ownership: reference_only
+
+rules:
+  invariants:
+    - rule_id: DOOR-MAZE-INV-001
+      description: "牆壁與門只存在於第三關，且占用格位計入 Board 的 100 格。"
+      field_refs:
+        - door_and_maze.wall_cells
+        - door_and_maze.doors
+    - rule_id: DOOR-MAZE-INV-002
+      description: "迷宮必須保留可容納 50 格蛇身的連續路線與物件合法空格。"
+      field_refs:
+        - door_and_maze.wall_cells
+        - door_and_maze.doors
+
+  collision:
+    - rule_id: DOOR-MAZE-COLLISION-001
+      description: "蛇頭撞到外圍牆壁或迷宮內牆時回報 WallCollision。"
+      when: "Snake head 下一格存在於 wall_cells。"
+      then: "回報 WallCollision，不提交 Snake 移動。"
+      field_refs:
+        - door_and_maze.wall_cells
+    - rule_id: DOOR-MAZE-COLLISION-002
+      description: "蛇頭撞到 Closed 門時回報 ClosedDoorCollision。"
+      when: "Snake head 下一格為 phase == Closed 的門格。"
+      then: "回報 ClosedDoorCollision，不提交 Snake 移動。"
+      field_refs:
+        - door_and_maze.doors
+    - rule_id: DOOR-MAZE-COLLISION-003
+      description: "Open、ClosingWarning、CloseDeferred 的門可以通過。"
+      when: "Snake head 下一格存在於 passable_door_cells。"
+      then: "允許 Board 回傳該格為合法移動位置。"
+      field_refs:
+        - door_and_maze.passable_door_cells
+
+  cycle:
+    - rule_id: DOOR-MAZE-CYCLE-001
+      description: "第三關 Playing 時，門每 6 秒執行一次開關切換。"
+      when: "門週期到達 6000 毫秒。"
+      then: "執行開門或關門判定。"
+      field_refs:
+        - door_and_maze.doors
+    - rule_id: DOOR-MAZE-CYCLE-002
+      description: "預定關閉前 2 秒，門進入 ClosingWarning。"
+      when: "距離預定關閉剩 2000 毫秒。"
+      then: "將門 phase 設為 ClosingWarning。"
+      field_refs:
+        - door_and_maze.doors
+    - rule_id: DOOR-MAZE-CYCLE-003
+      description: "關閉時蛇仍占用門格，門必須保持可通行並延後關閉。"
+      when: "關閉時點 Snake body 仍占用門格。"
+      then: "將門 phase 設為 CloseDeferred。"
+      otherwise: "沒有蛇身占用時設為 Closed。"
+      field_refs:
+        - door_and_maze.doors
+    - rule_id: DOOR-MAZE-CYCLE-004
+      description: "CloseDeferred 門在整條蛇離開後才關閉。"
+      when: "Snake body 不再占用 CloseDeferred 門格。"
+      then: "將門 phase 設為 Closed。"
+      field_refs:
+        - door_and_maze.doors
+    - rule_id: DOOR-MAZE-CYCLE-005
+      description: "第三關不在 Playing 時停止門週期。"
+      when: "Game 不允許門更新。"
+      then: "保持目前門狀態，不再切換。"
+      field_refs:
+        - door_and_maze.doors

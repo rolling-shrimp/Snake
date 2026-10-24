@@ -1,0 +1,56 @@
+schema_version: 1
+
+doctrine:
+  id: PN-ENTITIES-DOCTRINE
+  title: "Entities 節點準則"
+  inherits: ../../doctrine.yaml
+
+pattern_node:
+  id: entities
+  name: Entities
+  role: inner_domain
+
+project:
+  target_framework: net8.0
+  use_windows_forms: false
+  allowed_project_references: []
+
+responsibility:
+  owns:
+    - entity
+    - aggregate
+    - value_object
+    - domain_event
+    - domain_state
+    - domain_invariant
+  excludes:
+    - application_orchestration
+    - user_interface
+    - file_or_network_io
+    - system_clock_and_random_source
+
+contract:
+  input_grain: domain_value
+  output_grain: domain_state_or_event
+  owner: Entities
+
+rules:
+  - id: PN-ENT-001
+    title: "領域狀態由領域行為維護"
+    statement: "Entity 與 Aggregate 必須透過具業務意義的方法改變狀態並維持不變式。"
+    enforcement: manual
+
+  - id: PN-ENT-002
+    title: "禁止公開狀態修改入口"
+    statement: "領域狀態屬性不得提供 public set 或 public init。"
+    enforcement: automated
+
+  - id: PN-ENT-003
+    title: "領域行為保持確定性"
+    statement: "系統時間、隨機值與外部資料必須由呼叫端以領域值傳入，不得由 Entity 自行取得。"
+    enforcement: automated
+
+  - id: PN-ENT-004
+    title: "禁止 UI 與技術 I/O 相依"
+    statement: "Entities 不得參考 WinForms、System.Drawing、檔案、網路或環境 API。"
+    enforcement: automated

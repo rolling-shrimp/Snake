@@ -1,0 +1,46 @@
+schema_version: 1
+
+pattern_node:
+  id: entities
+  name: Entities
+
+prohibitions:
+  - id: PN-ENT-PRO-001
+    title: "禁止外層專案參考"
+    description: "Entities 不得參考 UseCases、WinForms 或其他產品專案。"
+    severity: error
+    enforcement: automated
+    remediation: "移除 ProjectReference，將需要的規則與型別放回 Entities 擁有的契約。"
+    exceptions: []
+
+  - id: PN-ENT-PRO-002
+    title: "禁止 UI 與 I/O namespace"
+    description: "Entities 不得使用 System.Windows.Forms、System.Drawing、System.IO 或 System.Net。"
+    severity: error
+    enforcement: automated
+    remediation: "以領域值取代框架型別，並由外層執行 I/O。"
+    exceptions: []
+
+  - id: PN-ENT-PRO-003
+    title: "禁止非確定性來源"
+    description: "Entities 不得直接取得 DateTime.Now、DateTime.UtcNow、Guid.NewGuid、Environment 或 Random。"
+    severity: error
+    enforcement: automated
+    remediation: "由 Use Case 或外層 Port 取得值，再作為領域輸入傳入。"
+    exceptions: []
+
+  - id: PN-ENT-PRO-004
+    title: "禁止公開 setter"
+    description: "領域屬性不得以 public set 或 public init 暴露狀態修改。"
+    severity: error
+    enforcement: automated
+    remediation: "改由維持不變式的領域方法修改私人欄位或私人 setter。"
+    exceptions: []
+
+  - id: PN-ENT-PRO-005
+    title: "禁止貧血領域模型"
+    description: "不得把領域行為全部移到 Use Case 而讓 Entity 只保存資料。"
+    severity: error
+    enforcement: manual
+    remediation: "將真正維護領域不變式的行為放回 Entity 或 Aggregate。"
+    exceptions: []

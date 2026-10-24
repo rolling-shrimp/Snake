@@ -1,0 +1,18 @@
+namespace {{ namespace_name }};
+
+public class {{ use_case_name }}UseCase
+{
+{% for dependency in dependencies %}
+    private {{ dependency.type }} _{{ dependency.name }};
+{% endfor %}
+
+    public {{ use_case_name }}UseCase({{ constructor_parameters }})
+    {
+{{ constructor_body | indent(8, true) }}
+    }
+
+    public {{ result_type }} Execute({{ request_type }} request)
+    {
+{{ execute_body | indent(8, true) }}
+    }
+}

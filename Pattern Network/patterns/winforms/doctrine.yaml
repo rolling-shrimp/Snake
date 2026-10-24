@@ -1,0 +1,68 @@
+schema_version: 1
+
+doctrine:
+  id: PN-WINFORMS-DOCTRINE
+  title: "WinForms 節點準則"
+  inherits: ../../doctrine.yaml
+
+pattern_node:
+  id: winforms
+  name: WinForms
+  role: outer_ui
+
+project:
+  target_framework: net8.0-windows
+  use_windows_forms: true
+  allowed_project_references:
+    - UseCases
+
+responsibility:
+  owns:
+    - form
+    - view_interface
+    - presenter
+    - view_model
+    - input_event_mapping
+    - composition_root
+    - outer_port_implementation
+  excludes:
+    - domain_invariant
+    - application_business_decision
+    - direct_entity_access
+
+contract:
+  input_grain: keyboard_mouse_or_timer_event
+  output_grain: view_model
+  owner: WinForms
+  presentation_pattern: passive_view_presenter
+
+rules:
+  - id: PN-UI-001
+    title: "Form 是 Passive View"
+    statement: "Form 只把 WinForms 事件轉送給 Presenter，並依 ViewModel 更新控制項或繪圖。"
+    enforcement: manual
+
+  - id: PN-UI-002
+    title: "Presenter 不依賴 WinForms 控制項"
+    statement: "Presenter 只能依賴 View Interface 與 Use Case，不得繼承或保存 Form、Control。"
+    enforcement: automated
+
+  - id: PN-UI-003
+    title: "UI 不直接使用 Entities"
+    statement: "WinForms 不得直接參考 Entities 專案或以 Entity 作為 UI 契約。"
+    enforcement: automated
+
+  - id: PN-UI-004
+    title: "Presenter 處理 Result"
+    statement: "Presenter 呼叫 Use Case、處理成功或失敗 Result，並轉換為 UI 擁有的 ViewModel。"
+    enforcement: manual
+
+  - id: PN-UI-005
+    title: "Program 是 Composition Root"
+    statement: "Program.cs 使用頂層陳述式建立實作、Use Case、Presenter 與 Form 的依賴關係。"
+    enforcement: automated
+
+  - id: PN-UI-006
+    title: "Designer 產生碼例外"
+    statement: "Visual Studio 產生的 *.Designer.cs 可以使用 partial；手寫 Presenter、ViewModel 與其他類別仍遵守根層規則。"
+    enforcement: automated
