@@ -1,0 +1,32 @@
+bounded_context: snake-game
+aggregate: game
+
+use_case:
+  name: rescue-with-shield
+  requirement: "死亡事件發生且有護盾次數時，消耗一次護盾並將蛇安全恢復後繼續本關。"
+frame_type: RIF
+
+world_facts:
+  actor: domain_event
+  trigger: "protectable death event emitted"
+  required_state: "game.phase == Playing，死亡原因可保護，且 shield.remaining_charges > 0"
+  reaction: "消耗一次護盾、保留受擊前蛇長、將完整蛇身放回安全起點、搬移衝突物件並維持 Playing"
+  delivery_policy: at_most_once_effect
+
+frame_concerns:
+  - concern_ref: RIF-CONCERN-001
+    check_id: RIF-RESCUE-WITH-SHIELD-001
+    description: "確保只回應未處理的 protectable death event emitted，錯誤來源與重複事件不得反應。"
+
+  - concern_ref: RIF-CONCERN-002
+    check_id: RIF-RESCUE-WITH-SHIELD-002
+    description: "確保 消耗一次護盾、保留受擊前蛇長、將完整蛇身放回安全起點、搬移衝突物件並維持 Playing 的必要後續行為全部完成。"
+
+  - concern_ref: RIF-CONCERN-003
+    check_id: RIF-RESCUE-WITH-SHIELD-003
+    description: "確保跨 Domain 動作依需求順序執行，不公開中間狀態。"
+
+  - concern_ref: RIF-CONCERN-004
+    check_id: RIF-RESCUE-WITH-SHIELD-004
+    description: "確保反應完成後 Game、Snake、Board、Shield、Fire、Bomb、DoorAndMaze 的不變式與欄位完整。"
+

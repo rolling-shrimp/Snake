@@ -1,0 +1,77 @@
+use_case: start-third-level
+bounded_context: snake-game
+aggregate: game
+frame_type: CBF
+
+spec_refs:
+  requirement: "frame.yaml#use_case.requirement"
+  domain: domain_spec.yaml
+  technical: technical_spec.yaml
+
+scenarios:
+  - id: SCN-START-THIRD-LEVEL-001
+    title: "成功：玩家在第三關待開始畫面點擊「開始」按鈕。"
+    description: "命令被接受一次並交接 activate-third-level-play 一次；CBF 不直接產生物件或啟動門週期。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - CBF-START-THIRD-LEVEL-001
+        - CBF-START-THIRD-LEVEL-002
+        - CBF-START-THIRD-LEVEL-003
+        - CBF-START-THIRD-LEVEL-004
+      domain_rules:
+        - DOM-START-THIRD-LEVEL-IN-001
+        - DOM-START-THIRD-LEVEL-PRE-001
+        - DOM-START-THIRD-LEVEL-INV-001
+        - DOM-START-THIRD-LEVEL-POST-001
+      technical_contracts:
+        - StartThirdLevelResult.IsSuccess
+        - TECH-START-THIRD-LEVEL-STATE-001
+    given:
+      - fact: "第三關處於 Ready、蛇長為 3、進度為 6%、護盾剩餘次數為 0，且開始命令尚未接受。"
+    when:
+      action: start_third_level
+      input:
+        type: StartThirdLevelCommand
+        fields:
+          {}
+    then:
+      output:
+        type: StartThirdLevelResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
+      domain_effect: "命令被接受一次並交接 activate-third-level-play 一次；CBF 不直接產生物件或啟動門週期。"
+
+  - id: SCN-START-THIRD-LEVEL-002
+    title: "正常忽略：目前不是第三關 Ready，或同一 Ready 狀態的開始命令已接受。"
+    description: "正常忽略，不交接 RIF，所有 Domain 狀態保持不變。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - CBF-START-THIRD-LEVEL-002
+        - CBF-START-THIRD-LEVEL-004
+      domain_rules:
+        - DOM-START-THIRD-LEVEL-PRE-001
+        - DOM-START-THIRD-LEVEL-NOOP-001
+      technical_contracts:
+        - StartThirdLevelResult.IsSuccess
+        - TECH-START-THIRD-LEVEL-NOOP-001
+    given:
+      - fact: "目前不是第三關 Ready，或同一 Ready 狀態的開始命令已接受。"
+    when:
+      action: start_third_level
+      input:
+        type: StartThirdLevelCommand
+        fields: {}
+    then:
+      output:
+        type: StartThirdLevelResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
+      domain_state:
+        unchanged: true
+

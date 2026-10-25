@@ -1,0 +1,104 @@
+use_case: handle-special-food-contact
+bounded_context: snake-game
+aggregate: game
+frame_type: RBF
+
+domain_refs:
+  - domain: Game
+    path: ../../domain_spec.yaml
+    aggregate: Game
+  - domain: Food
+    path: ../../../Food/domain_spec.yaml
+    aggregate: Food
+  - domain: Snake
+    path: ../../../Snake/domain_spec.yaml
+    aggregate: Snake
+  - domain: Level
+    path: ../../../Level/domain_spec.yaml
+    aggregate: Level
+
+traceability:
+  requirement: "frame.yaml#use_case.requirement"
+  frame_checks:
+    - RBF-HANDLE-SPECIAL-FOOD-CONTACT-001
+    - RBF-HANDLE-SPECIAL-FOOD-CONTACT-002
+    - RBF-HANDLE-SPECIAL-FOOD-CONTACT-003
+    - RBF-HANDLE-SPECIAL-FOOD-CONTACT-004
+
+contract:
+  input:
+    data: HandleSpecialFoodContactCommand
+    fields:
+      - name: FoodItemId
+        type: string
+        required: true
+    rules:
+      - rule_id: DOM-HANDLE-SPECIAL-FOOD-CONTACT-IN-001
+        description: "Input 表示一次已觀察到的條件事實：snake head contacts active Special FoodItem。"
+        domain_rule_refs:
+          - FOOD-EFFECT-002
+          - FOOD-EFFECT-003
+          - SNAKE-LENGTH-001
+          - LEVEL-PROGRESS-003
+          - LEVEL-COMPLETE-004
+
+  output:
+    data: HandleSpecialFoodContactResult
+    rules:
+      - rule_id: DOM-HANDLE-SPECIAL-FOOD-CONTACT-OUT-001
+        description: "Output 表示必要行為是否完成；不適用條件以成功 no-op 表示。"
+        domain_rule_refs: []
+
+  preconditions:
+    - rule_id: DOM-HANDLE-SPECIAL-FOOD-CONTACT-PRE-001
+      description: "game.phase == Playing、level.number 為 2 或 3，且接觸 active Special FoodItem"
+      domain_rule_refs:
+        - FOOD-EFFECT-002
+        - FOOD-EFFECT-003
+        - SNAKE-LENGTH-001
+        - LEVEL-PROGRESS-003
+        - LEVEL-COMPLETE-004
+
+  invariants:
+    - rule_id: DOM-HANDLE-SPECIAL-FOOD-CONTACT-INV-001
+      description: "同一條件事實最多處理一次；移除特殊食物、蛇長增加 2，並保留超過目標的實際蛇長。"
+      domain_rule_refs:
+        - FOOD-EFFECT-002
+        - FOOD-EFFECT-003
+        - SNAKE-LENGTH-001
+        - LEVEL-PROGRESS-003
+        - LEVEL-COMPLETE-004
+
+  process:
+    - order: 1
+      action: "確認觸發事實與 game.phase == Playing、level.number 為 2 或 3，且接觸 active Special FoodItem。"
+    - order: 2
+      action: "移除特殊食物、蛇長增加 2，並保留超過目標的實際蛇長"
+    - order: 3
+      action: "發布後續流程需要的結果事實，但不越權執行其他 Use Case。"
+
+  postconditions:
+    - rule_id: DOM-HANDLE-SPECIAL-FOOD-CONTACT-POST-001
+      description: "移除特殊食物、蛇長增加 2，並保留超過目標的實際蛇長"
+      domain_rule_refs:
+        - FOOD-EFFECT-002
+        - FOOD-EFFECT-003
+        - SNAKE-LENGTH-001
+        - LEVEL-PROGRESS-003
+        - LEVEL-COMPLETE-004
+
+  contract_violations: []
+
+  not_applicable:
+    - rule_id: DOM-HANDLE-SPECIAL-FOOD-CONTACT-NOOP-001
+      condition: "第一關，或接觸的 Special FoodItem 已失效。"
+      behavior: ignore
+      error: none
+      state_guarantee: "正常忽略，不改變蛇長或物件。"
+      domain_rule_refs:
+        - FOOD-EFFECT-002
+        - FOOD-EFFECT-003
+        - SNAKE-LENGTH-001
+        - LEVEL-PROGRESS-003
+        - LEVEL-COMPLETE-004
+

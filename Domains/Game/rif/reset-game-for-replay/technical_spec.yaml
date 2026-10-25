@@ -1,0 +1,60 @@
+use_case: reset-game-for-replay
+bounded_context: snake-game
+aggregate: game
+frame_type: RIF
+
+spec_refs:
+  domain: domain_spec.yaml
+
+input:
+  type: ResetGameForReplayCommand
+  source: "RestartGameAccepted domain event"
+  fields:
+    []
+
+output:
+  type: ResetGameForReplayResult
+  fields:
+    - name: IsSuccess
+      csharp_type: bool
+      required: true
+    - name: FailureCode
+      csharp_type: "string?"
+      required: true
+    - name: FailureMessage
+      csharp_type: "string?"
+      required: true
+  domain_output: "清除結果與所有關卡狀態，重設第一關蛇與棋盤，立即產生普通食物並以 Playing 開始，不再顯示開始按鈕"
+
+types:
+  - name: ResetGameForReplayCommand
+    fields:
+      []
+  - name: ResetGameForReplayResult
+    fields:
+      - name: IsSuccess
+        csharp_type: bool
+      - name: FailureCode
+        csharp_type: "string?"
+      - name: FailureMessage
+        csharp_type: "string?"
+
+domain_to_technical_mapping:
+  - domain_rules: [DOM-RESET-GAME-FOR-REPLAY-IN-001, DOM-RESET-GAME-FOR-REPLAY-PRE-001]
+    target: ResetGameForReplayCommand
+    description: "Domain Event 經 Reactor 去重後轉成一次內部 Command。"
+  - domain_rules: [DOM-RESET-GAME-FOR-REPLAY-INV-001, DOM-RESET-GAME-FOR-REPLAY-POST-001]
+    target: ResetGameForReplayResult
+    description: "清除結果與所有關卡狀態，重設第一關蛇與棋盤，立即產生普通食物並以 Playing 開始，不再顯示開始按鈕"
+
+state_mappings:
+  - mapping_id: TECH-RESET-GAME-FOR-REPLAY-STATE-001
+    description: "清除結果與所有關卡狀態，重設第一關蛇與棋盤，立即產生普通食物並以 Playing 開始，不再顯示開始按鈕"
+
+error_mappings: []
+
+no_op_mappings:
+  - mapping_id: TECH-RESET-GAME-FOR-REPLAY-NOOP-001
+    condition: "事件已處理，或 Game 不是 GameOver／Completed。"
+    behavior: "正常忽略，不清除或重設目前輪次。"
+

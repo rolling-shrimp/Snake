@@ -1,0 +1,81 @@
+schema_version: 1
+screen:
+  screen_id: first-level-playing
+  bounded_context: snake-game
+  aggregate: game
+  phase: playing
+  level: first
+  board_mode: active
+grain:
+  input: use_case_results_and_read_models
+  output: rendered_screen
+  contract_owner: WinForms
+presentation_relations:
+  - relation_id: PRES-FIRST-PLAYING-STATUS
+    target_use_case: show-first-level-status
+    ownership: reference_only
+    target_specs:
+      frame: ../../idf/show-first-level-status/frame.yaml
+      domain: ../../idf/show-first-level-status/domain_spec.yaml
+      technical: ../../idf/show-first-level-status/technical_spec.yaml
+    frame_check_refs: [IDF-LEVEL-STATUS-001]
+    domain_rule_refs: [DOM-FIRST-LEVEL-STATUS-OUT-001]
+    technical_contract_refs: [TECH-FIRST-LEVEL-STATUS-STATE-001]
+  - relation_id: PRES-FIRST-PLAYING-BOARD
+    target_use_case: advance-snake-step
+    ownership: reference_only
+    target_specs:
+      frame: ../../rbf/advance-snake-step/frame.yaml
+      domain: ../../rbf/advance-snake-step/domain_spec.yaml
+      technical: ../../rbf/advance-snake-step/technical_spec.yaml
+    frame_check_refs: [RBF-ADVANCE-SNAKE-STEP-001]
+    domain_rule_refs: [DOM-ADVANCE-SNAKE-STEP-IN-001]
+    technical_contract_refs: [TECH-ADVANCE-SNAKE-STEP-STATE-001]
+  - relation_id: PRES-FIRST-PLAYING-PREPARE-NEXT
+    target_use_case: prepare-next-level
+    ownership: reference_only
+    target_specs:
+      frame: ../../rif/prepare-next-level/frame.yaml
+      domain: ../../rif/prepare-next-level/domain_spec.yaml
+      technical: ../../rif/prepare-next-level/technical_spec.yaml
+    frame_check_refs: [RIF-PREPARE-NEXT-LEVEL-001]
+    domain_rule_refs: [DOM-PREPARE-NEXT-LEVEL-IN-001]
+    technical_contract_refs: [TECH-PREPARE-NEXT-LEVEL-STATE-001]
+  - relation_id: PRES-FIRST-PLAYING-END
+    target_use_case: end-current-level-play
+    ownership: reference_only
+    target_specs:
+      frame: ../../rif/end-current-level-play/frame.yaml
+      domain: ../../rif/end-current-level-play/domain_spec.yaml
+      technical: ../../rif/end-current-level-play/technical_spec.yaml
+    frame_check_refs: [RIF-END-CURRENT-LEVEL-PLAY-001]
+    domain_rule_refs: [DOM-END-CURRENT-LEVEL-PLAY-IN-001]
+    technical_contract_refs: [TECH-END-CURRENT-LEVEL-PLAY-STATE-001]
+visibility:
+  required:
+    - 10x10-board
+    - moving-snake
+    - strawberry
+    - first-level-name
+    - current-snake-length
+    - progress-bar-and-percentage
+    - strawberry-plus-one-rule
+    - wrap-boundary-rule
+    - self-collision-death-rule
+  forbidden:
+    - start-button
+    - shield-count
+    - special-food
+    - fire
+    - bomb
+    - walls
+    - door
+    - result-card
+    - replay-button
+transitions:
+  - trigger: level_passed
+    relation_ref: PRES-FIRST-PLAYING-PREPARE-NEXT
+    target_screen: second-level-ready
+  - trigger: death
+    relation_ref: PRES-FIRST-PLAYING-END
+    target_screen: game-over

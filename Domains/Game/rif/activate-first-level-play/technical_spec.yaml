@@ -7,7 +7,7 @@ spec_refs:
   domain: domain_spec.yaml
 
 input:
-  type: none
+  type: ActivateFirstLevelPlayCommand
   source: "start-first-level 成功接受後的一次同程序 handoff trigger。"
   fields: []
   trigger:
@@ -17,11 +17,51 @@ input:
     payload_fields: []
 
 output:
-  type: void
-  fields: []
-  result_representation: "Game Domain 與可見遊戲狀態的具體變更。"
+  type: ActivateFirstLevelPlayResult
+  fields:
+    - name: IsSuccess
+      csharp_type: bool
+      required: true
+    - name: FailureCode
+      csharp_type: "string?"
+      required: true
+    - name: FailureMessage
+      csharp_type: "string?"
+      required: true
+  domain_output: void
+  result_representation: "Result 表示反應處理是否完成；Domain 結果保存在 Game Domain，並由 Output Port 呈現可見狀態。"
 
-types: []
+types:
+  - name: ActivateFirstLevelPlayCommand
+    fields: []
+  - name: ActivateFirstLevelPlayResult
+    fields:
+      - name: IsSuccess
+        csharp_type: bool
+      - name: FailureCode
+        csharp_type: "string?"
+      - name: FailureMessage
+        csharp_type: "string?"
+
+output_port:
+  name: IFirstLevelPlayOutputPort
+  implementation_node: WinForms
+  ordered_operations:
+    - order: 1
+      method: HideStartButton
+      fields: []
+    - order: 2
+      method: ShowOrdinaryFood
+      fields:
+        - FirstLevelFoodDTO.ObjectType
+        - FirstLevelFoodDTO.Position
+    - order: 3
+      method: StartMovement
+      fields:
+        - FirstLevelMovementDTO.IsActive
+        - FirstLevelMovementDTO.IntervalMilliseconds
+        - FirstLevelMovementDTO.LevelTimeLimitMilliseconds
+  presentation_policy: "WinForms Adapter 在三個操作全部收到後，才呈現完整 Playing ViewModel。"
 
 concrete_values:
   - domain_outcome: "第一關進入 Playing。"

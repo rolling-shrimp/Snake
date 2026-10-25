@@ -1,0 +1,70 @@
+use_case: replenish-triggered-object
+bounded_context: snake-game
+aggregate: game
+frame_type: RIF
+
+spec_refs:
+  domain: domain_spec.yaml
+
+input:
+  type: ReplenishTriggeredObjectCommand
+  source: "object effect resolution completed"
+  fields:
+    - name: ObjectType
+      csharp_type: "GameObjectType"
+      required: true
+    - name: PreviousItemId
+      csharp_type: "string"
+      required: true
+
+output:
+  type: ReplenishTriggeredObjectResult
+  fields:
+    - name: IsSuccess
+      csharp_type: bool
+      required: true
+    - name: FailureCode
+      csharp_type: "string?"
+      required: true
+    - name: FailureMessage
+      csharp_type: "string?"
+      required: true
+  domain_output: "在合法未占用格補同類物件；無合法格時記錄 pending；關卡已結束時停止補充"
+
+types:
+  - name: ReplenishTriggeredObjectCommand
+    fields:
+      - name: ObjectType
+        csharp_type: "GameObjectType"
+        required: true
+      - name: PreviousItemId
+        csharp_type: "string"
+        required: true
+  - name: ReplenishTriggeredObjectResult
+    fields:
+      - name: IsSuccess
+        csharp_type: bool
+      - name: FailureCode
+        csharp_type: "string?"
+      - name: FailureMessage
+        csharp_type: "string?"
+
+domain_to_technical_mapping:
+  - domain_rules: [DOM-REPLENISH-TRIGGERED-OBJECT-IN-001, DOM-REPLENISH-TRIGGERED-OBJECT-PRE-001]
+    target: ReplenishTriggeredObjectCommand
+    description: "Domain Event 經 Reactor 去重後轉成一次內部 Command。"
+  - domain_rules: [DOM-REPLENISH-TRIGGERED-OBJECT-INV-001, DOM-REPLENISH-TRIGGERED-OBJECT-POST-001]
+    target: ReplenishTriggeredObjectResult
+    description: "在合法未占用格補同類物件；無合法格時記錄 pending；關卡已結束時停止補充"
+
+state_mappings:
+  - mapping_id: TECH-REPLENISH-TRIGGERED-OBJECT-STATE-001
+    description: "在合法未占用格補同類物件；無合法格時記錄 pending；關卡已結束時停止補充"
+
+error_mappings: []
+
+no_op_mappings:
+  - mapping_id: TECH-REPLENISH-TRIGGERED-OBJECT-NOOP-001
+    condition: "Game 已不是 Playing。"
+    behavior: "正常忽略並清除不應保留的 pending，不補充任何物件。"
+

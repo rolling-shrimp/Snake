@@ -1,0 +1,99 @@
+use_case: update-level-status-read-model
+bounded_context: snake-game
+aggregate: game
+frame_type: TF
+
+domain_refs:
+  - domain: Game
+    path: ../../domain_spec.yaml
+    aggregate: Game
+  - domain: Level
+    path: ../../../Level/domain_spec.yaml
+    aggregate: Level
+  - domain: Snake
+    path: ../../../Snake/domain_spec.yaml
+    aggregate: Snake
+  - domain: Shield
+    path: ../../../Shield/domain_spec.yaml
+    aggregate: Shield
+  - domain: GameResult
+    path: ../../../GameResult/domain_spec.yaml
+    aggregate: GameResult
+
+traceability:
+  requirement: "frame.yaml#use_case.requirement"
+  frame_checks:
+    - TF-UPDATE-LEVEL-STATUS-READ-MODEL-001
+    - TF-UPDATE-LEVEL-STATUS-READ-MODEL-002
+    - TF-UPDATE-LEVEL-STATUS-READ-MODEL-003
+    - TF-UPDATE-LEVEL-STATUS-READ-MODEL-004
+
+contract:
+  input:
+    data: UpdateLevelStatusReadModelCommand
+    fields:
+      - name: SourceEventId
+        type: string
+        required: true
+      - name: SourceVersion
+        type: long
+        required: true
+    rules:
+      - rule_id: DOM-UPDATE-LEVEL-STATUS-READ-MODEL-IN-001
+        description: "Input 必須代表已提交且順序可判定的關卡、蛇長、護盾或結果事件。"
+        domain_rule_refs:
+          - LEVEL-PROGRESS-001
+          - LEVEL-PROGRESS-002
+          - LEVEL-PROGRESS-003
+
+  output:
+    data: UpdateLevelStatusReadModelResult
+    rules:
+      - rule_id: DOM-UPDATE-LEVEL-STATUS-READ-MODEL-OUT-001
+        description: "Output 表示投影是否完成；Read Model 包含 LevelName、CurrentLength、TargetLength、ProgressPercent 與適用的 ShieldRemainingCharges。"
+        domain_rule_refs: []
+
+  preconditions:
+    - rule_id: DOM-UPDATE-LEVEL-STATUS-READ-MODEL-PRE-001
+      description: "來源事件版本必須晚於 Read Model 已套用版本；重複或舊版本正常忽略。"
+      domain_rule_refs: []
+
+  invariants:
+    - rule_id: DOM-UPDATE-LEVEL-STATUS-READ-MODEL-INV-001
+      description: "進度等於實際蛇長除以目標後限制於 0% 至 100%；實際蛇長本身不得被截斷。"
+      domain_rule_refs:
+        - LEVEL-PROGRESS-001
+        - LEVEL-PROGRESS-003
+        - RESULT-RECORD-002
+        - RESULT-RECORD-004
+    - rule_id: DOM-UPDATE-LEVEL-STATUS-READ-MODEL-INV-002
+      description: "投影不得改變任何來源 Domain 狀態或推進遊戲時間。"
+      domain_rule_refs:
+        - GAME-INV-002
+
+  process:
+    - order: 1
+      action: "驗證來源事件識別與版本。"
+    - order: 2
+      action: "依關卡選擇目標 20 或 50，保留實際蛇長並計算限制後進度。"
+    - order: 3
+      action: "第二、三關映射護盾剩餘次數；第一關不輸出護盾資訊。"
+    - order: 4
+      action: "原子寫入 Read Model 與最後來源版本。"
+
+  postconditions:
+    - rule_id: DOM-UPDATE-LEVEL-STATUS-READ-MODEL-POST-001
+      description: "Read Model 與最新 Domain 事實一致，且來源 Domain 完全未改變。"
+      domain_rule_refs:
+        - LEVEL-PROGRESS-001
+        - SHIELD-INV-001
+
+  contract_violations: []
+
+  not_applicable:
+    - rule_id: DOM-UPDATE-LEVEL-STATUS-READ-MODEL-NOOP-001
+      condition: "SourceEventId 已處理，或 SourceVersion 不晚於目前版本。"
+      behavior: ignore
+      error: none
+      state_guarantee: "Read Model 與所有 Domain 狀態保持不變。"
+      domain_rule_refs: []

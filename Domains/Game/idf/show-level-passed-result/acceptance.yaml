@@ -1,0 +1,80 @@
+use_case: show-level-passed-result
+bounded_context: snake-game
+aggregate: game
+frame_type: IDF
+
+spec_refs:
+  requirement: "frame.yaml#use_case.requirement"
+  domain: domain_spec.yaml
+  technical: technical_spec.yaml
+
+scenarios:
+  - id: SCN-SHOW-LEVEL-PASSED-RESULT-001
+    title: "成功顯示：第一或第二關通過後，顯示過關標語與記錄實際通關蛇長的成績卡。"
+    description: "顯示完成關卡、過關標語、實際通關蛇長與成績卡；開始下一關後隱藏"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - IDF-SHOW-LEVEL-PASSED-RESULT-001
+        - IDF-SHOW-LEVEL-PASSED-RESULT-002
+        - IDF-SHOW-LEVEL-PASSED-RESULT-003
+        - IDF-SHOW-LEVEL-PASSED-RESULT-004
+      domain_rules:
+        - DOM-SHOW-LEVEL-PASSED-RESULT-PRE-001
+        - DOM-SHOW-LEVEL-PASSED-RESULT-INV-001
+        - DOM-SHOW-LEVEL-PASSED-RESULT-POST-001
+      technical_contracts:
+        - ShowLevelPassedResultResult.Data
+        - TECH-SHOW-LEVEL-PASSED-RESULT-STATE-001
+    given:
+      - fact: "最近結果是第一或第二關 Passed，且下一關處於 Ready"
+    when:
+      action: execute_query
+      input:
+        type: ShowLevelPassedResultQuery
+        fields: {}
+    then:
+      output:
+        type: ShowLevelPassedResultResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
+          data_expectation: "顯示完成關卡、過關標語、實際通關蛇長與成績卡；開始下一關後隱藏"
+      excludes:
+        - "失敗結果"
+        - "第三關整輪完成結果"
+        - "下一關遊玩中的舊成績卡"
+      domain_state:
+        unchanged: true
+
+  - id: SCN-SHOW-LEVEL-PASSED-RESULT-002
+    title: "失敗：目前沒有可顯示的關卡通過結果。"
+    description: "不符合可見條件時拒絕查詢，不得洩漏部分資料。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - IDF-SHOW-LEVEL-PASSED-RESULT-003
+        - IDF-SHOW-LEVEL-PASSED-RESULT-004
+      domain_rules:
+        - DOM-SHOW-LEVEL-PASSED-RESULT-ERR-001
+      technical_contracts:
+        - TECH-SHOW-LEVEL-PASSED-RESULT-ERR-001
+    given:
+      - fact: "不符合 最近結果是第一或第二關 Passed，且下一關處於 Ready"
+    when:
+      action: execute_query
+      input:
+        type: ShowLevelPassedResultQuery
+        fields: {}
+    then:
+      output:
+        type: ShowLevelPassedResultResult
+        fields:
+          is_success: false
+          failure_code: RESULT_NOT_AVAILABLE
+          failure_message: "目前沒有可顯示的關卡通過結果。"
+          data: null
+      domain_state:
+        unchanged: true
+

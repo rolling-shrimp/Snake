@@ -1,0 +1,125 @@
+use_case: show-third-level-rules
+bounded_context: snake-game
+aggregate: game
+frame_type: IDF
+
+domain_refs:
+  - domain: Game
+    path: ../../domain_spec.yaml
+    aggregate: Game
+  - domain: Level
+    path: ../../../Level/domain_spec.yaml
+    aggregate: Level
+  - domain: Food
+    path: ../../../Food/domain_spec.yaml
+    aggregate: Food
+  - domain: Shield
+    path: ../../../Shield/domain_spec.yaml
+    aggregate: Shield
+  - domain: Fire
+    path: ../../../Fire/domain_spec.yaml
+    aggregate: Fire
+  - domain: Bomb
+    path: ../../../Bomb/domain_spec.yaml
+    aggregate: Bomb
+  - domain: DoorAndMaze
+    path: ../../../DoorAndMaze/domain_spec.yaml
+    aggregate: DoorAndMaze
+
+traceability:
+  requirement: "frame.yaml#use_case.requirement"
+  frame_checks:
+    - IDF-SHOW-THIRD-LEVEL-RULES-001
+    - IDF-SHOW-THIRD-LEVEL-RULES-002
+    - IDF-SHOW-THIRD-LEVEL-RULES-003
+    - IDF-SHOW-THIRD-LEVEL-RULES-004
+
+contract:
+  input:
+    data: none
+    rules:
+      - rule_id: DOM-SHOW-THIRD-LEVEL-RULES-IN-001
+        description: "沒有外部業務資料；Query 讀取目前可見的 Domain／Read Model 事實。"
+        domain_rule_refs:
+          - LEVEL-POLICY-003
+          - FOOD-EFFECT-001
+          - FOOD-EFFECT-002
+          - SHIELD-COLLECT-001
+          - FIRE-EFFECT-002
+          - BOMB-EFFECT-002
+          - DOOR-MAZE-COLLISION-001
+
+  output:
+    data: ThirdLevelRulesRspDTO
+    rules:
+      - rule_id: DOM-SHOW-THIRD-LEVEL-RULES-OUT-001
+        description: "RuleHints：六項有固定 code、text 與順序的第三關提示。"
+        domain_rule_refs:
+          - LEVEL-POLICY-003
+          - FOOD-EFFECT-001
+          - FOOD-EFFECT-002
+          - SHIELD-COLLECT-001
+          - FIRE-EFFECT-002
+          - BOMB-EFFECT-002
+          - DOOR-MAZE-COLLISION-001
+
+  preconditions:
+    - rule_id: DOM-SHOW-THIRD-LEVEL-RULES-PRE-001
+      description: "game.phase == Ready 且 level.number == 3"
+      domain_rule_refs:
+        - LEVEL-POLICY-003
+        - FOOD-EFFECT-001
+        - FOOD-EFFECT-002
+        - SHIELD-COLLECT-001
+        - FIRE-EFFECT-002
+        - BOMB-EFFECT-002
+        - DOOR-MAZE-COLLISION-001
+
+  invariants:
+    - rule_id: DOM-SHOW-THIRD-LEVEL-RULES-INV-001
+      description: "查詢只讀；依序顯示普通食物 +1、特殊食物 +2、護盾 +1、火焰 −2、炸彈致命、不能穿牆。"
+      domain_rule_refs:
+        - LEVEL-POLICY-003
+        - FOOD-EFFECT-001
+        - FOOD-EFFECT-002
+        - SHIELD-COLLECT-001
+        - FIRE-EFFECT-002
+        - BOMB-EFFECT-002
+        - DOOR-MAZE-COLLISION-001
+
+  process:
+    - order: 1
+      action: "驗證可見條件：game.phase == Ready 且 level.number == 3。"
+    - order: 2
+      action: "讀取並映射目前 Domain／Read Model 事實。"
+    - order: 3
+      action: "建立 ThirdLevelRulesRspDTO，不得觸發任何業務行為。"
+
+  postconditions:
+    - rule_id: DOM-SHOW-THIRD-LEVEL-RULES-POST-001
+      description: "依序顯示普通食物 +1、特殊食物 +2、護盾 +1、火焰 −2、炸彈致命、不能穿牆；完成後來源狀態完全不變。"
+      domain_rule_refs:
+        - LEVEL-POLICY-003
+        - FOOD-EFFECT-001
+        - FOOD-EFFECT-002
+        - SHIELD-COLLECT-001
+        - FIRE-EFFECT-002
+        - BOMB-EFFECT-002
+        - DOOR-MAZE-COLLISION-001
+
+  contract_violations:
+    - rule_id: DOM-SHOW-THIRD-LEVEL-RULES-ERR-001
+      condition: "不符合 game.phase == Ready 且 level.number == 3"
+      domain_code: INVALID_GAME_PHASE
+      state_guarantee: "Data 為 null，不回傳部分資料，來源狀態保持不變。"
+      domain_rule_refs:
+        - LEVEL-POLICY-003
+        - FOOD-EFFECT-001
+        - FOOD-EFFECT-002
+        - SHIELD-COLLECT-001
+        - FIRE-EFFECT-002
+        - BOMB-EFFECT-002
+        - DOOR-MAZE-COLLISION-001
+
+  not_applicable: []
+

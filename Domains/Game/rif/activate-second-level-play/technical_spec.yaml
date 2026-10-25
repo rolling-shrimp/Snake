@@ -1,0 +1,60 @@
+use_case: activate-second-level-play
+bounded_context: snake-game
+aggregate: game
+frame_type: RIF
+
+spec_refs:
+  domain: domain_spec.yaml
+
+input:
+  type: ActivateSecondLevelPlayCommand
+  source: "StartSecondLevelAccepted domain event"
+  fields:
+    []
+
+output:
+  type: ActivateSecondLevelPlayResult
+  fields:
+    - name: IsSuccess
+      csharp_type: bool
+      required: true
+    - name: FailureCode
+      csharp_type: "string?"
+      required: true
+    - name: FailureMessage
+      csharp_type: "string?"
+      required: true
+  domain_output: "依序隱藏開始按鈕與第一關結果、產生普通食物／特殊食物／第一個護盾／火焰、切換 Playing 並啟動 250 毫秒移動"
+
+types:
+  - name: ActivateSecondLevelPlayCommand
+    fields:
+      []
+  - name: ActivateSecondLevelPlayResult
+    fields:
+      - name: IsSuccess
+        csharp_type: bool
+      - name: FailureCode
+        csharp_type: "string?"
+      - name: FailureMessage
+        csharp_type: "string?"
+
+domain_to_technical_mapping:
+  - domain_rules: [DOM-ACTIVATE-SECOND-LEVEL-PLAY-IN-001, DOM-ACTIVATE-SECOND-LEVEL-PLAY-PRE-001]
+    target: ActivateSecondLevelPlayCommand
+    description: "Domain Event 經 Reactor 去重後轉成一次內部 Command。"
+  - domain_rules: [DOM-ACTIVATE-SECOND-LEVEL-PLAY-INV-001, DOM-ACTIVATE-SECOND-LEVEL-PLAY-POST-001]
+    target: ActivateSecondLevelPlayResult
+    description: "依序隱藏開始按鈕與第一關結果、產生普通食物／特殊食物／第一個護盾／火焰、切換 Playing 並啟動 250 毫秒移動"
+
+state_mappings:
+  - mapping_id: TECH-ACTIVATE-SECOND-LEVEL-PLAY-STATE-001
+    description: "依序隱藏開始按鈕與第一關結果、產生普通食物／特殊食物／第一個護盾／火焰、切換 Playing 並啟動 250 毫秒移動"
+
+error_mappings: []
+
+no_op_mappings:
+  - mapping_id: TECH-ACTIVATE-SECOND-LEVEL-PLAY-NOOP-001
+    condition: "事件不是由 start-second-level 成功接受所產生。"
+    behavior: "正常忽略，不隱藏畫面、不產生物件、不啟動移動。"
+

@@ -1,0 +1,74 @@
+use_case: handle-closed-door-collision
+bounded_context: snake-game
+aggregate: game
+frame_type: RBF
+
+spec_refs:
+  requirement: "frame.yaml#use_case.requirement"
+  domain: domain_spec.yaml
+  technical: technical_spec.yaml
+
+scenarios:
+  - id: SCN-HANDLE-CLOSED-DOOR-COLLISION-001
+    title: "撞到關閉的門"
+    description: "不移動蛇並產生一次 ClosedDoorCollision。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - RBF-HANDLE-CLOSED-DOOR-COLLISION-001
+        - RBF-HANDLE-CLOSED-DOOR-COLLISION-002
+        - RBF-HANDLE-CLOSED-DOOR-COLLISION-003
+        - RBF-HANDLE-CLOSED-DOOR-COLLISION-004
+      domain_rules:
+        - DOM-HANDLE-CLOSED-DOOR-COLLISION-PRE-001
+        - DOM-HANDLE-CLOSED-DOOR-COLLISION-POST-001
+      technical_contracts:
+        - HandleClosedDoorCollisionResult.IsSuccess
+        - TECH-HANDLE-CLOSED-DOOR-COLLISION-STATE-001
+    given:
+      - fact: "第三關 Playing，蛇頭下一格為 Closed 門。"
+    when:
+      action: handle_closed_door_collision
+      input:
+        type: HandleClosedDoorCollisionCommand
+        fields: {}
+    then:
+      output:
+        type: HandleClosedDoorCollisionResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
+      domain_effect: "不移動蛇並產生一次 ClosedDoorCollision。"
+
+  - id: SCN-HANDLE-CLOSED-DOOR-COLLISION-002
+    title: "門仍可通行"
+    description: "允許移動通過，不產生 ClosedDoorCollision。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - RBF-HANDLE-CLOSED-DOOR-COLLISION-001
+        - RBF-HANDLE-CLOSED-DOOR-COLLISION-004
+      domain_rules:
+        - DOM-HANDLE-CLOSED-DOOR-COLLISION-NOOP-001
+        - DOM-HANDLE-CLOSED-DOOR-COLLISION-INV-001
+      technical_contracts:
+        - HandleClosedDoorCollisionResult.IsSuccess
+        - TECH-HANDLE-CLOSED-DOOR-COLLISION-NOOP-001
+    given:
+      - fact: "門為 Open、ClosingWarning 或 CloseDeferred。"
+    when:
+      action: handle_closed_door_collision
+      input:
+        type: HandleClosedDoorCollisionCommand
+        fields: {}
+    then:
+      output:
+        type: HandleClosedDoorCollisionResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
+      domain_state:
+        unchanged: true
+

@@ -1,0 +1,74 @@
+use_case: handle-self-collision
+bounded_context: snake-game
+aggregate: game
+frame_type: RBF
+
+spec_refs:
+  requirement: "frame.yaml#use_case.requirement"
+  domain: domain_spec.yaml
+  technical: technical_spec.yaml
+
+scenarios:
+  - id: SCN-HANDLE-SELF-COLLISION-001
+    title: "撞到自己的身體"
+    description: "不提交重疊位置並產生一次 SelfCollision。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - RBF-HANDLE-SELF-COLLISION-001
+        - RBF-HANDLE-SELF-COLLISION-002
+        - RBF-HANDLE-SELF-COLLISION-003
+        - RBF-HANDLE-SELF-COLLISION-004
+      domain_rules:
+        - DOM-HANDLE-SELF-COLLISION-PRE-001
+        - DOM-HANDLE-SELF-COLLISION-POST-001
+      technical_contracts:
+        - HandleSelfCollisionResult.IsSuccess
+        - TECH-HANDLE-SELF-COLLISION-STATE-001
+    given:
+      - fact: "Playing 中的蛇頭下一格與既有蛇身重疊。"
+    when:
+      action: handle_self_collision
+      input:
+        type: HandleSelfCollisionCommand
+        fields: {}
+    then:
+      output:
+        type: HandleSelfCollisionResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
+      domain_effect: "不提交重疊位置並產生一次 SelfCollision。"
+
+  - id: SCN-HANDLE-SELF-COLLISION-002
+    title: "位置沒有與蛇身重疊"
+    description: "正常忽略，不產生死亡事件。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - RBF-HANDLE-SELF-COLLISION-001
+        - RBF-HANDLE-SELF-COLLISION-004
+      domain_rules:
+        - DOM-HANDLE-SELF-COLLISION-NOOP-001
+        - DOM-HANDLE-SELF-COLLISION-INV-001
+      technical_contracts:
+        - HandleSelfCollisionResult.IsSuccess
+        - TECH-HANDLE-SELF-COLLISION-NOOP-001
+    given:
+      - fact: "蛇頭下一格不是既有蛇身格位。"
+    when:
+      action: handle_self_collision
+      input:
+        type: HandleSelfCollisionCommand
+        fields: {}
+    then:
+      output:
+        type: HandleSelfCollisionResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
+      domain_state:
+        unchanged: true
+

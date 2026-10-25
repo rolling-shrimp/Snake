@@ -1,0 +1,88 @@
+schema_version: 1
+screen:
+  screen_id: third-level-ready
+  bounded_context: snake-game
+  aggregate: game
+  phase: ready
+  level: third
+  board_mode: initial
+grain:
+  input: use_case_results_and_read_models
+  output: rendered_screen
+  contract_owner: WinForms
+presentation_relations:
+  - relation_id: PRES-THIRD-READY-BOARD
+    target_use_case: show-third-level-ready-board
+    ownership: reference_only
+    target_specs:
+      frame: ../../idf/show-third-level-ready-board/frame.yaml
+      domain: ../../idf/show-third-level-ready-board/domain_spec.yaml
+      technical: ../../idf/show-third-level-ready-board/technical_spec.yaml
+    frame_check_refs: [IDF-SHOW-THIRD-LEVEL-READY-BOARD-001]
+    domain_rule_refs: [DOM-SHOW-THIRD-LEVEL-READY-BOARD-IN-001]
+    technical_contract_refs: [TECH-SHOW-THIRD-LEVEL-READY-BOARD-STATE-001]
+  - relation_id: PRES-THIRD-READY-RULES
+    target_use_case: show-third-level-rules
+    ownership: reference_only
+    target_specs:
+      frame: ../../idf/show-third-level-rules/frame.yaml
+      domain: ../../idf/show-third-level-rules/domain_spec.yaml
+      technical: ../../idf/show-third-level-rules/technical_spec.yaml
+    frame_check_refs: [IDF-SHOW-THIRD-LEVEL-RULES-001]
+    domain_rule_refs: [DOM-SHOW-THIRD-LEVEL-RULES-IN-001]
+    technical_contract_refs: [TECH-SHOW-THIRD-LEVEL-RULES-STATE-001]
+  - relation_id: PRES-THIRD-READY-DOOR
+    target_use_case: show-third-level-door-status
+    ownership: reference_only
+    target_specs:
+      frame: ../../idf/show-third-level-door-status/frame.yaml
+      domain: ../../idf/show-third-level-door-status/domain_spec.yaml
+      technical: ../../idf/show-third-level-door-status/technical_spec.yaml
+    frame_check_refs: [IDF-SHOW-THIRD-LEVEL-DOOR-STATUS-001]
+    domain_rule_refs: [DOM-SHOW-THIRD-LEVEL-DOOR-STATUS-IN-001]
+    technical_contract_refs: [TECH-SHOW-THIRD-LEVEL-DOOR-STATUS-STATE-001]
+  - relation_id: PRES-THIRD-READY-PRIOR-RESULT
+    target_use_case: show-level-passed-result
+    ownership: reference_only
+    target_specs:
+      frame: ../../idf/show-level-passed-result/frame.yaml
+      domain: ../../idf/show-level-passed-result/domain_spec.yaml
+      technical: ../../idf/show-level-passed-result/technical_spec.yaml
+    frame_check_refs: [IDF-SHOW-LEVEL-PASSED-RESULT-001]
+    domain_rule_refs: [DOM-SHOW-LEVEL-PASSED-RESULT-IN-001]
+    technical_contract_refs: [TECH-SHOW-LEVEL-PASSED-RESULT-STATE-001]
+  - relation_id: PRES-THIRD-READY-ACTIVATE
+    target_use_case: activate-third-level-play
+    ownership: reference_only
+    target_specs:
+      frame: ../../rif/activate-third-level-play/frame.yaml
+      domain: ../../rif/activate-third-level-play/domain_spec.yaml
+      technical: ../../rif/activate-third-level-play/technical_spec.yaml
+    frame_check_refs: [RIF-ACTIVATE-THIRD-LEVEL-PLAY-001]
+    domain_rule_refs: [DOM-ACTIVATE-THIRD-LEVEL-PLAY-IN-001]
+    technical_contract_refs: [TECH-ACTIVATE-THIRD-LEVEL-PLAY-STATE-001]
+visibility:
+  required:
+    - second-level-passed-message
+    - second-level-length-card
+    - 10x10-maze-board
+    - outer-and-inner-walls
+    - current-door-state
+    - three-cell-snake-at-safe-start
+    - third-level-name
+    - snake-length-3-of-50
+    - progress-6-percent
+    - shield-count-zero
+    - third-level-rule-hints
+    - no-wall-passage-hint
+    - start-button
+  forbidden:
+    - board-objects
+    - replay-button
+transitions:
+  - trigger: start
+    relation_ref: PRES-THIRD-READY-ACTIVATE
+    target_screen: third-level-playing
+asset_pair:
+  html: ../../../../assets/level-3.html
+  png: ../../../../assets/level-3.png

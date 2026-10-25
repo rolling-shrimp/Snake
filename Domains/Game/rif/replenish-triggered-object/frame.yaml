@@ -1,0 +1,32 @@
+bounded_context: snake-game
+aggregate: game
+
+use_case:
+  name: replenish-triggered-object
+  requirement: "物件效果、護盾與通關／死亡判定完成後，若仍可遊玩則依政策補充物件。"
+frame_type: RIF
+
+world_facts:
+  actor: domain_event
+  trigger: "object effect resolution completed"
+  required_state: "game.phase == Playing、目前關卡允許該物件，且效果與 Shield／通關／死亡判定都已完成"
+  reaction: "在合法未占用格補同類物件；無合法格時記錄 pending；關卡已結束時停止補充"
+  delivery_policy: at_most_once_effect
+
+frame_concerns:
+  - concern_ref: RIF-CONCERN-001
+    check_id: RIF-REPLENISH-TRIGGERED-OBJECT-001
+    description: "確保只回應未處理的 object effect resolution completed，錯誤來源與重複事件不得反應。"
+
+  - concern_ref: RIF-CONCERN-002
+    check_id: RIF-REPLENISH-TRIGGERED-OBJECT-002
+    description: "確保 在合法未占用格補同類物件；無合法格時記錄 pending；關卡已結束時停止補充 的必要後續行為全部完成。"
+
+  - concern_ref: RIF-CONCERN-003
+    check_id: RIF-REPLENISH-TRIGGERED-OBJECT-003
+    description: "確保跨 Domain 動作依需求順序執行，不公開中間狀態。"
+
+  - concern_ref: RIF-CONCERN-004
+    check_id: RIF-REPLENISH-TRIGGERED-OBJECT-004
+    description: "確保反應完成後 Game、Level、Board、Food、Shield、Fire、Bomb 的不變式與欄位完整。"
+

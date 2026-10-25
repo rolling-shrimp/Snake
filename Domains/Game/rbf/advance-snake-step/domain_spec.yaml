@@ -1,0 +1,109 @@
+use_case: advance-snake-step
+bounded_context: snake-game
+aggregate: game
+frame_type: RBF
+
+domain_refs:
+  - domain: Game
+    path: ../../domain_spec.yaml
+    aggregate: Game
+  - domain: Level
+    path: ../../../Level/domain_spec.yaml
+    aggregate: Level
+  - domain: Snake
+    path: ../../../Snake/domain_spec.yaml
+    aggregate: Snake
+  - domain: Board
+    path: ../../../Board/domain_spec.yaml
+    aggregate: Board
+
+traceability:
+  requirement: "frame.yaml#use_case.requirement"
+  frame_checks:
+    - RBF-ADVANCE-SNAKE-STEP-001
+    - RBF-ADVANCE-SNAKE-STEP-002
+    - RBF-ADVANCE-SNAKE-STEP-003
+    - RBF-ADVANCE-SNAKE-STEP-004
+
+contract:
+  input:
+    data: AdvanceSnakeStepCommand
+    fields:
+      - name: ElapsedMilliseconds
+        type: int
+        required: true
+    rules:
+      - rule_id: DOM-ADVANCE-SNAKE-STEP-IN-001
+        description: "Input 表示一次已觀察到的條件事實：movement interval reaches 250 milliseconds。"
+        domain_rule_refs:
+          - GAME-INV-002
+          - SNAKE-MOVE-001
+          - SNAKE-MOVE-002
+          - SNAKE-MOVE-003
+          - BOARD-BOUNDARY-001
+          - BOARD-BOUNDARY-002
+
+  output:
+    data: AdvanceSnakeStepResult
+    rules:
+      - rule_id: DOM-ADVANCE-SNAKE-STEP-OUT-001
+        description: "Output 表示必要行為是否完成；不適用條件以成功 no-op 表示。"
+        domain_rule_refs: []
+
+  preconditions:
+    - rule_id: DOM-ADVANCE-SNAKE-STEP-PRE-001
+      description: "game.phase == Playing 且 movement_active == true"
+      domain_rule_refs:
+        - GAME-INV-002
+        - SNAKE-MOVE-001
+        - SNAKE-MOVE-002
+        - SNAKE-MOVE-003
+        - BOARD-BOUNDARY-001
+        - BOARD-BOUNDARY-002
+
+  invariants:
+    - rule_id: DOM-ADVANCE-SNAKE-STEP-INV-001
+      description: "同一條件事實最多處理一次；每個有效 interval 只前進一格，套用目前關卡邊界政策並產生接觸或碰撞事實。"
+      domain_rule_refs:
+        - GAME-INV-002
+        - SNAKE-MOVE-001
+        - SNAKE-MOVE-002
+        - SNAKE-MOVE-003
+        - BOARD-BOUNDARY-001
+        - BOARD-BOUNDARY-002
+
+  process:
+    - order: 1
+      action: "確認觸發事實與 game.phase == Playing 且 movement_active == true。"
+    - order: 2
+      action: "每個有效 interval 只前進一格，套用目前關卡邊界政策並產生接觸或碰撞事實"
+    - order: 3
+      action: "發布後續流程需要的結果事實，但不越權執行其他 Use Case。"
+
+  postconditions:
+    - rule_id: DOM-ADVANCE-SNAKE-STEP-POST-001
+      description: "每個有效 interval 只前進一格，套用目前關卡邊界政策並產生接觸或碰撞事實"
+      domain_rule_refs:
+        - GAME-INV-002
+        - SNAKE-MOVE-001
+        - SNAKE-MOVE-002
+        - SNAKE-MOVE-003
+        - BOARD-BOUNDARY-001
+        - BOARD-BOUNDARY-002
+
+  contract_violations: []
+
+  not_applicable:
+    - rule_id: DOM-ADVANCE-SNAKE-STEP-NOOP-001
+      condition: "未滿 250 毫秒，或 Game 不在 Playing。"
+      behavior: ignore
+      error: none
+      state_guarantee: "正常忽略，不移動蛇、不推進遊戲時間結果。"
+      domain_rule_refs:
+        - GAME-INV-002
+        - SNAKE-MOVE-001
+        - SNAKE-MOVE-002
+        - SNAKE-MOVE-003
+        - BOARD-BOUNDARY-001
+        - BOARD-BOUNDARY-002
+

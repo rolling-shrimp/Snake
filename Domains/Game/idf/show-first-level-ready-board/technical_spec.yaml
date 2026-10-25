@@ -6,12 +6,35 @@ frame_type: IDF
 spec_refs:
   domain: domain_spec.yaml
 
+read_port:
+  name: IFirstLevelReadPort
+  operation: Read
+  returns: FirstLevelReadModel
+  implementation: SnakeGameSession
+  entity_exposure: false
+
 input:
-  type: none
+  type: ShowFirstLevelReadyBoardQuery
   source: "Game Domain 已擁有的第一關待開始狀態。"
   fields: []
 
 output:
+  type: ShowFirstLevelReadyBoardResult
+  fields:
+    - name: IsSuccess
+      csharp_type: bool
+      required: true
+    - name: FailureCode
+      csharp_type: "string?"
+      required: true
+    - name: FailureMessage
+      csharp_type: "string?"
+      required: true
+    - name: Data
+      csharp_type: "FirstLevelReadyBoardRspDTO?"
+      required: true
+
+data:
   type: FirstLevelReadyBoardRspDTO
   fields:
     - name: BoardRows
@@ -44,6 +67,18 @@ output:
         - DOM-READY-BOARD-OUT-003
 
 types:
+  - name: ShowFirstLevelReadyBoardQuery
+    fields: []
+  - name: ShowFirstLevelReadyBoardResult
+    fields:
+      - name: IsSuccess
+        csharp_type: bool
+      - name: FailureCode
+        csharp_type: "string?"
+      - name: FailureMessage
+        csharp_type: "string?"
+      - name: Data
+        csharp_type: "FirstLevelReadyBoardRspDTO?"
   - name: FirstLevelReadyBoardRspDTO
     fields:
       - name: BoardRows
@@ -74,15 +109,15 @@ excluded_fields:
 domain_to_technical_mapping:
   - domain_rules:
       - DOM-READY-BOARD-OUT-001
-    target: "FirstLevelReadyBoardRspDTO.BoardRows, FirstLevelReadyBoardRspDTO.BoardColumns"
+    target: "ShowFirstLevelReadyBoardResult.Data.BoardRows, ShowFirstLevelReadyBoardResult.Data.BoardColumns"
     description: "Domain 棋盤列數與欄數分別映射至 BoardRows、BoardColumns。"
   - domain_rules:
       - DOM-READY-BOARD-OUT-002
-    target: FirstLevelReadyBoardRspDTO.SnakeCells
+    target: ShowFirstLevelReadyBoardResult.Data.SnakeCells
     description: "Domain 安全起點蛇格逐一映射為 GridPositionDTO，並存入 SnakeCells。"
   - domain_rules:
       - DOM-READY-BOARD-OUT-003
-    target: FirstLevelReadyBoardRspDTO.IsStartButtonVisible
+    target: ShowFirstLevelReadyBoardResult.Data.IsStartButtonVisible
     description: "Domain 可用的開始動作映射為 IsStartButtonVisible = true。"
 
 state_mappings:
@@ -92,7 +127,12 @@ state_mappings:
 error_mappings:
   - mapping_id: TECH-READY-BOARD-ERR-001
     domain_code: INVALID_GAME_PHASE
-    technical_type: InvalidOperationException
-    description: "例外必須在產生部分 Output 或修改狀態前發生。"
+    technical_type: ShowFirstLevelReadyBoardResult
+    result:
+      IsSuccess: false
+      FailureCode: INVALID_GAME_PHASE
+      FailureMessage: "目前不是第一關待開始階段。"
+      Data: null
+    description: "預期的階段錯誤使用 Result 回傳，不拋出例外，且不得修改狀態。"
 
 no_op_mappings: []

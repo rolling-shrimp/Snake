@@ -1,0 +1,64 @@
+use_case: handle-ordinary-food-contact
+bounded_context: snake-game
+aggregate: game
+frame_type: RBF
+
+spec_refs:
+  domain: domain_spec.yaml
+
+input:
+  type: HandleOrdinaryFoodContactCommand
+  source: "系統條件監測：snake head contacts active Ordinary FoodItem"
+  fields:
+    - name: FoodItemId
+      csharp_type: string
+      required: true
+
+output:
+  type: HandleOrdinaryFoodContactResult
+  fields:
+    - name: IsSuccess
+      csharp_type: bool
+      required: true
+    - name: FailureCode
+      csharp_type: "string?"
+      required: true
+    - name: FailureMessage
+      csharp_type: "string?"
+      required: true
+  domain_output: "移除普通食物、蛇長增加 1，並發出食物已消耗與狀態需更新事實"
+
+types:
+  - name: HandleOrdinaryFoodContactCommand
+    fields:
+      - name: FoodItemId
+        csharp_type: string
+        required: true
+  - name: HandleOrdinaryFoodContactResult
+    fields:
+      - name: IsSuccess
+        csharp_type: bool
+      - name: FailureCode
+        csharp_type: "string?"
+      - name: FailureMessage
+        csharp_type: "string?"
+
+domain_to_technical_mapping:
+  - domain_rules: [DOM-HANDLE-ORDINARY-FOOD-CONTACT-IN-001, DOM-HANDLE-ORDINARY-FOOD-CONTACT-PRE-001]
+    target: HandleOrdinaryFoodContactCommand
+    description: "條件事實映射為一次可去重的自動命令。"
+  - domain_rules: [DOM-HANDLE-ORDINARY-FOOD-CONTACT-INV-001, DOM-HANDLE-ORDINARY-FOOD-CONTACT-POST-001]
+    target: HandleOrdinaryFoodContactResult
+    description: "移除普通食物、蛇長增加 1，並發出食物已消耗與狀態需更新事實"
+
+state_mappings:
+  - mapping_id: TECH-HANDLE-ORDINARY-FOOD-CONTACT-STATE-001
+    description: "移除普通食物、蛇長增加 1，並發出食物已消耗與狀態需更新事實"
+
+error_mappings: []
+
+no_op_mappings:
+  - mapping_id: TECH-HANDLE-ORDINARY-FOOD-CONTACT-NOOP-001
+    condition: "接觸者不是蛇頭，或 FoodItem 已被消耗。"
+    behavior: "正常忽略，不改變蛇長且不重複消耗食物。"
+

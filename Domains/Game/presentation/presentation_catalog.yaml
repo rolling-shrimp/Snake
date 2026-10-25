@@ -1,0 +1,23 @@
+schema_version: 1
+presentation:
+  bounded_context: snake-game
+  aggregate: game
+  owner: WinForms
+  relation_ownership: reference_only
+screens:
+  - screen_id: first-level-ready
+    path: first-level-ready/presentation.yaml
+  - screen_id: first-level-playing
+    path: first-level-playing/presentation.yaml
+  - screen_id: second-level-ready
+    path: second-level-ready/presentation.yaml
+  - screen_id: second-level-playing
+    path: second-level-playing/presentation.yaml
+  - screen_id: third-level-ready
+    path: third-level-ready/presentation.yaml
+  - screen_id: third-level-playing
+    path: third-level-playing/presentation.yaml
+  - screen_id: game-over
+    path: game-over/presentation.yaml
+  - screen_id: game-completed
+    path: game-completed/presentation.yaml

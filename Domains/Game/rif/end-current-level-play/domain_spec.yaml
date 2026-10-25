@@ -1,0 +1,132 @@
+use_case: end-current-level-play
+bounded_context: snake-game
+aggregate: game
+frame_type: RIF
+
+domain_refs:
+  - domain: Game
+    path: ../../domain_spec.yaml
+    aggregate: Game
+  - domain: Level
+    path: ../../../Level/domain_spec.yaml
+    aggregate: Level
+  - domain: Snake
+    path: ../../../Snake/domain_spec.yaml
+    aggregate: Snake
+  - domain: Food
+    path: ../../../Food/domain_spec.yaml
+    aggregate: Food
+  - domain: Shield
+    path: ../../../Shield/domain_spec.yaml
+    aggregate: Shield
+  - domain: Fire
+    path: ../../../Fire/domain_spec.yaml
+    aggregate: Fire
+  - domain: Bomb
+    path: ../../../Bomb/domain_spec.yaml
+    aggregate: Bomb
+  - domain: DoorAndMaze
+    path: ../../../DoorAndMaze/domain_spec.yaml
+    aggregate: DoorAndMaze
+  - domain: GameResult
+    path: ../../../GameResult/domain_spec.yaml
+    aggregate: GameResult
+
+traceability:
+  requirement: "frame.yaml#use_case.requirement"
+  frame_checks:
+    - RIF-END-CURRENT-LEVEL-PLAY-001
+    - RIF-END-CURRENT-LEVEL-PLAY-002
+    - RIF-END-CURRENT-LEVEL-PLAY-003
+    - RIF-END-CURRENT-LEVEL-PLAY-004
+
+contract:
+  input:
+    data: EndCurrentLevelPlayCommand
+    fields:
+      - name: Outcome
+        type: "LevelOutcome"
+        required: true
+      - name: DeathCause
+        type: "DeathCause?"
+        required: true
+    rules:
+      - rule_id: DOM-END-CURRENT-LEVEL-PLAY-IN-001
+        description: "Input 只能由未處理的 LevelPassed or unrescued DeathEvent 產生。"
+        domain_rule_refs:
+          - GAME-REL-006
+          - GAME-REL-007
+          - GAME-REL-008
+          - RESULT-RECORD-001
+          - RESULT-RECORD-002
+          - RESULT-RECORD-003
+          - RESULT-RECORD-004
+
+  output:
+    data: EndCurrentLevelPlayResult
+    rules:
+      - rule_id: DOM-END-CURRENT-LEVEL-PLAY-OUT-001
+        description: "Output 表示反應是否完整結束；錯誤來源或重複事件以成功 no-op 表示。"
+        domain_rule_refs: []
+
+  preconditions:
+    - rule_id: DOM-END-CURRENT-LEVEL-PLAY-PRE-001
+      description: "game.phase == Playing 且終局事件尚未處理"
+      domain_rule_refs:
+        - GAME-REL-006
+        - GAME-REL-007
+        - GAME-REL-008
+        - RESULT-RECORD-001
+        - RESULT-RECORD-002
+        - RESULT-RECORD-003
+        - RESULT-RECORD-004
+
+  invariants:
+    - rule_id: DOM-END-CURRENT-LEVEL-PLAY-INV-001
+      description: "相同 trigger 最多造成一次效果；停止移動、方向輸入、物件產生與門週期，記錄實際蛇長及結果，再交接下一關、GameOver 或 Completed。"
+      domain_rule_refs:
+        - GAME-REL-006
+        - GAME-REL-007
+        - GAME-REL-008
+        - RESULT-RECORD-001
+        - RESULT-RECORD-002
+        - RESULT-RECORD-003
+        - RESULT-RECORD-004
+
+  process:
+    - order: 1
+      action: "驗證事件來源、必要狀態與去重識別。"
+    - order: 2
+      action: "停止移動、方向輸入、物件產生與門週期，記錄實際蛇長及結果，再交接下一關、GameOver 或 Completed"
+    - order: 3
+      action: "全部動作成功後才標記事件已處理並公開最終狀態。"
+
+  postconditions:
+    - rule_id: DOM-END-CURRENT-LEVEL-PLAY-POST-001
+      description: "停止移動、方向輸入、物件產生與門週期，記錄實際蛇長及結果，再交接下一關、GameOver 或 Completed"
+      domain_rule_refs:
+        - GAME-REL-006
+        - GAME-REL-007
+        - GAME-REL-008
+        - RESULT-RECORD-001
+        - RESULT-RECORD-002
+        - RESULT-RECORD-003
+        - RESULT-RECORD-004
+
+  contract_violations: []
+
+  not_applicable:
+    - rule_id: DOM-END-CURRENT-LEVEL-PLAY-NOOP-001
+      condition: "同一關的終局事件已完成處理。"
+      behavior: ignore
+      error: none
+      state_guarantee: "正常忽略，不重複記錄結果或再次轉移階段。"
+      domain_rule_refs:
+        - GAME-REL-006
+        - GAME-REL-007
+        - GAME-REL-008
+        - RESULT-RECORD-001
+        - RESULT-RECORD-002
+        - RESULT-RECORD-003
+        - RESULT-RECORD-004
+

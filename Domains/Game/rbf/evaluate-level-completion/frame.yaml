@@ -1,0 +1,32 @@
+bounded_context: snake-game
+aggregate: game
+
+use_case:
+  name: evaluate-level-completion
+  requirement: "蛇長變化完成後，系統判定是否立即達成本關目標。"
+frame_type: RBF
+
+world_facts:
+  actor: system
+  trigger: "snake length change has completed"
+  required_condition: "game.phase == Playing 且 length change 已完整提交"
+  required_behavior: "蛇長達標時只產生一次 LevelPassed；未達標時保持 Playing"
+  execution_policy: once_per_condition_fact
+
+frame_concerns:
+  - concern_ref: RBF-CONCERN-001
+    check_id: RBF-EVALUATE-LEVEL-COMPLETION-001
+    description: "確保只有 snake length change has completed 的完整條件成立時才發動 evaluate-level-completion。"
+
+  - concern_ref: RBF-CONCERN-002
+    check_id: RBF-EVALUATE-LEVEL-COMPLETION-002
+    description: "確保同一條件事實最多執行一次，不因重複通知重複套用效果。"
+
+  - concern_ref: RBF-CONCERN-003
+    check_id: RBF-EVALUATE-LEVEL-COMPLETION-003
+    description: "確保 蛇長達標時只產生一次 LevelPassed；未達標時保持 Playing 的所有必要動作完整完成。"
+
+  - concern_ref: RBF-CONCERN-004
+    check_id: RBF-EVALUATE-LEVEL-COMPLETION-004
+    description: "確保完成或忽略後，Game、Level、Snake、GameResult 的不變式仍成立。"
+

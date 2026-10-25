@@ -1,0 +1,32 @@
+bounded_context: snake-game
+aggregate: game
+
+use_case:
+  name: prepare-next-level
+  requirement: "第一或第二關通過後，保留通關結果並準備下一關待開始狀態。"
+frame_type: RIF
+
+world_facts:
+  actor: domain_event
+  trigger: "LevelPassed result recorded for level 1 or 2"
+  required_state: "上一關 Passed 已記錄，且下一關尚未建立"
+  reaction: "依序前進關卡、重設蛇為長度 3 向右、清空護盾與物件、準備棋盤，最後公開下一關 Ready"
+  delivery_policy: at_most_once_effect
+
+frame_concerns:
+  - concern_ref: RIF-CONCERN-001
+    check_id: RIF-PREPARE-NEXT-LEVEL-001
+    description: "確保只回應未處理的 LevelPassed result recorded for level 1 or 2，錯誤來源與重複事件不得反應。"
+
+  - concern_ref: RIF-CONCERN-002
+    check_id: RIF-PREPARE-NEXT-LEVEL-002
+    description: "確保 依序前進關卡、重設蛇為長度 3 向右、清空護盾與物件、準備棋盤，最後公開下一關 Ready 的必要後續行為全部完成。"
+
+  - concern_ref: RIF-CONCERN-003
+    check_id: RIF-PREPARE-NEXT-LEVEL-003
+    description: "確保跨 Domain 動作依需求順序執行，不公開中間狀態。"
+
+  - concern_ref: RIF-CONCERN-004
+    check_id: RIF-PREPARE-NEXT-LEVEL-004
+    description: "確保反應完成後 Game、Level、Snake、Board、Food、Shield、Fire、Bomb、DoorAndMaze、GameResult 的不變式與欄位完整。"
+

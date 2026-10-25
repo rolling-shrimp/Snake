@@ -1,0 +1,99 @@
+use_case: handle-bomb-contact
+bounded_context: snake-game
+aggregate: game
+frame_type: RBF
+
+domain_refs:
+  - domain: Game
+    path: ../../domain_spec.yaml
+    aggregate: Game
+  - domain: Bomb
+    path: ../../../Bomb/domain_spec.yaml
+    aggregate: Bomb
+  - domain: Shield
+    path: ../../../Shield/domain_spec.yaml
+    aggregate: Shield
+  - domain: GameResult
+    path: ../../../GameResult/domain_spec.yaml
+    aggregate: GameResult
+
+traceability:
+  requirement: "frame.yaml#use_case.requirement"
+  frame_checks:
+    - RBF-HANDLE-BOMB-CONTACT-001
+    - RBF-HANDLE-BOMB-CONTACT-002
+    - RBF-HANDLE-BOMB-CONTACT-003
+    - RBF-HANDLE-BOMB-CONTACT-004
+
+contract:
+  input:
+    data: HandleBombContactCommand
+    fields:
+      - name: BombItemId
+        type: string
+        required: true
+    rules:
+      - rule_id: DOM-HANDLE-BOMB-CONTACT-IN-001
+        description: "Input 表示一次已觀察到的條件事實：snake head contacts active BombItem。"
+        domain_rule_refs:
+          - BOMB-EFFECT-001
+          - BOMB-EFFECT-002
+          - BOMB-SPAWN-003
+          - GAME-REL-005
+
+  output:
+    data: HandleBombContactResult
+    rules:
+      - rule_id: DOM-HANDLE-BOMB-CONTACT-OUT-001
+        description: "Output 表示必要行為是否完成；不適用條件以成功 no-op 表示。"
+        domain_rule_refs: []
+
+  preconditions:
+    - rule_id: DOM-HANDLE-BOMB-CONTACT-PRE-001
+      description: "game.phase == Playing、level.number == 3，且接觸 active BombItem"
+      domain_rule_refs:
+        - BOMB-EFFECT-001
+        - BOMB-EFFECT-002
+        - BOMB-SPAWN-003
+        - GAME-REL-005
+
+  invariants:
+    - rule_id: DOM-HANDLE-BOMB-CONTACT-INV-001
+      description: "同一條件事實最多處理一次；移除炸彈並產生 BombCollision 死亡事實，等待 Shield 決定保命或 GameOver。"
+      domain_rule_refs:
+        - BOMB-EFFECT-001
+        - BOMB-EFFECT-002
+        - BOMB-SPAWN-003
+        - GAME-REL-005
+
+  process:
+    - order: 1
+      action: "確認觸發事實與 game.phase == Playing、level.number == 3，且接觸 active BombItem。"
+    - order: 2
+      action: "移除炸彈並產生 BombCollision 死亡事實，等待 Shield 決定保命或 GameOver"
+    - order: 3
+      action: "發布後續流程需要的結果事實，但不越權執行其他 Use Case。"
+
+  postconditions:
+    - rule_id: DOM-HANDLE-BOMB-CONTACT-POST-001
+      description: "移除炸彈並產生 BombCollision 死亡事實，等待 Shield 決定保命或 GameOver"
+      domain_rule_refs:
+        - BOMB-EFFECT-001
+        - BOMB-EFFECT-002
+        - BOMB-SPAWN-003
+        - GAME-REL-005
+
+  contract_violations: []
+
+  not_applicable:
+    - rule_id: DOM-HANDLE-BOMB-CONTACT-NOOP-001
+      condition: "Level 不是 3，或 BombItem 已被處理。"
+      behavior: ignore
+      error: none
+      state_guarantee: "正常忽略，不產生死亡事件。"
+      domain_rule_refs:
+        - BOMB-EFFECT-001
+        - BOMB-EFFECT-002
+        - BOMB-SPAWN-003
+        - GAME-REL-005
+

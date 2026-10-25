@@ -1,0 +1,99 @@
+use_case: handle-ordinary-food-contact
+bounded_context: snake-game
+aggregate: game
+frame_type: RBF
+
+domain_refs:
+  - domain: Game
+    path: ../../domain_spec.yaml
+    aggregate: Game
+  - domain: Food
+    path: ../../../Food/domain_spec.yaml
+    aggregate: Food
+  - domain: Snake
+    path: ../../../Snake/domain_spec.yaml
+    aggregate: Snake
+  - domain: Level
+    path: ../../../Level/domain_spec.yaml
+    aggregate: Level
+
+traceability:
+  requirement: "frame.yaml#use_case.requirement"
+  frame_checks:
+    - RBF-HANDLE-ORDINARY-FOOD-CONTACT-001
+    - RBF-HANDLE-ORDINARY-FOOD-CONTACT-002
+    - RBF-HANDLE-ORDINARY-FOOD-CONTACT-003
+    - RBF-HANDLE-ORDINARY-FOOD-CONTACT-004
+
+contract:
+  input:
+    data: HandleOrdinaryFoodContactCommand
+    fields:
+      - name: FoodItemId
+        type: string
+        required: true
+    rules:
+      - rule_id: DOM-HANDLE-ORDINARY-FOOD-CONTACT-IN-001
+        description: "Input 表示一次已觀察到的條件事實：snake head contacts active Ordinary FoodItem。"
+        domain_rule_refs:
+          - FOOD-EFFECT-001
+          - FOOD-EFFECT-003
+          - SNAKE-LENGTH-001
+          - LEVEL-COMPLETE-001
+
+  output:
+    data: HandleOrdinaryFoodContactResult
+    rules:
+      - rule_id: DOM-HANDLE-ORDINARY-FOOD-CONTACT-OUT-001
+        description: "Output 表示必要行為是否完成；不適用條件以成功 no-op 表示。"
+        domain_rule_refs: []
+
+  preconditions:
+    - rule_id: DOM-HANDLE-ORDINARY-FOOD-CONTACT-PRE-001
+      description: "game.phase == Playing 且接觸的是目前 active Ordinary FoodItem"
+      domain_rule_refs:
+        - FOOD-EFFECT-001
+        - FOOD-EFFECT-003
+        - SNAKE-LENGTH-001
+        - LEVEL-COMPLETE-001
+
+  invariants:
+    - rule_id: DOM-HANDLE-ORDINARY-FOOD-CONTACT-INV-001
+      description: "同一條件事實最多處理一次；移除普通食物、蛇長增加 1，並發出食物已消耗與狀態需更新事實。"
+      domain_rule_refs:
+        - FOOD-EFFECT-001
+        - FOOD-EFFECT-003
+        - SNAKE-LENGTH-001
+        - LEVEL-COMPLETE-001
+
+  process:
+    - order: 1
+      action: "確認觸發事實與 game.phase == Playing 且接觸的是目前 active Ordinary FoodItem。"
+    - order: 2
+      action: "移除普通食物、蛇長增加 1，並發出食物已消耗與狀態需更新事實"
+    - order: 3
+      action: "發布後續流程需要的結果事實，但不越權執行其他 Use Case。"
+
+  postconditions:
+    - rule_id: DOM-HANDLE-ORDINARY-FOOD-CONTACT-POST-001
+      description: "移除普通食物、蛇長增加 1，並發出食物已消耗與狀態需更新事實"
+      domain_rule_refs:
+        - FOOD-EFFECT-001
+        - FOOD-EFFECT-003
+        - SNAKE-LENGTH-001
+        - LEVEL-COMPLETE-001
+
+  contract_violations: []
+
+  not_applicable:
+    - rule_id: DOM-HANDLE-ORDINARY-FOOD-CONTACT-NOOP-001
+      condition: "接觸者不是蛇頭，或 FoodItem 已被消耗。"
+      behavior: ignore
+      error: none
+      state_guarantee: "正常忽略，不改變蛇長且不重複消耗食物。"
+      domain_rule_refs:
+        - FOOD-EFFECT-001
+        - FOOD-EFFECT-003
+        - SNAKE-LENGTH-001
+        - LEVEL-COMPLETE-001
+

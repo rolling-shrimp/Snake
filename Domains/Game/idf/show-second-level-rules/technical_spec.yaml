@@ -1,0 +1,64 @@
+use_case: show-second-level-rules
+bounded_context: snake-game
+aggregate: game
+frame_type: IDF
+
+spec_refs:
+  domain: domain_spec.yaml
+
+input:
+  type: ShowSecondLevelRulesQuery
+  source: display_refresh
+  fields: []
+
+output:
+  type: ShowSecondLevelRulesResult
+  fields:
+    - name: IsSuccess
+      csharp_type: bool
+      required: true
+    - name: FailureCode
+      csharp_type: "string?"
+      required: true
+    - name: FailureMessage
+      csharp_type: "string?"
+      required: true
+    - name: Data
+      csharp_type: "SecondLevelRulesRspDTO?"
+      required: true
+
+data_contract:
+  type: SecondLevelRulesRspDTO
+  fields:
+    - name: RuleHints
+      csharp_type: "List<RuleHintDTO>"
+      required: true
+      description: "四項有固定 code、text 與順序的規則提示"
+
+read_port:
+  name: ISecondLevelRulesReadPort
+  returns: SecondLevelRulesRspDTO
+  side_effect_free: true
+
+domain_to_technical_mapping:
+  - domain_rules: [DOM-SHOW-SECOND-LEVEL-RULES-IN-001, DOM-SHOW-SECOND-LEVEL-RULES-PRE-001]
+    target: ShowSecondLevelRulesQuery
+    description: "無欄位 Query 只辨識本次顯示要求並驗證可見條件。"
+  - domain_rules: [DOM-SHOW-SECOND-LEVEL-RULES-POST-001]
+    target: SecondLevelRulesRspDTO
+    description: "依序顯示普通食物 +1、特殊食物 +2、護盾 +1 次保命、火焰 −2 格"
+
+state_mappings:
+  - mapping_id: TECH-SHOW-SECOND-LEVEL-RULES-STATE-001
+    description: "Projection 與 Query 都不得呼叫改變 Domain 狀態的方法。"
+
+error_mappings:
+  - mapping_id: TECH-SHOW-SECOND-LEVEL-RULES-ERR-001
+    condition: "不符合 game.phase == Ready 且 level.number == 2"
+    result: ShowSecondLevelRulesResult
+    failure_code: INVALID_GAME_PHASE
+    failure_message: "目前不是第二關待開始階段。"
+    data: null
+
+no_op_mappings: []
+

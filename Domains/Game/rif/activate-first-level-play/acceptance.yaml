@@ -33,6 +33,9 @@ scenarios:
         - DOM-ACTIVATE-FIRST-LEVEL-POST-004
         - DOM-ACTIVATE-FIRST-LEVEL-POST-005
       technical_contracts:
+        - ActivateFirstLevelPlayResult.IsSuccess
+        - ActivateFirstLevelPlayResult.FailureCode
+        - ActivateFirstLevelPlayResult.FailureMessage
         - TECH-ACTIVATE-FIRST-LEVEL-STATE-001
         - TECH-ACTIVATE-FIRST-LEVEL-STATE-002
         - TECH-ACTIVATE-FIRST-LEVEL-STATE-003
@@ -52,9 +55,16 @@ scenarios:
           already_processed: false
     when:
       action: handle_start_accepted_trigger
-      input: null
+      input:
+        type: ActivateFirstLevelPlayCommand
+        fields: {}
     then:
-      output: void
+      output:
+        type: ActivateFirstLevelPlayResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
       reaction_order:
         - hide_start_button
         - spawn_ordinary_food
@@ -86,6 +96,9 @@ scenarios:
         - DOM-ACTIVATE-FIRST-LEVEL-INV-002
         - DOM-ACTIVATE-FIRST-LEVEL-NOOP-001
       technical_contracts:
+        - ActivateFirstLevelPlayResult.IsSuccess
+        - ActivateFirstLevelPlayResult.FailureCode
+        - ActivateFirstLevelPlayResult.FailureMessage
         - TECH-ACTIVATE-FIRST-LEVEL-NOOP-001
     given:
       - state: first_level_ready
@@ -98,9 +111,16 @@ scenarios:
           already_processed: false
     when:
       action: handle_start_accepted_trigger
-      input: null
+      input:
+        type: ActivateFirstLevelPlayCommand
+        fields: {}
     then:
-      output: void
+      output:
+        type: ActivateFirstLevelPlayResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
       error: null
       domain_state:
         unchanged: true
@@ -119,6 +139,9 @@ scenarios:
         - DOM-ACTIVATE-FIRST-LEVEL-INV-002
         - DOM-ACTIVATE-FIRST-LEVEL-NOOP-002
       technical_contracts:
+        - ActivateFirstLevelPlayResult.IsSuccess
+        - ActivateFirstLevelPlayResult.FailureCode
+        - ActivateFirstLevelPlayResult.FailureMessage
         - TECH-ACTIVATE-FIRST-LEVEL-NOOP-002
     given:
       - state: first_level_playing
@@ -133,9 +156,16 @@ scenarios:
           already_processed: true
     when:
       action: handle_start_accepted_trigger
-      input: null
+      input:
+        type: ActivateFirstLevelPlayCommand
+        fields: {}
     then:
-      output: void
+      output:
+        type: ActivateFirstLevelPlayResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
       error: null
       domain_state:
         unchanged: true

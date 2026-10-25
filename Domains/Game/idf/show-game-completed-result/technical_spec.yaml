@@ -1,0 +1,76 @@
+use_case: show-game-completed-result
+bounded_context: snake-game
+aggregate: game
+frame_type: IDF
+
+spec_refs:
+  domain: domain_spec.yaml
+
+input:
+  type: ShowGameCompletedResultQuery
+  source: display_refresh
+  fields: []
+
+output:
+  type: ShowGameCompletedResultResult
+  fields:
+    - name: IsSuccess
+      csharp_type: bool
+      required: true
+    - name: FailureCode
+      csharp_type: "string?"
+      required: true
+    - name: FailureMessage
+      csharp_type: "string?"
+      required: true
+    - name: Data
+      csharp_type: "GameCompletedResultRspDTO?"
+      required: true
+
+data_contract:
+  type: GameCompletedResultRspDTO
+  fields:
+    - name: FinalLength
+      csharp_type: "int"
+      required: true
+      description: "第三關實際通關蛇長，可大於 50"
+    - name: ProgressPercent
+      csharp_type: "int"
+      required: true
+      description: "固定為 100"
+    - name: SuccessMessage
+      csharp_type: "string"
+      required: true
+      description: "整輪闖關成功訊息"
+    - name: IsReplayButtonVisible
+      csharp_type: "bool"
+      required: true
+      description: "固定為 true"
+
+read_port:
+  name: IGameCompletedResultReadPort
+  returns: GameCompletedResultRspDTO
+  side_effect_free: true
+
+domain_to_technical_mapping:
+  - domain_rules: [DOM-SHOW-GAME-COMPLETED-RESULT-IN-001, DOM-SHOW-GAME-COMPLETED-RESULT-PRE-001]
+    target: ShowGameCompletedResultQuery
+    description: "無欄位 Query 只辨識本次顯示要求並驗證可見條件。"
+  - domain_rules: [DOM-SHOW-GAME-COMPLETED-RESULT-POST-001]
+    target: GameCompletedResultRspDTO
+    description: "顯示闖關成功、第三關實際通關蛇長、100% 進度與重玩按鈕"
+
+state_mappings:
+  - mapping_id: TECH-SHOW-GAME-COMPLETED-RESULT-STATE-001
+    description: "Projection 與 Query 都不得呼叫改變 Domain 狀態的方法。"
+
+error_mappings:
+  - mapping_id: TECH-SHOW-GAME-COMPLETED-RESULT-ERR-001
+    condition: "不符合 game.phase == Completed 且第三關結果為 Passed"
+    result: ShowGameCompletedResultResult
+    failure_code: RESULT_NOT_AVAILABLE
+    failure_message: "目前沒有可顯示的整輪完成結果。"
+    data: null
+
+no_op_mappings: []
+

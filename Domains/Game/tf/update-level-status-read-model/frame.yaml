@@ -1,0 +1,31 @@
+bounded_context: snake-game
+aggregate: game
+
+use_case:
+  name: update-level-status-read-model
+  requirement: "蛇長、關卡、護盾或遊戲結果改變後，更新畫面使用的關卡狀態 Read Model。"
+frame_type: TF
+
+world_facts:
+  actor: domain_event_stream
+  trigger: "會改變關卡狀態顯示的已提交 Domain Event"
+  source_order: monotonic_event_version
+  target: FirstLevelStatusReadModel
+  transformation_policy: deterministic_projection
+
+frame_concerns:
+  - concern_ref: TF-CONCERN-001
+    check_id: TF-UPDATE-LEVEL-STATUS-READ-MODEL-001
+    description: "確保來源事件包含關卡、實際蛇長、目標、護盾次數與版本中適用的完整欄位。"
+
+  - concern_ref: TF-CONCERN-002
+    check_id: TF-UPDATE-LEVEL-STATUS-READ-MODEL-002
+    description: "確保相同 Domain 事實固定產生相同的長度文字、目標與 0% 至 100% 進度。"
+
+  - concern_ref: TF-CONCERN-003
+    check_id: TF-UPDATE-LEVEL-STATUS-READ-MODEL-003
+    description: "確保 Read Model 保留實際蛇長，並正確呈現第一、二關 20 與第三關 50 的目標。"
+
+  - concern_ref: TF-CONCERN-004
+    check_id: TF-UPDATE-LEVEL-STATUS-READ-MODEL-004
+    description: "確保投影只更新 Read Model，不改變 Game、Level、Snake、Shield 或 GameResult 狀態。"

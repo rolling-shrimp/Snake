@@ -1,0 +1,32 @@
+bounded_context: snake-game
+aggregate: game
+
+use_case:
+  name: end-current-level-play
+  requirement: "目前關卡通過或無法保命死亡時，停止所有遊玩活動並記錄結果。"
+frame_type: RIF
+
+world_facts:
+  actor: domain_event
+  trigger: "LevelPassed or unrescued DeathEvent"
+  required_state: "game.phase == Playing 且終局事件尚未處理"
+  reaction: "停止移動、方向輸入、物件產生與門週期，記錄實際蛇長及結果，再交接下一關、GameOver 或 Completed"
+  delivery_policy: at_most_once_effect
+
+frame_concerns:
+  - concern_ref: RIF-CONCERN-001
+    check_id: RIF-END-CURRENT-LEVEL-PLAY-001
+    description: "確保只回應未處理的 LevelPassed or unrescued DeathEvent，錯誤來源與重複事件不得反應。"
+
+  - concern_ref: RIF-CONCERN-002
+    check_id: RIF-END-CURRENT-LEVEL-PLAY-002
+    description: "確保 停止移動、方向輸入、物件產生與門週期，記錄實際蛇長及結果，再交接下一關、GameOver 或 Completed 的必要後續行為全部完成。"
+
+  - concern_ref: RIF-CONCERN-003
+    check_id: RIF-END-CURRENT-LEVEL-PLAY-003
+    description: "確保跨 Domain 動作依需求順序執行，不公開中間狀態。"
+
+  - concern_ref: RIF-CONCERN-004
+    check_id: RIF-END-CURRENT-LEVEL-PLAY-004
+    description: "確保反應完成後 Game、Level、Snake、Food、Shield、Fire、Bomb、DoorAndMaze、GameResult 的不變式與欄位完整。"
+

@@ -1,0 +1,136 @@
+use_case: show-third-level-ready-board
+bounded_context: snake-game
+aggregate: game
+frame_type: IDF
+
+domain_refs:
+  - domain: Game
+    path: ../../domain_spec.yaml
+    aggregate: Game
+  - domain: Level
+    path: ../../../Level/domain_spec.yaml
+    aggregate: Level
+  - domain: Board
+    path: ../../../Board/domain_spec.yaml
+    aggregate: Board
+  - domain: Snake
+    path: ../../../Snake/domain_spec.yaml
+    aggregate: Snake
+  - domain: DoorAndMaze
+    path: ../../../DoorAndMaze/domain_spec.yaml
+    aggregate: DoorAndMaze
+
+traceability:
+  requirement: "frame.yaml#use_case.requirement"
+  frame_checks:
+    - IDF-SHOW-THIRD-LEVEL-READY-BOARD-001
+    - IDF-SHOW-THIRD-LEVEL-READY-BOARD-002
+    - IDF-SHOW-THIRD-LEVEL-READY-BOARD-003
+    - IDF-SHOW-THIRD-LEVEL-READY-BOARD-004
+
+contract:
+  input:
+    data: none
+    rules:
+      - rule_id: DOM-SHOW-THIRD-LEVEL-READY-BOARD-IN-001
+        description: "沒有外部業務資料；Query 讀取目前可見的 Domain／Read Model 事實。"
+        domain_rule_refs:
+          - BOARD-INV-001
+          - BOARD-PLACE-003
+          - DOOR-MAZE-INV-001
+          - DOOR-MAZE-INV-002
+
+  output:
+    data: ThirdLevelReadyBoardRspDTO
+    rules:
+      - rule_id: DOM-SHOW-THIRD-LEVEL-READY-BOARD-OUT-001
+        description: "BoardRows：固定為 10。"
+        domain_rule_refs:
+          - BOARD-INV-001
+          - BOARD-PLACE-003
+          - DOOR-MAZE-INV-001
+          - DOOR-MAZE-INV-002
+      - rule_id: DOM-SHOW-THIRD-LEVEL-READY-BOARD-OUT-002
+        description: "BoardColumns：固定為 10。"
+        domain_rule_refs:
+          - BOARD-INV-001
+          - BOARD-PLACE-003
+          - DOOR-MAZE-INV-001
+          - DOOR-MAZE-INV-002
+      - rule_id: DOM-SHOW-THIRD-LEVEL-READY-BOARD-OUT-003
+        description: "SnakeCells：安全起點三格蛇。"
+        domain_rule_refs:
+          - BOARD-INV-001
+          - BOARD-PLACE-003
+          - DOOR-MAZE-INV-001
+          - DOOR-MAZE-INV-002
+      - rule_id: DOM-SHOW-THIRD-LEVEL-READY-BOARD-OUT-004
+        description: "WallCells：外牆與固定內牆。"
+        domain_rule_refs:
+          - BOARD-INV-001
+          - BOARD-PLACE-003
+          - DOOR-MAZE-INV-001
+          - DOOR-MAZE-INV-002
+      - rule_id: DOM-SHOW-THIRD-LEVEL-READY-BOARD-OUT-005
+        description: "Doors：門格與目前狀態。"
+        domain_rule_refs:
+          - BOARD-INV-001
+          - BOARD-PLACE-003
+          - DOOR-MAZE-INV-001
+          - DOOR-MAZE-INV-002
+      - rule_id: DOM-SHOW-THIRD-LEVEL-READY-BOARD-OUT-006
+        description: "IsStartButtonVisible：固定為 true。"
+        domain_rule_refs:
+          - BOARD-INV-001
+          - BOARD-PLACE-003
+          - DOOR-MAZE-INV-001
+          - DOOR-MAZE-INV-002
+
+  preconditions:
+    - rule_id: DOM-SHOW-THIRD-LEVEL-READY-BOARD-PRE-001
+      description: "game.phase == Ready 且 level.number == 3"
+      domain_rule_refs:
+        - BOARD-INV-001
+        - BOARD-PLACE-003
+        - DOOR-MAZE-INV-001
+        - DOOR-MAZE-INV-002
+
+  invariants:
+    - rule_id: DOM-SHOW-THIRD-LEVEL-READY-BOARD-INV-001
+      description: "查詢只讀；棋盤 10×10，牆與門格合法，保留可容納 50 格蛇的連續路線，三格蛇安全，開始按鈕可見。"
+      domain_rule_refs:
+        - BOARD-INV-001
+        - BOARD-PLACE-003
+        - DOOR-MAZE-INV-001
+        - DOOR-MAZE-INV-002
+
+  process:
+    - order: 1
+      action: "驗證可見條件：game.phase == Ready 且 level.number == 3。"
+    - order: 2
+      action: "讀取並映射目前 Domain／Read Model 事實。"
+    - order: 3
+      action: "建立 ThirdLevelReadyBoardRspDTO，不得觸發任何業務行為。"
+
+  postconditions:
+    - rule_id: DOM-SHOW-THIRD-LEVEL-READY-BOARD-POST-001
+      description: "棋盤 10×10，牆與門格合法，保留可容納 50 格蛇的連續路線，三格蛇安全，開始按鈕可見；完成後來源狀態完全不變。"
+      domain_rule_refs:
+        - BOARD-INV-001
+        - BOARD-PLACE-003
+        - DOOR-MAZE-INV-001
+        - DOOR-MAZE-INV-002
+
+  contract_violations:
+    - rule_id: DOM-SHOW-THIRD-LEVEL-READY-BOARD-ERR-001
+      condition: "不符合 game.phase == Ready 且 level.number == 3"
+      domain_code: INVALID_GAME_PHASE
+      state_guarantee: "Data 為 null，不回傳部分資料，來源狀態保持不變。"
+      domain_rule_refs:
+        - BOARD-INV-001
+        - BOARD-PLACE-003
+        - DOOR-MAZE-INV-001
+        - DOOR-MAZE-INV-002
+
+  not_applicable: []
+

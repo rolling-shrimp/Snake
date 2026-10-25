@@ -1,0 +1,32 @@
+bounded_context: snake-game
+aggregate: game
+
+use_case:
+  name: start-third-level
+  requirement: "玩家在第三關待開始畫面點擊「開始」按鈕。"
+frame_type: CBF
+
+world_facts:
+  actor: player
+  trigger: "第三關開始按鈕 click"
+  required_state: "game.phase == Ready 且 level.number == 3"
+  successful_outcome: "只交接一次 activate-third-level-play，不建立部分 Playing 狀態"
+  execution_policy: serialized_once_per_state
+
+frame_concerns:
+  - concern_ref: CBF-CONCERN-001
+    check_id: CBF-START-THIRD-LEVEL-001
+    description: "確保 第三關開始按鈕 click 被辨識為 start-third-level，且輸入目標與欄位完整。"
+
+  - concern_ref: CBF-CONCERN-002
+    check_id: CBF-START-THIRD-LEVEL-002
+    description: "確保只有在 game.phase == Ready 且 level.number == 3 時才接受處理。"
+
+  - concern_ref: CBF-CONCERN-003
+    check_id: CBF-START-THIRD-LEVEL-003
+    description: "確保同一有效觸發最多接受一次，不重複交接後續流程。"
+
+  - concern_ref: CBF-CONCERN-004
+    check_id: CBF-START-THIRD-LEVEL-004
+    description: "確保 只交接一次 activate-third-level-play，不建立部分 Playing 狀態；不符合條件時不得留下任何部分效果。"
+

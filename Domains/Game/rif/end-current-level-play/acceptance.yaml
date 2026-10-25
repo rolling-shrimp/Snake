@@ -1,0 +1,138 @@
+use_case: end-current-level-play
+bounded_context: snake-game
+aggregate: game
+frame_type: RIF
+
+spec_refs:
+  requirement: "frame.yaml#use_case.requirement"
+  domain: domain_spec.yaml
+  technical: technical_spec.yaml
+
+scenarios:
+  - id: SCN-END-CURRENT-LEVEL-PLAY-001
+    title: "第一或第二關通過"
+    description: "先停止活動並記錄實際通關蛇長，再交接 prepare-next-level 一次。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - RIF-END-CURRENT-LEVEL-PLAY-001
+        - RIF-END-CURRENT-LEVEL-PLAY-002
+        - RIF-END-CURRENT-LEVEL-PLAY-003
+        - RIF-END-CURRENT-LEVEL-PLAY-004
+      domain_rules:
+        - DOM-END-CURRENT-LEVEL-PLAY-PRE-001
+        - DOM-END-CURRENT-LEVEL-PLAY-POST-001
+      technical_contracts:
+        - EndCurrentLevelPlayResult.IsSuccess
+        - TECH-END-CURRENT-LEVEL-PLAY-STATE-001
+    given:
+      - fact: "Level 1 或 2 發出 LevelPassed，事件尚未處理。"
+    when:
+      action: end_current_level_play
+      input:
+        type: EndCurrentLevelPlayCommand
+        fields: {}
+    then:
+      output:
+        type: EndCurrentLevelPlayResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
+      reaction_effect: "先停止活動並記錄實際通關蛇長，再交接 prepare-next-level 一次。"
+
+  - id: SCN-END-CURRENT-LEVEL-PLAY-002
+    title: "第三關通過"
+    description: "停止活動、保留實際蛇長並記錄 Passed，Game 切換 Completed。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - RIF-END-CURRENT-LEVEL-PLAY-001
+        - RIF-END-CURRENT-LEVEL-PLAY-002
+        - RIF-END-CURRENT-LEVEL-PLAY-003
+        - RIF-END-CURRENT-LEVEL-PLAY-004
+      domain_rules:
+        - DOM-END-CURRENT-LEVEL-PLAY-PRE-001
+        - DOM-END-CURRENT-LEVEL-PLAY-POST-001
+      technical_contracts:
+        - EndCurrentLevelPlayResult.IsSuccess
+        - TECH-END-CURRENT-LEVEL-PLAY-STATE-001
+    given:
+      - fact: "Level 3 發出 LevelPassed，實際蛇長可能超過 50。"
+    when:
+      action: end_current_level_play
+      input:
+        type: EndCurrentLevelPlayCommand
+        fields: {}
+    then:
+      output:
+        type: EndCurrentLevelPlayResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
+      reaction_effect: "停止活動、保留實際蛇長並記錄 Passed，Game 切換 Completed。"
+
+  - id: SCN-END-CURRENT-LEVEL-PLAY-003
+    title: "死亡且無法保命"
+    description: "停止活動、記錄 Failed 與 death_cause；FatalFire 最終長度最低為 0，Game 切換 GameOver。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - RIF-END-CURRENT-LEVEL-PLAY-001
+        - RIF-END-CURRENT-LEVEL-PLAY-002
+        - RIF-END-CURRENT-LEVEL-PLAY-003
+        - RIF-END-CURRENT-LEVEL-PLAY-004
+      domain_rules:
+        - DOM-END-CURRENT-LEVEL-PLAY-PRE-001
+        - DOM-END-CURRENT-LEVEL-PLAY-POST-001
+      technical_contracts:
+        - EndCurrentLevelPlayResult.IsSuccess
+        - TECH-END-CURRENT-LEVEL-PLAY-STATE-001
+    given:
+      - fact: "死亡事件沒有剩餘護盾。"
+    when:
+      action: end_current_level_play
+      input:
+        type: EndCurrentLevelPlayCommand
+        fields: {}
+    then:
+      output:
+        type: EndCurrentLevelPlayResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
+      reaction_effect: "停止活動、記錄 Failed 與 death_cause；FatalFire 最終長度最低為 0，Game 切換 GameOver。"
+
+  - id: SCN-END-CURRENT-LEVEL-PLAY-004
+    title: "重複終局事件"
+    description: "正常忽略，不重複記錄結果或再次轉移階段。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - RIF-END-CURRENT-LEVEL-PLAY-001
+        - RIF-END-CURRENT-LEVEL-PLAY-004
+      domain_rules:
+        - DOM-END-CURRENT-LEVEL-PLAY-NOOP-001
+        - DOM-END-CURRENT-LEVEL-PLAY-INV-001
+      technical_contracts:
+        - EndCurrentLevelPlayResult.IsSuccess
+        - TECH-END-CURRENT-LEVEL-PLAY-NOOP-001
+    given:
+      - fact: "同一關的終局事件已完成處理。"
+    when:
+      action: end_current_level_play
+      input:
+        type: EndCurrentLevelPlayCommand
+        fields: {}
+    then:
+      output:
+        type: EndCurrentLevelPlayResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
+      domain_state:
+        unchanged: true
+

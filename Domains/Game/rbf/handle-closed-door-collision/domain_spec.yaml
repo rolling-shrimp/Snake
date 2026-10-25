@@ -1,0 +1,91 @@
+use_case: handle-closed-door-collision
+bounded_context: snake-game
+aggregate: game
+frame_type: RBF
+
+domain_refs:
+  - domain: Game
+    path: ../../domain_spec.yaml
+    aggregate: Game
+  - domain: DoorAndMaze
+    path: ../../../DoorAndMaze/domain_spec.yaml
+    aggregate: DoorAndMaze
+  - domain: Shield
+    path: ../../../Shield/domain_spec.yaml
+    aggregate: Shield
+
+traceability:
+  requirement: "frame.yaml#use_case.requirement"
+  frame_checks:
+    - RBF-HANDLE-CLOSED-DOOR-COLLISION-001
+    - RBF-HANDLE-CLOSED-DOOR-COLLISION-002
+    - RBF-HANDLE-CLOSED-DOOR-COLLISION-003
+    - RBF-HANDLE-CLOSED-DOOR-COLLISION-004
+
+contract:
+  input:
+    data: HandleClosedDoorCollisionCommand
+    fields:
+      - name: DoorId
+        type: string
+        required: true
+    rules:
+      - rule_id: DOM-HANDLE-CLOSED-DOOR-COLLISION-IN-001
+        description: "Input 表示一次已觀察到的條件事實：next snake head cell is a Closed door cell。"
+        domain_rule_refs:
+          - DOOR-MAZE-COLLISION-002
+          - DOOR-MAZE-COLLISION-003
+          - GAME-REL-005
+
+  output:
+    data: HandleClosedDoorCollisionResult
+    rules:
+      - rule_id: DOM-HANDLE-CLOSED-DOOR-COLLISION-OUT-001
+        description: "Output 表示必要行為是否完成；不適用條件以成功 no-op 表示。"
+        domain_rule_refs: []
+
+  preconditions:
+    - rule_id: DOM-HANDLE-CLOSED-DOOR-COLLISION-PRE-001
+      description: "game.phase == Playing、level.number == 3，且目標門狀態為 Closed"
+      domain_rule_refs:
+        - DOOR-MAZE-COLLISION-002
+        - DOOR-MAZE-COLLISION-003
+        - GAME-REL-005
+
+  invariants:
+    - rule_id: DOM-HANDLE-CLOSED-DOOR-COLLISION-INV-001
+      description: "同一條件事實最多處理一次；不提交蛇身位置並產生一次 ClosedDoorCollision，等待 Shield 決策。"
+      domain_rule_refs:
+        - DOOR-MAZE-COLLISION-002
+        - DOOR-MAZE-COLLISION-003
+        - GAME-REL-005
+
+  process:
+    - order: 1
+      action: "確認觸發事實與 game.phase == Playing、level.number == 3，且目標門狀態為 Closed。"
+    - order: 2
+      action: "不提交蛇身位置並產生一次 ClosedDoorCollision，等待 Shield 決策"
+    - order: 3
+      action: "發布後續流程需要的結果事實，但不越權執行其他 Use Case。"
+
+  postconditions:
+    - rule_id: DOM-HANDLE-CLOSED-DOOR-COLLISION-POST-001
+      description: "不提交蛇身位置並產生一次 ClosedDoorCollision，等待 Shield 決策"
+      domain_rule_refs:
+        - DOOR-MAZE-COLLISION-002
+        - DOOR-MAZE-COLLISION-003
+        - GAME-REL-005
+
+  contract_violations: []
+
+  not_applicable:
+    - rule_id: DOM-HANDLE-CLOSED-DOOR-COLLISION-NOOP-001
+      condition: "門為 Open、ClosingWarning 或 CloseDeferred。"
+      behavior: ignore
+      error: none
+      state_guarantee: "允許移動通過，不產生 ClosedDoorCollision。"
+      domain_rule_refs:
+        - DOOR-MAZE-COLLISION-002
+        - DOOR-MAZE-COLLISION-003
+        - GAME-REL-005
+

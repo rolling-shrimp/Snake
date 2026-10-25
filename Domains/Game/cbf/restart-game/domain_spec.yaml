@@ -1,0 +1,92 @@
+use_case: restart-game
+bounded_context: snake-game
+aggregate: game
+frame_type: CBF
+
+domain_refs:
+  - domain: Game
+    path: ../../domain_spec.yaml
+    aggregate: Game
+  - domain: GameResult
+    path: ../../../GameResult/domain_spec.yaml
+    aggregate: GameResult
+
+traceability:
+  requirement: "frame.yaml#use_case.requirement"
+  frame_checks:
+    - CBF-RESTART-GAME-001
+    - CBF-RESTART-GAME-002
+    - CBF-RESTART-GAME-003
+    - CBF-RESTART-GAME-004
+
+contract:
+  input:
+    data: RestartGameCommand
+    fields:
+      []
+    rules:
+      - rule_id: DOM-RESTART-GAME-IN-001
+        description: "Input 來自終局畫面的「重玩」按鈕。，只能代表一次 restart-game 要求。"
+        domain_field_refs: []
+        domain_rule_refs:
+          - GAME-REL-009
+          - GAME-REL-010
+          - RESULT-RESET-001
+
+  output:
+    data: RestartGameResult
+    rules:
+      - rule_id: DOM-RESTART-GAME-OUT-001
+        description: "Output 表示 restart-game 是否完成；預期的不適用條件以成功 no-op 表示。"
+        domain_field_refs: []
+        domain_rule_refs: []
+
+  preconditions:
+    - rule_id: DOM-RESTART-GAME-PRE-001
+      description: "game.phase == GameOver 或 game.phase == Completed"
+      domain_field_refs: []
+      domain_rule_refs:
+        - GAME-REL-009
+        - GAME-REL-010
+        - RESULT-RESET-001
+
+  invariants:
+    - rule_id: DOM-RESTART-GAME-INV-001
+      description: "只交接一次 reset-game-for-replay，不在 CBF 中重設部分輪次資料"
+      domain_field_refs: []
+      domain_rule_refs:
+        - GAME-REL-009
+        - GAME-REL-010
+        - RESULT-RESET-001
+
+  process:
+    - order: 1
+      action: "辨識並驗證 重玩按鈕 click。"
+    - order: 2
+      action: "確認 game.phase == GameOver 或 game.phase == Completed。"
+    - order: 3
+      action: "只交接一次 reset-game-for-replay，不在 CBF 中重設部分輪次資料"
+
+  postconditions:
+    - rule_id: DOM-RESTART-GAME-POST-001
+      description: "命令被接受一次並交接 reset-game-for-replay 一次；原輪次資料由後續 RIF 完整重設。"
+      domain_field_refs: []
+      domain_rule_refs:
+        - GAME-REL-009
+        - GAME-REL-010
+        - RESULT-RESET-001
+
+  contract_violations: []
+
+  not_applicable:
+    - rule_id: DOM-RESTART-GAME-NOOP-001
+      condition: "Game 尚未進入 GameOver 或 Completed，或同一終局狀態的重玩命令已接受。"
+      behavior: ignore
+      error: none
+      state_guarantee: "正常忽略，不重設任何 Domain，也不交接重玩 RIF。"
+      domain_field_refs: []
+      domain_rule_refs:
+        - GAME-REL-009
+        - GAME-REL-010
+        - RESULT-RESET-001
+

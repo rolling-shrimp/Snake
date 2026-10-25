@@ -1,0 +1,32 @@
+bounded_context: snake-game
+aggregate: game
+
+use_case:
+  name: set-snake-direction
+  requirement: "玩家使用方向鍵要求蛇改變下一次前進方向。"
+frame_type: SWF
+
+world_facts:
+  actor: player
+  trigger: "方向鍵 key down"
+  required_state: "game.phase == Playing，方向是 Up、Down、Left、Right，且不是目前方向的相反方向"
+  successful_outcome: "只更新 Snake.next_direction；非法或直接反向輸入保持原方向"
+  execution_policy: serialized_once_per_state
+
+frame_concerns:
+  - concern_ref: SWF-CONCERN-001
+    check_id: SWF-SET-SNAKE-DIRECTION-001
+    description: "確保 方向鍵 key down 被辨識為 set-snake-direction，且輸入目標與欄位完整。"
+
+  - concern_ref: SWF-CONCERN-002
+    check_id: SWF-SET-SNAKE-DIRECTION-002
+    description: "確保只有在 game.phase == Playing，方向是 Up、Down、Left、Right，且不是目前方向的相反方向 時才接受處理。"
+
+  - concern_ref: SWF-CONCERN-003
+    check_id: SWF-SET-SNAKE-DIRECTION-003
+    description: "確保 只更新 Snake.next_direction；非法或直接反向輸入保持原方向 的相關欄位在單一操作中完成，不公開部分更新。"
+
+  - concern_ref: SWF-CONCERN-004
+    check_id: SWF-SET-SNAKE-DIRECTION-004
+    description: "確保 只更新 Snake.next_direction；非法或直接反向輸入保持原方向；不符合條件時不得留下任何部分效果。"
+

@@ -30,6 +30,10 @@ scenarios:
         - DOM-FIRST-LEVEL-RULES-POST-001
         - DOM-FIRST-LEVEL-RULES-POST-002
       technical_contracts:
+        - ShowFirstLevelRulesResult.IsSuccess
+        - ShowFirstLevelRulesResult.FailureCode
+        - ShowFirstLevelRulesResult.FailureMessage
+        - ShowFirstLevelRulesResult.Data
         - FirstLevelRulesRspDTO.RuleHints
         - RuleHintDTO.Code
         - RuleHintDTO.Text
@@ -40,18 +44,24 @@ scenarios:
           level: 1
     when:
       action: execute_use_case
-      input: null
+      input:
+        type: ShowFirstLevelRulesQuery
+        fields: {}
     then:
       output:
-        type: FirstLevelRulesRspDTO
+        type: ShowFirstLevelRulesResult
         fields:
-          rule_hints:
-            - code: ORDINARY_FOOD_GROWTH
-              text: "普通食物 +1 格"
-            - code: BOUNDARY_WRAP
-              text: "邊界可以穿越"
-            - code: SELF_COLLISION_DEATH
-              text: "撞到自己的身體會死亡"
+          is_success: true
+          failure_code: null
+          failure_message: null
+          data:
+            rule_hints:
+              - code: ORDINARY_FOOD_GROWTH
+                text: "普通食物 +1 格"
+              - code: BOUNDARY_WRAP
+                text: "邊界可以穿越"
+              - code: SELF_COLLISION_DEATH
+                text: "撞到自己的身體會死亡"
         excludes:
           - special_food
           - shield
@@ -75,6 +85,10 @@ scenarios:
         - DOM-FIRST-LEVEL-RULES-PRE-001
         - DOM-FIRST-LEVEL-RULES-ERR-001
       technical_contracts:
+        - ShowFirstLevelRulesResult.IsSuccess
+        - ShowFirstLevelRulesResult.FailureCode
+        - ShowFirstLevelRulesResult.FailureMessage
+        - ShowFirstLevelRulesResult.Data
         - TECH-FIRST-LEVEL-RULES-ERR-001
     given:
       - state: first_level_playing
@@ -82,10 +96,16 @@ scenarios:
           level: 1
     when:
       action: execute_use_case
-      input: null
+      input:
+        type: ShowFirstLevelRulesQuery
+        fields: {}
     then:
-      error:
-        domain_code: INVALID_GAME_PHASE
-        technical_type: InvalidOperationException
+      output:
+        type: ShowFirstLevelRulesResult
+        fields:
+          is_success: false
+          failure_code: INVALID_GAME_PHASE
+          failure_message: "目前不是第一關待開始階段。"
+          data: null
       domain_state:
         unchanged: true

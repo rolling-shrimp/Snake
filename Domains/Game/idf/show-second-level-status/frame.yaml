@@ -1,0 +1,31 @@
+bounded_context: snake-game
+aggregate: game
+
+use_case:
+  name: show-second-level-status
+  requirement: "第二關待開始時，顯示第二關、蛇長 3/20、進度 15% 與護盾剩餘 0 次。"
+frame_type: IDF
+
+world_facts:
+  actor: display
+  required_state: "game.phase == Ready 且 level.number == 2"
+  visibility_scope: "只顯示第二關狀態，不顯示第三關目標或門資訊"
+  side_effect_policy: none
+
+frame_concerns:
+  - concern_ref: IDF-CONCERN-001
+    check_id: IDF-SHOW-SECOND-LEVEL-STATUS-001
+    description: "確保完整輸出 LevelName、CurrentLength、TargetLength、ProgressPercent、ShieldRemainingCharges。"
+
+  - concern_ref: IDF-CONCERN-002
+    check_id: IDF-SHOW-SECOND-LEVEL-STATUS-002
+    description: "確保 LevelName 為第二關，CurrentLength 3、TargetLength 20、ProgressPercent 15、ShieldRemainingCharges 0，且所有值來自目前 Domain 事實。"
+
+  - concern_ref: IDF-CONCERN-003
+    check_id: IDF-SHOW-SECOND-LEVEL-STATUS-003
+    description: "確保 只顯示第二關狀態，不顯示第三關目標或門資訊；排除 第三關目標、門狀態、關卡倒數。"
+
+  - concern_ref: IDF-CONCERN-004
+    check_id: IDF-SHOW-SECOND-LEVEL-STATUS-004
+    description: "確保查詢不改變任何 Domain、Read Model 版本或遊戲時間。"
+

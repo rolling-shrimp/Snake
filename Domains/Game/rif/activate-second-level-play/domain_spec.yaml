@@ -1,0 +1,116 @@
+use_case: activate-second-level-play
+bounded_context: snake-game
+aggregate: game
+frame_type: RIF
+
+domain_refs:
+  - domain: Game
+    path: ../../domain_spec.yaml
+    aggregate: Game
+  - domain: Level
+    path: ../../../Level/domain_spec.yaml
+    aggregate: Level
+  - domain: Snake
+    path: ../../../Snake/domain_spec.yaml
+    aggregate: Snake
+  - domain: Board
+    path: ../../../Board/domain_spec.yaml
+    aggregate: Board
+  - domain: Food
+    path: ../../../Food/domain_spec.yaml
+    aggregate: Food
+  - domain: Shield
+    path: ../../../Shield/domain_spec.yaml
+    aggregate: Shield
+  - domain: Fire
+    path: ../../../Fire/domain_spec.yaml
+    aggregate: Fire
+
+traceability:
+  requirement: "frame.yaml#use_case.requirement"
+  frame_checks:
+    - RIF-ACTIVATE-SECOND-LEVEL-PLAY-001
+    - RIF-ACTIVATE-SECOND-LEVEL-PLAY-002
+    - RIF-ACTIVATE-SECOND-LEVEL-PLAY-003
+    - RIF-ACTIVATE-SECOND-LEVEL-PLAY-004
+
+contract:
+  input:
+    data: ActivateSecondLevelPlayCommand
+    fields:
+      []
+    rules:
+      - rule_id: DOM-ACTIVATE-SECOND-LEVEL-PLAY-IN-001
+        description: "Input 只能由未處理的 StartSecondLevelAccepted domain event 產生。"
+        domain_rule_refs:
+          - GAME-REL-002
+          - LEVEL-POLICY-003
+          - SNAKE-MOVE-001
+          - FOOD-SPAWN-001
+          - SHIELD-SPAWN-001
+          - FIRE-SPAWN-001
+
+  output:
+    data: ActivateSecondLevelPlayResult
+    rules:
+      - rule_id: DOM-ACTIVATE-SECOND-LEVEL-PLAY-OUT-001
+        description: "Output 表示反應是否完整結束；錯誤來源或重複事件以成功 no-op 表示。"
+        domain_rule_refs: []
+
+  preconditions:
+    - rule_id: DOM-ACTIVATE-SECOND-LEVEL-PLAY-PRE-001
+      description: "game.phase == Ready、level.number == 2，且事件尚未處理"
+      domain_rule_refs:
+        - GAME-REL-002
+        - LEVEL-POLICY-003
+        - SNAKE-MOVE-001
+        - FOOD-SPAWN-001
+        - SHIELD-SPAWN-001
+        - FIRE-SPAWN-001
+
+  invariants:
+    - rule_id: DOM-ACTIVATE-SECOND-LEVEL-PLAY-INV-001
+      description: "相同 trigger 最多造成一次效果；依序隱藏開始按鈕與第一關結果、產生普通食物／特殊食物／第一個護盾／火焰、切換 Playing 並啟動 250 毫秒移動。"
+      domain_rule_refs:
+        - GAME-REL-002
+        - LEVEL-POLICY-003
+        - SNAKE-MOVE-001
+        - FOOD-SPAWN-001
+        - SHIELD-SPAWN-001
+        - FIRE-SPAWN-001
+
+  process:
+    - order: 1
+      action: "驗證事件來源、必要狀態與去重識別。"
+    - order: 2
+      action: "依序隱藏開始按鈕與第一關結果、產生普通食物／特殊食物／第一個護盾／火焰、切換 Playing 並啟動 250 毫秒移動"
+    - order: 3
+      action: "全部動作成功後才標記事件已處理並公開最終狀態。"
+
+  postconditions:
+    - rule_id: DOM-ACTIVATE-SECOND-LEVEL-PLAY-POST-001
+      description: "依序隱藏開始按鈕與第一關結果、產生普通食物／特殊食物／第一個護盾／火焰、切換 Playing 並啟動 250 毫秒移動"
+      domain_rule_refs:
+        - GAME-REL-002
+        - LEVEL-POLICY-003
+        - SNAKE-MOVE-001
+        - FOOD-SPAWN-001
+        - SHIELD-SPAWN-001
+        - FIRE-SPAWN-001
+
+  contract_violations: []
+
+  not_applicable:
+    - rule_id: DOM-ACTIVATE-SECOND-LEVEL-PLAY-NOOP-001
+      condition: "事件不是由 start-second-level 成功接受所產生。"
+      behavior: ignore
+      error: none
+      state_guarantee: "正常忽略，不隱藏畫面、不產生物件、不啟動移動。"
+      domain_rule_refs:
+        - GAME-REL-002
+        - LEVEL-POLICY-003
+        - SNAKE-MOVE-001
+        - FOOD-SPAWN-001
+        - SHIELD-SPAWN-001
+        - FIRE-SPAWN-001
+

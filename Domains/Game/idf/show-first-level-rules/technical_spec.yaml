@@ -6,12 +6,35 @@ frame_type: IDF
 spec_refs:
   domain: domain_spec.yaml
 
+read_port:
+  name: IFirstLevelReadPort
+  operation: Read
+  returns: FirstLevelReadModel
+  implementation: SnakeGameSession
+  entity_exposure: false
+
 input:
-  type: none
+  type: ShowFirstLevelRulesQuery
   source: "Game Domain 的第一關規則。"
   fields: []
 
 output:
+  type: ShowFirstLevelRulesResult
+  fields:
+    - name: IsSuccess
+      csharp_type: bool
+      required: true
+    - name: FailureCode
+      csharp_type: "string?"
+      required: true
+    - name: FailureMessage
+      csharp_type: "string?"
+      required: true
+    - name: Data
+      csharp_type: "FirstLevelRulesRspDTO?"
+      required: true
+
+data:
   type: FirstLevelRulesRspDTO
   fields:
     - name: RuleHints
@@ -27,6 +50,18 @@ output:
         - DOM-FIRST-LEVEL-RULES-OUT-004
 
 types:
+  - name: ShowFirstLevelRulesQuery
+    fields: []
+  - name: ShowFirstLevelRulesResult
+    fields:
+      - name: IsSuccess
+        csharp_type: bool
+      - name: FailureCode
+        csharp_type: "string?"
+      - name: FailureMessage
+        csharp_type: "string?"
+      - name: Data
+        csharp_type: "FirstLevelRulesRspDTO?"
   - name: FirstLevelRulesRspDTO
     fields:
       - name: RuleHints
@@ -60,13 +95,13 @@ domain_to_technical_mapping:
       - DOM-FIRST-LEVEL-RULES-OUT-002
       - DOM-FIRST-LEVEL-RULES-OUT-003
       - DOM-FIRST-LEVEL-RULES-OUT-004
-    target: FirstLevelRulesRspDTO.RuleHints
+    target: ShowFirstLevelRulesResult.Data.RuleHints
     description: "三項 Domain 規則依指定順序各映射為一個 RuleHintDTO。"
   - domain_rules:
       - DOM-FIRST-LEVEL-RULES-OUT-001
       - DOM-FIRST-LEVEL-RULES-OUT-002
       - DOM-FIRST-LEVEL-RULES-OUT-003
-    target: "RuleHintDTO.Code, RuleHintDTO.Text"
+    target: "ShowFirstLevelRulesResult.Data.RuleHints[].Code, ShowFirstLevelRulesResult.Data.RuleHints[].Text"
     description: "Code 使用固定、可測試的英文識別碼；Text 使用玩家可見的繁體中文提示。"
 
 state_mappings:
@@ -76,7 +111,12 @@ state_mappings:
 error_mappings:
   - mapping_id: TECH-FIRST-LEVEL-RULES-ERR-001
     domain_code: INVALID_GAME_PHASE
-    technical_type: InvalidOperationException
-    description: "例外必須在產生部分 Output 或修改狀態前發生。"
+    technical_type: ShowFirstLevelRulesResult
+    result:
+      IsSuccess: false
+      FailureCode: INVALID_GAME_PHASE
+      FailureMessage: "目前不是第一關待開始階段。"
+      Data: null
+    description: "預期的階段錯誤使用 Result 回傳，不拋出例外，且不得修改狀態。"
 
 no_op_mappings: []

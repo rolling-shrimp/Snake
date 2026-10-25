@@ -1,0 +1,70 @@
+schema_version: 1
+screen:
+  screen_id: first-level-ready
+  bounded_context: snake-game
+  aggregate: game
+  phase: ready
+  level: first
+  board_mode: initial
+grain:
+  input: use_case_results_and_read_models
+  output: rendered_screen
+  contract_owner: WinForms
+presentation_relations:
+  - relation_id: PRES-FIRST-READY-BOARD
+    target_use_case: show-first-level-ready-board
+    ownership: reference_only
+    target_specs:
+      frame: ../../idf/show-first-level-ready-board/frame.yaml
+      domain: ../../idf/show-first-level-ready-board/domain_spec.yaml
+      technical: ../../idf/show-first-level-ready-board/technical_spec.yaml
+    frame_check_refs: [IDF-READY-BOARD-001]
+    domain_rule_refs: [DOM-READY-BOARD-OUT-001]
+    technical_contract_refs: [TECH-READY-BOARD-STATE-001]
+  - relation_id: PRES-FIRST-READY-RULES
+    target_use_case: show-first-level-rules
+    ownership: reference_only
+    target_specs:
+      frame: ../../idf/show-first-level-rules/frame.yaml
+      domain: ../../idf/show-first-level-rules/domain_spec.yaml
+      technical: ../../idf/show-first-level-rules/technical_spec.yaml
+    frame_check_refs: [IDF-FIRST-LEVEL-RULES-001]
+    domain_rule_refs: [DOM-FIRST-LEVEL-RULES-OUT-001]
+    technical_contract_refs: [TECH-FIRST-LEVEL-RULES-STATE-001]
+  - relation_id: PRES-FIRST-READY-ACTIVATE
+    target_use_case: activate-first-level-play
+    ownership: reference_only
+    target_specs:
+      frame: ../../rif/activate-first-level-play/frame.yaml
+      domain: ../../rif/activate-first-level-play/domain_spec.yaml
+      technical: ../../rif/activate-first-level-play/technical_spec.yaml
+    frame_check_refs: [RIF-ACTIVATE-FIRST-LEVEL-001]
+    domain_rule_refs: [DOM-ACTIVATE-FIRST-LEVEL-IN-001]
+    technical_contract_refs: [TECH-ACTIVATE-FIRST-LEVEL-STATE-001]
+visibility:
+  required:
+    - 10x10-board
+    - three-cell-snake-at-safe-start
+    - first-level-name
+    - snake-length-3-of-20
+    - progress-15-percent
+    - strawberry-plus-one-rule
+    - wrap-boundary-rule
+    - self-collision-death-rule
+    - start-button
+  forbidden:
+    - board-objects
+    - shield-count
+    - special-food
+    - fire
+    - bomb
+    - walls
+    - door
+    - replay-button
+transitions:
+  - trigger: start
+    relation_ref: PRES-FIRST-READY-ACTIVATE
+    target_screen: first-level-playing
+asset_pair:
+  html: ../../../../assets/level-1.html
+  png: ../../../../assets/level-1.png

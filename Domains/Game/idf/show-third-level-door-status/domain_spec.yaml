@@ -1,0 +1,116 @@
+use_case: show-third-level-door-status
+bounded_context: snake-game
+aggregate: game
+frame_type: IDF
+
+domain_refs:
+  - domain: Game
+    path: ../../domain_spec.yaml
+    aggregate: Game
+  - domain: Level
+    path: ../../../Level/domain_spec.yaml
+    aggregate: Level
+  - domain: DoorAndMaze
+    path: ../../../DoorAndMaze/domain_spec.yaml
+    aggregate: DoorAndMaze
+
+traceability:
+  requirement: "frame.yaml#use_case.requirement"
+  frame_checks:
+    - IDF-SHOW-THIRD-LEVEL-DOOR-STATUS-001
+    - IDF-SHOW-THIRD-LEVEL-DOOR-STATUS-002
+    - IDF-SHOW-THIRD-LEVEL-DOOR-STATUS-003
+    - IDF-SHOW-THIRD-LEVEL-DOOR-STATUS-004
+
+contract:
+  input:
+    data: none
+    rules:
+      - rule_id: DOM-SHOW-THIRD-LEVEL-DOOR-STATUS-IN-001
+        description: "沒有外部業務資料；Query 讀取目前可見的 Domain／Read Model 事實。"
+        domain_rule_refs:
+          - DOOR-MAZE-COLLISION-003
+          - DOOR-MAZE-CYCLE-001
+          - DOOR-MAZE-CYCLE-002
+          - DOOR-MAZE-CYCLE-003
+          - DOOR-MAZE-CYCLE-004
+          - DOOR-MAZE-CYCLE-005
+
+  output:
+    data: ThirdLevelDoorStatusRspDTO
+    rules:
+      - rule_id: DOM-SHOW-THIRD-LEVEL-DOOR-STATUS-OUT-001
+        description: "Doors：每扇門的識別、位置與目前狀態。"
+        domain_rule_refs:
+          - DOOR-MAZE-COLLISION-003
+          - DOOR-MAZE-CYCLE-001
+          - DOOR-MAZE-CYCLE-002
+          - DOOR-MAZE-CYCLE-003
+          - DOOR-MAZE-CYCLE-004
+          - DOOR-MAZE-CYCLE-005
+      - rule_id: DOM-SHOW-THIRD-LEVEL-DOOR-STATUS-OUT-002
+        description: "IsCycleActive：只有第三關 Playing 為 true。"
+        domain_rule_refs:
+          - DOOR-MAZE-COLLISION-003
+          - DOOR-MAZE-CYCLE-001
+          - DOOR-MAZE-CYCLE-002
+          - DOOR-MAZE-CYCLE-003
+          - DOOR-MAZE-CYCLE-004
+          - DOOR-MAZE-CYCLE-005
+
+  preconditions:
+    - rule_id: DOM-SHOW-THIRD-LEVEL-DOOR-STATUS-PRE-001
+      description: "level.number == 3 且 game.phase 為 Ready 或 Playing"
+      domain_rule_refs:
+        - DOOR-MAZE-COLLISION-003
+        - DOOR-MAZE-CYCLE-001
+        - DOOR-MAZE-CYCLE-002
+        - DOOR-MAZE-CYCLE-003
+        - DOOR-MAZE-CYCLE-004
+        - DOOR-MAZE-CYCLE-005
+
+  invariants:
+    - rule_id: DOM-SHOW-THIRD-LEVEL-DOOR-STATUS-INV-001
+      description: "查詢只讀；每扇門輸出位置與 Open、ClosingWarning、CloseDeferred 或 Closed；提醒與實際通行政策一致。"
+      domain_rule_refs:
+        - DOOR-MAZE-COLLISION-003
+        - DOOR-MAZE-CYCLE-001
+        - DOOR-MAZE-CYCLE-002
+        - DOOR-MAZE-CYCLE-003
+        - DOOR-MAZE-CYCLE-004
+        - DOOR-MAZE-CYCLE-005
+
+  process:
+    - order: 1
+      action: "驗證可見條件：level.number == 3 且 game.phase 為 Ready 或 Playing。"
+    - order: 2
+      action: "讀取並映射目前 Domain／Read Model 事實。"
+    - order: 3
+      action: "建立 ThirdLevelDoorStatusRspDTO，不得觸發任何業務行為。"
+
+  postconditions:
+    - rule_id: DOM-SHOW-THIRD-LEVEL-DOOR-STATUS-POST-001
+      description: "每扇門輸出位置與 Open、ClosingWarning、CloseDeferred 或 Closed；提醒與實際通行政策一致；完成後來源狀態完全不變。"
+      domain_rule_refs:
+        - DOOR-MAZE-COLLISION-003
+        - DOOR-MAZE-CYCLE-001
+        - DOOR-MAZE-CYCLE-002
+        - DOOR-MAZE-CYCLE-003
+        - DOOR-MAZE-CYCLE-004
+        - DOOR-MAZE-CYCLE-005
+
+  contract_violations:
+    - rule_id: DOM-SHOW-THIRD-LEVEL-DOOR-STATUS-ERR-001
+      condition: "不符合 level.number == 3 且 game.phase 為 Ready 或 Playing"
+      domain_code: INVALID_GAME_PHASE
+      state_guarantee: "Data 為 null，不回傳部分資料，來源狀態保持不變。"
+      domain_rule_refs:
+        - DOOR-MAZE-COLLISION-003
+        - DOOR-MAZE-CYCLE-001
+        - DOOR-MAZE-CYCLE-002
+        - DOOR-MAZE-CYCLE-003
+        - DOOR-MAZE-CYCLE-004
+        - DOOR-MAZE-CYCLE-005
+
+  not_applicable: []
+

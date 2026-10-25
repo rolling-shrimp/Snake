@@ -1,0 +1,31 @@
+bounded_context: snake-game
+aggregate: game
+
+use_case:
+  name: show-second-level-ready-board
+  requirement: "第二關待開始時，顯示 10×10 棋盤、安全起點上的 3 格蛇與「開始」按鈕。"
+frame_type: IDF
+
+world_facts:
+  actor: display
+  required_state: "game.phase == Ready 且 level.number == 2"
+  visibility_scope: "只顯示第二關待開始棋盤；尚不顯示或產生任何遊玩物件"
+  side_effect_policy: none
+
+frame_concerns:
+  - concern_ref: IDF-CONCERN-001
+    check_id: IDF-SHOW-SECOND-LEVEL-READY-BOARD-001
+    description: "確保完整輸出 BoardRows、BoardColumns、SnakeCells、IsStartButtonVisible。"
+
+  - concern_ref: IDF-CONCERN-002
+    check_id: IDF-SHOW-SECOND-LEVEL-READY-BOARD-002
+    description: "確保 棋盤為 10×10，三個蛇身格合法且唯一，開始按鈕可見，棋盤物件數為 0，且所有值來自目前 Domain 事實。"
+
+  - concern_ref: IDF-CONCERN-003
+    check_id: IDF-SHOW-SECOND-LEVEL-READY-BOARD-003
+    description: "確保 只顯示第二關待開始棋盤；尚不顯示或產生任何遊玩物件；排除 普通食物、特殊食物、護盾、火焰、炸彈、第三關牆壁與門。"
+
+  - concern_ref: IDF-CONCERN-004
+    check_id: IDF-SHOW-SECOND-LEVEL-READY-BOARD-004
+    description: "確保查詢不改變任何 Domain、Read Model 版本或遊戲時間。"
+

@@ -1,0 +1,116 @@
+use_case: show-game-completed-result
+bounded_context: snake-game
+aggregate: game
+frame_type: IDF
+
+domain_refs:
+  - domain: Game
+    path: ../../domain_spec.yaml
+    aggregate: Game
+  - domain: Level
+    path: ../../../Level/domain_spec.yaml
+    aggregate: Level
+  - domain: GameResult
+    path: ../../../GameResult/domain_spec.yaml
+    aggregate: GameResult
+
+traceability:
+  requirement: "frame.yaml#use_case.requirement"
+  frame_checks:
+    - IDF-SHOW-GAME-COMPLETED-RESULT-001
+    - IDF-SHOW-GAME-COMPLETED-RESULT-002
+    - IDF-SHOW-GAME-COMPLETED-RESULT-003
+    - IDF-SHOW-GAME-COMPLETED-RESULT-004
+
+contract:
+  input:
+    data: none
+    rules:
+      - rule_id: DOM-SHOW-GAME-COMPLETED-RESULT-IN-001
+        description: "沒有外部業務資料；Query 讀取目前可見的 Domain／Read Model 事實。"
+        domain_rule_refs:
+          - GAME-REL-007
+          - GAME-REL-008
+          - RESULT-RECORD-002
+          - LEVEL-PROGRESS-003
+
+  output:
+    data: GameCompletedResultRspDTO
+    rules:
+      - rule_id: DOM-SHOW-GAME-COMPLETED-RESULT-OUT-001
+        description: "FinalLength：第三關實際通關蛇長，可大於 50。"
+        domain_rule_refs:
+          - GAME-REL-007
+          - GAME-REL-008
+          - RESULT-RECORD-002
+          - LEVEL-PROGRESS-003
+      - rule_id: DOM-SHOW-GAME-COMPLETED-RESULT-OUT-002
+        description: "ProgressPercent：固定為 100。"
+        domain_rule_refs:
+          - GAME-REL-007
+          - GAME-REL-008
+          - RESULT-RECORD-002
+          - LEVEL-PROGRESS-003
+      - rule_id: DOM-SHOW-GAME-COMPLETED-RESULT-OUT-003
+        description: "SuccessMessage：整輪闖關成功訊息。"
+        domain_rule_refs:
+          - GAME-REL-007
+          - GAME-REL-008
+          - RESULT-RECORD-002
+          - LEVEL-PROGRESS-003
+      - rule_id: DOM-SHOW-GAME-COMPLETED-RESULT-OUT-004
+        description: "IsReplayButtonVisible：固定為 true。"
+        domain_rule_refs:
+          - GAME-REL-007
+          - GAME-REL-008
+          - RESULT-RECORD-002
+          - LEVEL-PROGRESS-003
+
+  preconditions:
+    - rule_id: DOM-SHOW-GAME-COMPLETED-RESULT-PRE-001
+      description: "game.phase == Completed 且第三關結果為 Passed"
+      domain_rule_refs:
+        - GAME-REL-007
+        - GAME-REL-008
+        - RESULT-RECORD-002
+        - LEVEL-PROGRESS-003
+
+  invariants:
+    - rule_id: DOM-SHOW-GAME-COMPLETED-RESULT-INV-001
+      description: "查詢只讀；顯示闖關成功、第三關實際通關蛇長、100% 進度與重玩按鈕。"
+      domain_rule_refs:
+        - GAME-REL-007
+        - GAME-REL-008
+        - RESULT-RECORD-002
+        - LEVEL-PROGRESS-003
+
+  process:
+    - order: 1
+      action: "驗證可見條件：game.phase == Completed 且第三關結果為 Passed。"
+    - order: 2
+      action: "讀取並映射目前 Domain／Read Model 事實。"
+    - order: 3
+      action: "建立 GameCompletedResultRspDTO，不得觸發任何業務行為。"
+
+  postconditions:
+    - rule_id: DOM-SHOW-GAME-COMPLETED-RESULT-POST-001
+      description: "顯示闖關成功、第三關實際通關蛇長、100% 進度與重玩按鈕；完成後來源狀態完全不變。"
+      domain_rule_refs:
+        - GAME-REL-007
+        - GAME-REL-008
+        - RESULT-RECORD-002
+        - LEVEL-PROGRESS-003
+
+  contract_violations:
+    - rule_id: DOM-SHOW-GAME-COMPLETED-RESULT-ERR-001
+      condition: "不符合 game.phase == Completed 且第三關結果為 Passed"
+      domain_code: RESULT_NOT_AVAILABLE
+      state_guarantee: "Data 為 null，不回傳部分資料，來源狀態保持不變。"
+      domain_rule_refs:
+        - GAME-REL-007
+        - GAME-REL-008
+        - RESULT-RECORD-002
+        - LEVEL-PROGRESS-003
+
+  not_applicable: []
+

@@ -1,0 +1,76 @@
+use_case: show-level-passed-result
+bounded_context: snake-game
+aggregate: game
+frame_type: IDF
+
+spec_refs:
+  domain: domain_spec.yaml
+
+input:
+  type: ShowLevelPassedResultQuery
+  source: display_refresh
+  fields: []
+
+output:
+  type: ShowLevelPassedResultResult
+  fields:
+    - name: IsSuccess
+      csharp_type: bool
+      required: true
+    - name: FailureCode
+      csharp_type: "string?"
+      required: true
+    - name: FailureMessage
+      csharp_type: "string?"
+      required: true
+    - name: Data
+      csharp_type: "LevelPassedResultRspDTO?"
+      required: true
+
+data_contract:
+  type: LevelPassedResultRspDTO
+  fields:
+    - name: CompletedLevel
+      csharp_type: "int"
+      required: true
+      description: "完成的第一或第二關編號"
+    - name: FinalLength
+      csharp_type: "int"
+      required: true
+      description: "通關時實際蛇長，不截斷超過目標的值"
+    - name: BannerText
+      csharp_type: "string"
+      required: true
+      description: "關卡通過標語"
+    - name: IsScoreCardVisible
+      csharp_type: "bool"
+      required: true
+      description: "成績卡是否可見"
+
+read_port:
+  name: ILevelPassedResultReadPort
+  returns: LevelPassedResultRspDTO
+  side_effect_free: true
+
+domain_to_technical_mapping:
+  - domain_rules: [DOM-SHOW-LEVEL-PASSED-RESULT-IN-001, DOM-SHOW-LEVEL-PASSED-RESULT-PRE-001]
+    target: ShowLevelPassedResultQuery
+    description: "無欄位 Query 只辨識本次顯示要求並驗證可見條件。"
+  - domain_rules: [DOM-SHOW-LEVEL-PASSED-RESULT-POST-001]
+    target: LevelPassedResultRspDTO
+    description: "顯示完成關卡、過關標語、實際通關蛇長與成績卡；開始下一關後隱藏"
+
+state_mappings:
+  - mapping_id: TECH-SHOW-LEVEL-PASSED-RESULT-STATE-001
+    description: "Projection 與 Query 都不得呼叫改變 Domain 狀態的方法。"
+
+error_mappings:
+  - mapping_id: TECH-SHOW-LEVEL-PASSED-RESULT-ERR-001
+    condition: "不符合 最近結果是第一或第二關 Passed，且下一關處於 Ready"
+    result: ShowLevelPassedResultResult
+    failure_code: RESULT_NOT_AVAILABLE
+    failure_message: "目前沒有可顯示的關卡通過結果。"
+    data: null
+
+no_op_mappings: []
+

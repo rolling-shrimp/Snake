@@ -1,0 +1,60 @@
+use_case: evaluate-level-completion
+bounded_context: snake-game
+aggregate: game
+frame_type: RBF
+
+spec_refs:
+  domain: domain_spec.yaml
+
+input:
+  type: EvaluateLevelCompletionCommand
+  source: "系統條件監測：snake length change has completed"
+  fields:
+    []
+
+output:
+  type: EvaluateLevelCompletionResult
+  fields:
+    - name: IsSuccess
+      csharp_type: bool
+      required: true
+    - name: FailureCode
+      csharp_type: "string?"
+      required: true
+    - name: FailureMessage
+      csharp_type: "string?"
+      required: true
+  domain_output: "蛇長達標時只產生一次 LevelPassed；未達標時保持 Playing"
+
+types:
+  - name: EvaluateLevelCompletionCommand
+    fields:
+      []
+  - name: EvaluateLevelCompletionResult
+    fields:
+      - name: IsSuccess
+        csharp_type: bool
+      - name: FailureCode
+        csharp_type: "string?"
+      - name: FailureMessage
+        csharp_type: "string?"
+
+domain_to_technical_mapping:
+  - domain_rules: [DOM-EVALUATE-LEVEL-COMPLETION-IN-001, DOM-EVALUATE-LEVEL-COMPLETION-PRE-001]
+    target: EvaluateLevelCompletionCommand
+    description: "條件事實映射為一次可去重的自動命令。"
+  - domain_rules: [DOM-EVALUATE-LEVEL-COMPLETION-INV-001, DOM-EVALUATE-LEVEL-COMPLETION-POST-001]
+    target: EvaluateLevelCompletionResult
+    description: "蛇長達標時只產生一次 LevelPassed；未達標時保持 Playing"
+
+state_mappings:
+  - mapping_id: TECH-EVALUATE-LEVEL-COMPLETION-STATE-001
+    description: "蛇長達標時只產生一次 LevelPassed；未達標時保持 Playing"
+
+error_mappings: []
+
+no_op_mappings:
+  - mapping_id: TECH-EVALUATE-LEVEL-COMPLETION-NOOP-001
+    condition: "第一或第二關蛇長小於 20，或第三關蛇長小於 50。"
+    behavior: "正常完成判定並保持 Playing，不產生 LevelPassed。"
+

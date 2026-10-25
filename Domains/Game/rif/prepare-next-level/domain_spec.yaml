@@ -1,0 +1,122 @@
+use_case: prepare-next-level
+bounded_context: snake-game
+aggregate: game
+frame_type: RIF
+
+domain_refs:
+  - domain: Game
+    path: ../../domain_spec.yaml
+    aggregate: Game
+  - domain: Level
+    path: ../../../Level/domain_spec.yaml
+    aggregate: Level
+  - domain: Snake
+    path: ../../../Snake/domain_spec.yaml
+    aggregate: Snake
+  - domain: Board
+    path: ../../../Board/domain_spec.yaml
+    aggregate: Board
+  - domain: Food
+    path: ../../../Food/domain_spec.yaml
+    aggregate: Food
+  - domain: Shield
+    path: ../../../Shield/domain_spec.yaml
+    aggregate: Shield
+  - domain: Fire
+    path: ../../../Fire/domain_spec.yaml
+    aggregate: Fire
+  - domain: Bomb
+    path: ../../../Bomb/domain_spec.yaml
+    aggregate: Bomb
+  - domain: DoorAndMaze
+    path: ../../../DoorAndMaze/domain_spec.yaml
+    aggregate: DoorAndMaze
+  - domain: GameResult
+    path: ../../../GameResult/domain_spec.yaml
+    aggregate: GameResult
+
+traceability:
+  requirement: "frame.yaml#use_case.requirement"
+  frame_checks:
+    - RIF-PREPARE-NEXT-LEVEL-001
+    - RIF-PREPARE-NEXT-LEVEL-002
+    - RIF-PREPARE-NEXT-LEVEL-003
+    - RIF-PREPARE-NEXT-LEVEL-004
+
+contract:
+  input:
+    data: PrepareNextLevelCommand
+    fields:
+      - name: CompletedLevel
+        type: "int"
+        required: true
+    rules:
+      - rule_id: DOM-PREPARE-NEXT-LEVEL-IN-001
+        description: "Input 只能由未處理的 LevelPassed result recorded for level 1 or 2 產生。"
+        domain_rule_refs:
+          - GAME-REL-006
+          - LEVEL-INV-002
+          - LEVEL-COMPLETE-002
+          - SNAKE-RESET-001
+          - SHIELD-RESET-001
+
+  output:
+    data: PrepareNextLevelResult
+    rules:
+      - rule_id: DOM-PREPARE-NEXT-LEVEL-OUT-001
+        description: "Output 表示反應是否完整結束；錯誤來源或重複事件以成功 no-op 表示。"
+        domain_rule_refs: []
+
+  preconditions:
+    - rule_id: DOM-PREPARE-NEXT-LEVEL-PRE-001
+      description: "上一關 Passed 已記錄，且下一關尚未建立"
+      domain_rule_refs:
+        - GAME-REL-006
+        - LEVEL-INV-002
+        - LEVEL-COMPLETE-002
+        - SNAKE-RESET-001
+        - SHIELD-RESET-001
+
+  invariants:
+    - rule_id: DOM-PREPARE-NEXT-LEVEL-INV-001
+      description: "相同 trigger 最多造成一次效果；依序前進關卡、重設蛇為長度 3 向右、清空護盾與物件、準備棋盤，最後公開下一關 Ready。"
+      domain_rule_refs:
+        - GAME-REL-006
+        - LEVEL-INV-002
+        - LEVEL-COMPLETE-002
+        - SNAKE-RESET-001
+        - SHIELD-RESET-001
+
+  process:
+    - order: 1
+      action: "驗證事件來源、必要狀態與去重識別。"
+    - order: 2
+      action: "依序前進關卡、重設蛇為長度 3 向右、清空護盾與物件、準備棋盤，最後公開下一關 Ready"
+    - order: 3
+      action: "全部動作成功後才標記事件已處理並公開最終狀態。"
+
+  postconditions:
+    - rule_id: DOM-PREPARE-NEXT-LEVEL-POST-001
+      description: "依序前進關卡、重設蛇為長度 3 向右、清空護盾與物件、準備棋盤，最後公開下一關 Ready"
+      domain_rule_refs:
+        - GAME-REL-006
+        - LEVEL-INV-002
+        - LEVEL-COMPLETE-002
+        - SNAKE-RESET-001
+        - SHIELD-RESET-001
+
+  contract_violations: []
+
+  not_applicable:
+    - rule_id: DOM-PREPARE-NEXT-LEVEL-NOOP-001
+      condition: "CompletedLevel 為 3，或上一關結果不是 Passed。"
+      behavior: ignore
+      error: none
+      state_guarantee: "正常忽略，不建立不存在的下一關。"
+      domain_rule_refs:
+        - GAME-REL-006
+        - LEVEL-INV-002
+        - LEVEL-COMPLETE-002
+        - SNAKE-RESET-001
+        - SHIELD-RESET-001
+

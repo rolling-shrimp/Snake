@@ -1,0 +1,64 @@
+use_case: handle-wall-collision
+bounded_context: snake-game
+aggregate: game
+frame_type: RBF
+
+spec_refs:
+  domain: domain_spec.yaml
+
+input:
+  type: HandleWallCollisionCommand
+  source: "系統條件監測：next snake head cell is a wall cell"
+  fields:
+    - name: CollisionPosition
+      csharp_type: GridPositionDTO
+      required: true
+
+output:
+  type: HandleWallCollisionResult
+  fields:
+    - name: IsSuccess
+      csharp_type: bool
+      required: true
+    - name: FailureCode
+      csharp_type: "string?"
+      required: true
+    - name: FailureMessage
+      csharp_type: "string?"
+      required: true
+  domain_output: "不提交蛇身位置並產生一次 WallCollision，等待 Shield 決策"
+
+types:
+  - name: HandleWallCollisionCommand
+    fields:
+      - name: CollisionPosition
+        csharp_type: GridPositionDTO
+        required: true
+  - name: HandleWallCollisionResult
+    fields:
+      - name: IsSuccess
+        csharp_type: bool
+      - name: FailureCode
+        csharp_type: "string?"
+      - name: FailureMessage
+        csharp_type: "string?"
+
+domain_to_technical_mapping:
+  - domain_rules: [DOM-HANDLE-WALL-COLLISION-IN-001, DOM-HANDLE-WALL-COLLISION-PRE-001]
+    target: HandleWallCollisionCommand
+    description: "條件事實映射為一次可去重的自動命令。"
+  - domain_rules: [DOM-HANDLE-WALL-COLLISION-INV-001, DOM-HANDLE-WALL-COLLISION-POST-001]
+    target: HandleWallCollisionResult
+    description: "不提交蛇身位置並產生一次 WallCollision，等待 Shield 決策"
+
+state_mappings:
+  - mapping_id: TECH-HANDLE-WALL-COLLISION-STATE-001
+    description: "不提交蛇身位置並產生一次 WallCollision，等待 Shield 決策"
+
+error_mappings: []
+
+no_op_mappings:
+  - mapping_id: TECH-HANDLE-WALL-COLLISION-NOOP-001
+    condition: "第一或第二關蛇頭跨越棋盤邊界。"
+    behavior: "本 Use Case 不處理，交由 Wrap 邊界政策移動，不產生 WallCollision。"
+

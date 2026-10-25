@@ -1,0 +1,106 @@
+use_case: advance-snake-step
+bounded_context: snake-game
+aggregate: game
+frame_type: RBF
+
+spec_refs:
+  requirement: "frame.yaml#use_case.requirement"
+  domain: domain_spec.yaml
+  technical: technical_spec.yaml
+
+scenarios:
+  - id: SCN-ADVANCE-SNAKE-STEP-001
+    title: "第一、二關跨越邊界"
+    description: "蛇依 Wrap 政策從相對邊界出現，且只移動一格。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - RBF-ADVANCE-SNAKE-STEP-001
+        - RBF-ADVANCE-SNAKE-STEP-002
+        - RBF-ADVANCE-SNAKE-STEP-003
+        - RBF-ADVANCE-SNAKE-STEP-004
+      domain_rules:
+        - DOM-ADVANCE-SNAKE-STEP-PRE-001
+        - DOM-ADVANCE-SNAKE-STEP-POST-001
+      technical_contracts:
+        - AdvanceSnakeStepResult.IsSuccess
+        - TECH-ADVANCE-SNAKE-STEP-STATE-001
+    given:
+      - fact: "第一或第二關 Playing，已滿 250 毫秒，蛇頭下一格越界。"
+    when:
+      action: advance_snake_step
+      input:
+        type: AdvanceSnakeStepCommand
+        fields: {}
+    then:
+      output:
+        type: AdvanceSnakeStepResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
+      domain_effect: "蛇依 Wrap 政策從相對邊界出現，且只移動一格。"
+
+  - id: SCN-ADVANCE-SNAKE-STEP-002
+    title: "第三關邊界阻擋"
+    description: "不提交新蛇身位置並產生 WallCollision 事實。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - RBF-ADVANCE-SNAKE-STEP-001
+        - RBF-ADVANCE-SNAKE-STEP-002
+        - RBF-ADVANCE-SNAKE-STEP-003
+        - RBF-ADVANCE-SNAKE-STEP-004
+      domain_rules:
+        - DOM-ADVANCE-SNAKE-STEP-PRE-001
+        - DOM-ADVANCE-SNAKE-STEP-POST-001
+      technical_contracts:
+        - AdvanceSnakeStepResult.IsSuccess
+        - TECH-ADVANCE-SNAKE-STEP-STATE-001
+    given:
+      - fact: "第三關 Playing，已滿 250 毫秒，蛇頭下一格超出棋盤。"
+    when:
+      action: advance_snake_step
+      input:
+        type: AdvanceSnakeStepCommand
+        fields: {}
+    then:
+      output:
+        type: AdvanceSnakeStepResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
+      domain_effect: "不提交新蛇身位置並產生 WallCollision 事實。"
+
+  - id: SCN-ADVANCE-SNAKE-STEP-003
+    title: "尚未到期或不在遊玩中"
+    description: "正常忽略，不移動蛇、不推進遊戲時間結果。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - RBF-ADVANCE-SNAKE-STEP-001
+        - RBF-ADVANCE-SNAKE-STEP-004
+      domain_rules:
+        - DOM-ADVANCE-SNAKE-STEP-NOOP-001
+        - DOM-ADVANCE-SNAKE-STEP-INV-001
+      technical_contracts:
+        - AdvanceSnakeStepResult.IsSuccess
+        - TECH-ADVANCE-SNAKE-STEP-NOOP-001
+    given:
+      - fact: "未滿 250 毫秒，或 Game 不在 Playing。"
+    when:
+      action: advance_snake_step
+      input:
+        type: AdvanceSnakeStepCommand
+        fields: {}
+    then:
+      output:
+        type: AdvanceSnakeStepResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
+      domain_state:
+        unchanged: true
+

@@ -1,0 +1,133 @@
+use_case: show-game-over-result
+bounded_context: snake-game
+aggregate: game
+frame_type: IDF
+
+domain_refs:
+  - domain: Game
+    path: ../../domain_spec.yaml
+    aggregate: Game
+  - domain: Level
+    path: ../../../Level/domain_spec.yaml
+    aggregate: Level
+  - domain: GameResult
+    path: ../../../GameResult/domain_spec.yaml
+    aggregate: GameResult
+
+traceability:
+  requirement: "frame.yaml#use_case.requirement"
+  frame_checks:
+    - IDF-SHOW-GAME-OVER-RESULT-001
+    - IDF-SHOW-GAME-OVER-RESULT-002
+    - IDF-SHOW-GAME-OVER-RESULT-003
+    - IDF-SHOW-GAME-OVER-RESULT-004
+
+contract:
+  input:
+    data: none
+    rules:
+      - rule_id: DOM-SHOW-GAME-OVER-RESULT-IN-001
+        description: "沒有外部業務資料；Query 讀取目前可見的 Domain／Read Model 事實。"
+        domain_rule_refs:
+          - GAME-REL-005
+          - GAME-REL-008
+          - RESULT-RECORD-003
+          - RESULT-RECORD-004
+          - LEVEL-PROGRESS-001
+
+  output:
+    data: GameOverResultRspDTO
+    rules:
+      - rule_id: DOM-SHOW-GAME-OVER-RESULT-OUT-001
+        description: "FailedLevel：失敗關卡。"
+        domain_rule_refs:
+          - GAME-REL-005
+          - GAME-REL-008
+          - RESULT-RECORD-003
+          - RESULT-RECORD-004
+          - LEVEL-PROGRESS-001
+      - rule_id: DOM-SHOW-GAME-OVER-RESULT-OUT-002
+        description: "FinalLength：最後有效蛇長，FatalFire 最低為 0。"
+        domain_rule_refs:
+          - GAME-REL-005
+          - GAME-REL-008
+          - RESULT-RECORD-003
+          - RESULT-RECORD-004
+          - LEVEL-PROGRESS-001
+      - rule_id: DOM-SHOW-GAME-OVER-RESULT-OUT-003
+        description: "DeathCause：未被護盾挽救的死亡原因。"
+        domain_rule_refs:
+          - GAME-REL-005
+          - GAME-REL-008
+          - RESULT-RECORD-003
+          - RESULT-RECORD-004
+          - LEVEL-PROGRESS-001
+      - rule_id: DOM-SHOW-GAME-OVER-RESULT-OUT-004
+        description: "ProgressPercent：限制於 0 至 100。"
+        domain_rule_refs:
+          - GAME-REL-005
+          - GAME-REL-008
+          - RESULT-RECORD-003
+          - RESULT-RECORD-004
+          - LEVEL-PROGRESS-001
+      - rule_id: DOM-SHOW-GAME-OVER-RESULT-OUT-005
+        description: "IsReplayButtonVisible：固定為 true。"
+        domain_rule_refs:
+          - GAME-REL-005
+          - GAME-REL-008
+          - RESULT-RECORD-003
+          - RESULT-RECORD-004
+          - LEVEL-PROGRESS-001
+
+  preconditions:
+    - rule_id: DOM-SHOW-GAME-OVER-RESULT-PRE-001
+      description: "game.phase == GameOver 且最近結果為 Failed"
+      domain_rule_refs:
+        - GAME-REL-005
+        - GAME-REL-008
+        - RESULT-RECORD-003
+        - RESULT-RECORD-004
+        - LEVEL-PROGRESS-001
+
+  invariants:
+    - rule_id: DOM-SHOW-GAME-OVER-RESULT-INV-001
+      description: "查詢只讀；顯示 Game Over、失敗關卡、最後蛇長、death cause、最低 0% 的進度與重玩按鈕。"
+      domain_rule_refs:
+        - GAME-REL-005
+        - GAME-REL-008
+        - RESULT-RECORD-003
+        - RESULT-RECORD-004
+        - LEVEL-PROGRESS-001
+
+  process:
+    - order: 1
+      action: "驗證可見條件：game.phase == GameOver 且最近結果為 Failed。"
+    - order: 2
+      action: "讀取並映射目前 Domain／Read Model 事實。"
+    - order: 3
+      action: "建立 GameOverResultRspDTO，不得觸發任何業務行為。"
+
+  postconditions:
+    - rule_id: DOM-SHOW-GAME-OVER-RESULT-POST-001
+      description: "顯示 Game Over、失敗關卡、最後蛇長、death cause、最低 0% 的進度與重玩按鈕；完成後來源狀態完全不變。"
+      domain_rule_refs:
+        - GAME-REL-005
+        - GAME-REL-008
+        - RESULT-RECORD-003
+        - RESULT-RECORD-004
+        - LEVEL-PROGRESS-001
+
+  contract_violations:
+    - rule_id: DOM-SHOW-GAME-OVER-RESULT-ERR-001
+      condition: "不符合 game.phase == GameOver 且最近結果為 Failed"
+      domain_code: RESULT_NOT_AVAILABLE
+      state_guarantee: "Data 為 null，不回傳部分資料，來源狀態保持不變。"
+      domain_rule_refs:
+        - GAME-REL-005
+        - GAME-REL-008
+        - RESULT-RECORD-003
+        - RESULT-RECORD-004
+        - LEVEL-PROGRESS-001
+
+  not_applicable: []
+

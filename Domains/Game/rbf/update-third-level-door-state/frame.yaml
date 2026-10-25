@@ -1,0 +1,32 @@
+bounded_context: snake-game
+aggregate: game
+
+use_case:
+  name: update-third-level-door-state
+  requirement: "第三關 Playing 時，門依 6 秒週期、關閉前 2 秒提醒與占用延後政策更新。"
+frame_type: RBF
+
+world_facts:
+  actor: system
+  trigger: "third-level door clock advances"
+  required_condition: "game.phase == Playing 且 level.number == 3"
+  required_behavior: "依時間進入 ClosingWarning 或切換開關；蛇占用門格時延後關閉直到完全離開"
+  execution_policy: once_per_condition_fact
+
+frame_concerns:
+  - concern_ref: RBF-CONCERN-001
+    check_id: RBF-UPDATE-THIRD-LEVEL-DOOR-STATE-001
+    description: "確保只有 third-level door clock advances 的完整條件成立時才發動 update-third-level-door-state。"
+
+  - concern_ref: RBF-CONCERN-002
+    check_id: RBF-UPDATE-THIRD-LEVEL-DOOR-STATE-002
+    description: "確保同一條件事實最多執行一次，不因重複通知重複套用效果。"
+
+  - concern_ref: RBF-CONCERN-003
+    check_id: RBF-UPDATE-THIRD-LEVEL-DOOR-STATE-003
+    description: "確保 依時間進入 ClosingWarning 或切換開關；蛇占用門格時延後關閉直到完全離開 的所有必要動作完整完成。"
+
+  - concern_ref: RBF-CONCERN-004
+    check_id: RBF-UPDATE-THIRD-LEVEL-DOOR-STATE-004
+    description: "確保完成或忽略後，Game、DoorAndMaze、Snake 的不變式仍成立。"
+

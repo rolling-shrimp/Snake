@@ -1,0 +1,70 @@
+use_case: end-current-level-play
+bounded_context: snake-game
+aggregate: game
+frame_type: RIF
+
+spec_refs:
+  domain: domain_spec.yaml
+
+input:
+  type: EndCurrentLevelPlayCommand
+  source: "LevelPassed or unrescued DeathEvent"
+  fields:
+    - name: Outcome
+      csharp_type: "LevelOutcome"
+      required: true
+    - name: DeathCause
+      csharp_type: "DeathCause?"
+      required: true
+
+output:
+  type: EndCurrentLevelPlayResult
+  fields:
+    - name: IsSuccess
+      csharp_type: bool
+      required: true
+    - name: FailureCode
+      csharp_type: "string?"
+      required: true
+    - name: FailureMessage
+      csharp_type: "string?"
+      required: true
+  domain_output: "停止移動、方向輸入、物件產生與門週期，記錄實際蛇長及結果，再交接下一關、GameOver 或 Completed"
+
+types:
+  - name: EndCurrentLevelPlayCommand
+    fields:
+      - name: Outcome
+        csharp_type: "LevelOutcome"
+        required: true
+      - name: DeathCause
+        csharp_type: "DeathCause?"
+        required: true
+  - name: EndCurrentLevelPlayResult
+    fields:
+      - name: IsSuccess
+        csharp_type: bool
+      - name: FailureCode
+        csharp_type: "string?"
+      - name: FailureMessage
+        csharp_type: "string?"
+
+domain_to_technical_mapping:
+  - domain_rules: [DOM-END-CURRENT-LEVEL-PLAY-IN-001, DOM-END-CURRENT-LEVEL-PLAY-PRE-001]
+    target: EndCurrentLevelPlayCommand
+    description: "Domain Event 經 Reactor 去重後轉成一次內部 Command。"
+  - domain_rules: [DOM-END-CURRENT-LEVEL-PLAY-INV-001, DOM-END-CURRENT-LEVEL-PLAY-POST-001]
+    target: EndCurrentLevelPlayResult
+    description: "停止移動、方向輸入、物件產生與門週期，記錄實際蛇長及結果，再交接下一關、GameOver 或 Completed"
+
+state_mappings:
+  - mapping_id: TECH-END-CURRENT-LEVEL-PLAY-STATE-001
+    description: "停止移動、方向輸入、物件產生與門週期，記錄實際蛇長及結果，再交接下一關、GameOver 或 Completed"
+
+error_mappings: []
+
+no_op_mappings:
+  - mapping_id: TECH-END-CURRENT-LEVEL-PLAY-NOOP-001
+    condition: "同一關的終局事件已完成處理。"
+    behavior: "正常忽略，不重複記錄結果或再次轉移階段。"
+

@@ -1,0 +1,31 @@
+bounded_context: snake-game
+aggregate: game
+
+use_case:
+  name: show-third-level-rules
+  requirement: "第三關待開始時，顯示五種物件效果與不能穿牆的規則提示。"
+frame_type: IDF
+
+world_facts:
+  actor: display
+  required_state: "game.phase == Ready 且 level.number == 3"
+  visibility_scope: "只顯示第三關適用規則；門的即時狀態由 show-third-level-door-status 顯示"
+  side_effect_policy: none
+
+frame_concerns:
+  - concern_ref: IDF-CONCERN-001
+    check_id: IDF-SHOW-THIRD-LEVEL-RULES-001
+    description: "確保完整輸出 RuleHints。"
+
+  - concern_ref: IDF-CONCERN-002
+    check_id: IDF-SHOW-THIRD-LEVEL-RULES-002
+    description: "確保 依序顯示普通食物 +1、特殊食物 +2、護盾 +1、火焰 −2、炸彈致命、不能穿牆，且所有值來自目前 Domain 事實。"
+
+  - concern_ref: IDF-CONCERN-003
+    check_id: IDF-SHOW-THIRD-LEVEL-RULES-003
+    description: "確保 只顯示第三關適用規則；門的即時狀態由 show-third-level-door-status 顯示；排除 第一、二關限定文字、虛構倒數或分數規則、門的過期狀態。"
+
+  - concern_ref: IDF-CONCERN-004
+    check_id: IDF-SHOW-THIRD-LEVEL-RULES-004
+    description: "確保查詢不改變任何 Domain、Read Model 版本或遊戲時間。"
+

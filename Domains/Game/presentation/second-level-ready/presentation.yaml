@@ -1,0 +1,81 @@
+schema_version: 1
+screen:
+  screen_id: second-level-ready
+  bounded_context: snake-game
+  aggregate: game
+  phase: ready
+  level: second
+  board_mode: initial
+grain:
+  input: use_case_results_and_read_models
+  output: rendered_screen
+  contract_owner: WinForms
+presentation_relations:
+  - relation_id: PRES-SECOND-READY-BOARD
+    target_use_case: show-second-level-ready-board
+    ownership: reference_only
+    target_specs:
+      frame: ../../idf/show-second-level-ready-board/frame.yaml
+      domain: ../../idf/show-second-level-ready-board/domain_spec.yaml
+      technical: ../../idf/show-second-level-ready-board/technical_spec.yaml
+    frame_check_refs: [IDF-SHOW-SECOND-LEVEL-READY-BOARD-001]
+    domain_rule_refs: [DOM-SHOW-SECOND-LEVEL-READY-BOARD-IN-001]
+    technical_contract_refs: [TECH-SHOW-SECOND-LEVEL-READY-BOARD-STATE-001]
+  - relation_id: PRES-SECOND-READY-RULES
+    target_use_case: show-second-level-rules
+    ownership: reference_only
+    target_specs:
+      frame: ../../idf/show-second-level-rules/frame.yaml
+      domain: ../../idf/show-second-level-rules/domain_spec.yaml
+      technical: ../../idf/show-second-level-rules/technical_spec.yaml
+    frame_check_refs: [IDF-SHOW-SECOND-LEVEL-RULES-001]
+    domain_rule_refs: [DOM-SHOW-SECOND-LEVEL-RULES-IN-001]
+    technical_contract_refs: [TECH-SHOW-SECOND-LEVEL-RULES-STATE-001]
+  - relation_id: PRES-SECOND-READY-PRIOR-RESULT
+    target_use_case: show-level-passed-result
+    ownership: reference_only
+    target_specs:
+      frame: ../../idf/show-level-passed-result/frame.yaml
+      domain: ../../idf/show-level-passed-result/domain_spec.yaml
+      technical: ../../idf/show-level-passed-result/technical_spec.yaml
+    frame_check_refs: [IDF-SHOW-LEVEL-PASSED-RESULT-001]
+    domain_rule_refs: [DOM-SHOW-LEVEL-PASSED-RESULT-IN-001]
+    technical_contract_refs: [TECH-SHOW-LEVEL-PASSED-RESULT-STATE-001]
+  - relation_id: PRES-SECOND-READY-ACTIVATE
+    target_use_case: activate-second-level-play
+    ownership: reference_only
+    target_specs:
+      frame: ../../rif/activate-second-level-play/frame.yaml
+      domain: ../../rif/activate-second-level-play/domain_spec.yaml
+      technical: ../../rif/activate-second-level-play/technical_spec.yaml
+    frame_check_refs: [RIF-ACTIVATE-SECOND-LEVEL-PLAY-001]
+    domain_rule_refs: [DOM-ACTIVATE-SECOND-LEVEL-PLAY-IN-001]
+    technical_contract_refs: [TECH-ACTIVATE-SECOND-LEVEL-PLAY-STATE-001]
+visibility:
+  required:
+    - first-level-passed-message
+    - first-level-length-card
+    - 10x10-board
+    - three-cell-snake-at-safe-start
+    - second-level-name
+    - snake-length-3-of-20
+    - progress-15-percent
+    - shield-count-zero
+    - strawberry-plus-one-rule
+    - blueberry-plus-two-rule
+    - shield-plus-one-life-rule
+    - fire-minus-two-rule
+    - start-button
+  forbidden:
+    - board-objects
+    - bomb
+    - walls
+    - door
+    - replay-button
+transitions:
+  - trigger: start
+    relation_ref: PRES-SECOND-READY-ACTIVATE
+    target_screen: second-level-playing
+asset_pair:
+  html: ../../../../assets/level-2.html
+  png: ../../../../assets/level-2.png

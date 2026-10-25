@@ -1,0 +1,80 @@
+use_case: show-second-level-status
+bounded_context: snake-game
+aggregate: game
+frame_type: IDF
+
+spec_refs:
+  domain: domain_spec.yaml
+
+input:
+  type: ShowSecondLevelStatusQuery
+  source: display_refresh
+  fields: []
+
+output:
+  type: ShowSecondLevelStatusResult
+  fields:
+    - name: IsSuccess
+      csharp_type: bool
+      required: true
+    - name: FailureCode
+      csharp_type: "string?"
+      required: true
+    - name: FailureMessage
+      csharp_type: "string?"
+      required: true
+    - name: Data
+      csharp_type: "SecondLevelStatusRspDTO?"
+      required: true
+
+data_contract:
+  type: SecondLevelStatusRspDTO
+  fields:
+    - name: LevelName
+      csharp_type: "string"
+      required: true
+      description: "第二關"
+    - name: CurrentLength
+      csharp_type: "int"
+      required: true
+      description: "目前蛇長 3"
+    - name: TargetLength
+      csharp_type: "int"
+      required: true
+      description: "目標 20"
+    - name: ProgressPercent
+      csharp_type: "int"
+      required: true
+      description: "進度 15"
+    - name: ShieldRemainingCharges
+      csharp_type: "int"
+      required: true
+      description: "保命次數 0"
+
+read_port:
+  name: ISecondLevelStatusReadPort
+  returns: SecondLevelStatusRspDTO
+  side_effect_free: true
+
+domain_to_technical_mapping:
+  - domain_rules: [DOM-SHOW-SECOND-LEVEL-STATUS-IN-001, DOM-SHOW-SECOND-LEVEL-STATUS-PRE-001]
+    target: ShowSecondLevelStatusQuery
+    description: "無欄位 Query 只辨識本次顯示要求並驗證可見條件。"
+  - domain_rules: [DOM-SHOW-SECOND-LEVEL-STATUS-POST-001]
+    target: SecondLevelStatusRspDTO
+    description: "LevelName 為第二關，CurrentLength 3、TargetLength 20、ProgressPercent 15、ShieldRemainingCharges 0"
+
+state_mappings:
+  - mapping_id: TECH-SHOW-SECOND-LEVEL-STATUS-STATE-001
+    description: "Projection 與 Query 都不得呼叫改變 Domain 狀態的方法。"
+
+error_mappings:
+  - mapping_id: TECH-SHOW-SECOND-LEVEL-STATUS-ERR-001
+    condition: "不符合 game.phase == Ready 且 level.number == 2"
+    result: ShowSecondLevelStatusResult
+    failure_code: INVALID_GAME_PHASE
+    failure_message: "目前不是第二關待開始階段。"
+    data: null
+
+no_op_mappings: []
+

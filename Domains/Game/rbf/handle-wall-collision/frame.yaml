@@ -1,0 +1,32 @@
+bounded_context: snake-game
+aggregate: game
+
+use_case:
+  name: handle-wall-collision
+  requirement: "第三關蛇頭撞到外牆或迷宮內牆時產生 WallCollision。"
+frame_type: RBF
+
+world_facts:
+  actor: system
+  trigger: "next snake head cell is a wall cell"
+  required_condition: "game.phase == Playing、level.number == 3，且目標格為外牆或內牆"
+  required_behavior: "不提交蛇身位置並產生一次 WallCollision，等待 Shield 決策"
+  execution_policy: once_per_condition_fact
+
+frame_concerns:
+  - concern_ref: RBF-CONCERN-001
+    check_id: RBF-HANDLE-WALL-COLLISION-001
+    description: "確保只有 next snake head cell is a wall cell 的完整條件成立時才發動 handle-wall-collision。"
+
+  - concern_ref: RBF-CONCERN-002
+    check_id: RBF-HANDLE-WALL-COLLISION-002
+    description: "確保同一條件事實最多執行一次，不因重複通知重複套用效果。"
+
+  - concern_ref: RBF-CONCERN-003
+    check_id: RBF-HANDLE-WALL-COLLISION-003
+    description: "確保 不提交蛇身位置並產生一次 WallCollision，等待 Shield 決策 的所有必要動作完整完成。"
+
+  - concern_ref: RBF-CONCERN-004
+    check_id: RBF-HANDLE-WALL-COLLISION-004
+    description: "確保完成或忽略後，Game、Board、DoorAndMaze、Shield 的不變式仍成立。"
+

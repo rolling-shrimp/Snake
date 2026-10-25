@@ -105,8 +105,23 @@ frame_types:
             - Program
             - Composition Root
           purpose: "組裝 Aggregate、Use Case、Presenter 與 Form。"
-    concern_status: pending
-    frame_concerns: []
+    concern_status: defined
+    frame_concerns:
+      - concern_id: SWF-CONCERN-001
+        name: target_integrity
+        description: "被修改的 Domain 物件、欄位與目標值不得錯置或遺失。"
+
+      - concern_id: SWF-CONCERN-002
+        name: precondition_validation
+        description: "更新狀態前須確認目前階段、目標物件與允許的值。"
+
+      - concern_id: SWF-CONCERN-003
+        name: atomic_state_update
+        description: "相關欄位必須在單一完整操作中更新，不得公開部分狀態。"
+
+      - concern_id: SWF-CONCERN-004
+        name: outcome_integrity
+        description: "接受的更新須產生完整結果；拒絕的更新不得改變原狀態。"
 
   IDF:
     name: Information Display Frame
@@ -217,8 +232,23 @@ frame_types:
             - Program
             - Composition Root
           purpose: "完成條件來源、政策、命令與外部能力的接線。"
-    concern_status: pending
-    frame_concerns: []
+    concern_status: defined
+    frame_concerns:
+      - concern_id: RBF-CONCERN-001
+        name: condition_integrity
+        description: "只有明確且完整的必要條件成立時，才可發動要求行為。"
+
+      - concern_id: RBF-CONCERN-002
+        name: activation_uniqueness
+        description: "同一條件成立所代表的一次事實，不得重複發動相同行為。"
+
+      - concern_id: RBF-CONCERN-003
+        name: required_behavior_completeness
+        description: "條件成立後，所有必要行為與結果都必須完整執行。"
+
+      - concern_id: RBF-CONCERN-004
+        name: invariant_preservation
+        description: "要求行為完成或被忽略後，相關 Domain 不變式都必須成立。"
 
   TF:
     name: Transformation Frame
@@ -259,8 +289,23 @@ frame_types:
             - Program
             - Composition Root
           purpose: "完成事件、Projector 與輸出 Port 的接線。"
-    concern_status: pending
-    frame_concerns: []
+    concern_status: defined
+    frame_concerns:
+      - concern_id: TF-CONCERN-001
+        name: source_integrity
+        description: "轉換來源、版本與必要欄位必須完整且可辨識。"
+
+      - concern_id: TF-CONCERN-002
+        name: transformation_determinism
+        description: "相同來源事實必須依同一政策產生相同轉換結果。"
+
+      - concern_id: TF-CONCERN-003
+        name: output_completeness
+        description: "輸出模型的必要欄位、計算值與格式不得遺漏或錯置。"
+
+      - concern_id: TF-CONCERN-004
+        name: side_effect_scope
+        description: "轉換只能更新其擁有的輸出或 Read Model，不得改變來源 Domain 狀態。"
 
   RIF:
     name: Reactive Invocation Frame

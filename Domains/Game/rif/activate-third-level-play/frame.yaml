@@ -1,0 +1,32 @@
+bounded_context: snake-game
+aggregate: game
+
+use_case:
+  name: activate-third-level-play
+  requirement: "第三關開始命令被接受後，產生第三關全部物件並啟動蛇移動與門週期。"
+frame_type: RIF
+
+world_facts:
+  actor: domain_event
+  trigger: "StartThirdLevelAccepted domain event"
+  required_state: "game.phase == Ready、level.number == 3，且事件尚未處理"
+  reaction: "依序隱藏開始畫面結果、產生普通食物／特殊食物／第一個護盾／火焰／炸彈、切換 Playing，啟動 250 毫秒移動與門週期"
+  delivery_policy: at_most_once_effect
+
+frame_concerns:
+  - concern_ref: RIF-CONCERN-001
+    check_id: RIF-ACTIVATE-THIRD-LEVEL-PLAY-001
+    description: "確保只回應未處理的 StartThirdLevelAccepted domain event，錯誤來源與重複事件不得反應。"
+
+  - concern_ref: RIF-CONCERN-002
+    check_id: RIF-ACTIVATE-THIRD-LEVEL-PLAY-002
+    description: "確保 依序隱藏開始畫面結果、產生普通食物／特殊食物／第一個護盾／火焰／炸彈、切換 Playing，啟動 250 毫秒移動與門週期 的必要後續行為全部完成。"
+
+  - concern_ref: RIF-CONCERN-003
+    check_id: RIF-ACTIVATE-THIRD-LEVEL-PLAY-003
+    description: "確保跨 Domain 動作依需求順序執行，不公開中間狀態。"
+
+  - concern_ref: RIF-CONCERN-004
+    check_id: RIF-ACTIVATE-THIRD-LEVEL-PLAY-004
+    description: "確保反應完成後 Game、Level、Snake、Board、Food、Shield、Fire、Bomb、DoorAndMaze 的不變式與欄位完整。"
+

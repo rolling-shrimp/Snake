@@ -1,0 +1,100 @@
+use_case: start-second-level
+bounded_context: snake-game
+aggregate: game
+frame_type: CBF
+
+domain_refs:
+  - domain: Game
+    path: ../../domain_spec.yaml
+    aggregate: Game
+  - domain: Level
+    path: ../../../Level/domain_spec.yaml
+    aggregate: Level
+  - domain: Shield
+    path: ../../../Shield/domain_spec.yaml
+    aggregate: Shield
+
+traceability:
+  requirement: "frame.yaml#use_case.requirement"
+  frame_checks:
+    - CBF-START-SECOND-LEVEL-001
+    - CBF-START-SECOND-LEVEL-002
+    - CBF-START-SECOND-LEVEL-003
+    - CBF-START-SECOND-LEVEL-004
+
+contract:
+  input:
+    data: StartSecondLevelCommand
+    fields:
+      []
+    rules:
+      - rule_id: DOM-START-SECOND-LEVEL-IN-001
+        description: "Input 來自第二關待開始畫面的「開始」按鈕。，只能代表一次 start-second-level 要求。"
+        domain_field_refs: []
+        domain_rule_refs:
+          - GAME-REL-002
+          - GAME-REL-003
+          - LEVEL-INV-001
+          - SHIELD-RESET-001
+
+  output:
+    data: StartSecondLevelResult
+    rules:
+      - rule_id: DOM-START-SECOND-LEVEL-OUT-001
+        description: "Output 表示 start-second-level 是否完成；預期的不適用條件以成功 no-op 表示。"
+        domain_field_refs: []
+        domain_rule_refs: []
+
+  preconditions:
+    - rule_id: DOM-START-SECOND-LEVEL-PRE-001
+      description: "game.phase == Ready 且 level.number == 2"
+      domain_field_refs: []
+      domain_rule_refs:
+        - GAME-REL-002
+        - GAME-REL-003
+        - LEVEL-INV-001
+        - SHIELD-RESET-001
+
+  invariants:
+    - rule_id: DOM-START-SECOND-LEVEL-INV-001
+      description: "只交接一次 activate-second-level-play，不建立部分 Playing 狀態"
+      domain_field_refs: []
+      domain_rule_refs:
+        - GAME-REL-002
+        - GAME-REL-003
+        - LEVEL-INV-001
+        - SHIELD-RESET-001
+
+  process:
+    - order: 1
+      action: "辨識並驗證 第二關開始按鈕 click。"
+    - order: 2
+      action: "確認 game.phase == Ready 且 level.number == 2。"
+    - order: 3
+      action: "只交接一次 activate-second-level-play，不建立部分 Playing 狀態"
+
+  postconditions:
+    - rule_id: DOM-START-SECOND-LEVEL-POST-001
+      description: "命令被接受一次並交接 activate-second-level-play 一次；CBF 不直接建立 Playing 狀態。"
+      domain_field_refs: []
+      domain_rule_refs:
+        - GAME-REL-002
+        - GAME-REL-003
+        - LEVEL-INV-001
+        - SHIELD-RESET-001
+
+  contract_violations: []
+
+  not_applicable:
+    - rule_id: DOM-START-SECOND-LEVEL-NOOP-001
+      condition: "目前不是第二關 Ready，或同一 Ready 狀態的開始命令已接受。"
+      behavior: ignore
+      error: none
+      state_guarantee: "正常忽略，不交接 RIF，所有 Domain 狀態保持不變。"
+      domain_field_refs: []
+      domain_rule_refs:
+        - GAME-REL-002
+        - GAME-REL-003
+        - LEVEL-INV-001
+        - SHIELD-RESET-001
+

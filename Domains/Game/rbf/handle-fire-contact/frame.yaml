@@ -1,0 +1,32 @@
+bounded_context: snake-game
+aggregate: game
+
+use_case:
+  name: handle-fire-contact
+  requirement: "第二、三關蛇頭接觸火焰時先計算減少 2 格，再區分非致死與 FatalFire。"
+frame_type: RBF
+
+world_facts:
+  actor: system
+  trigger: "snake head contacts active FireItem"
+  required_condition: "game.phase == Playing、level.number 為 2 或 3，且接觸 active FireItem"
+  required_behavior: "移除火焰；非致死時提交減長，致死時產生 FatalFire 並等待 Shield 決策"
+  execution_policy: once_per_condition_fact
+
+frame_concerns:
+  - concern_ref: RBF-CONCERN-001
+    check_id: RBF-HANDLE-FIRE-CONTACT-001
+    description: "確保只有 snake head contacts active FireItem 的完整條件成立時才發動 handle-fire-contact。"
+
+  - concern_ref: RBF-CONCERN-002
+    check_id: RBF-HANDLE-FIRE-CONTACT-002
+    description: "確保同一條件事實最多執行一次，不因重複通知重複套用效果。"
+
+  - concern_ref: RBF-CONCERN-003
+    check_id: RBF-HANDLE-FIRE-CONTACT-003
+    description: "確保 移除火焰；非致死時提交減長，致死時產生 FatalFire 並等待 Shield 決策 的所有必要動作完整完成。"
+
+  - concern_ref: RBF-CONCERN-004
+    check_id: RBF-HANDLE-FIRE-CONTACT-004
+    description: "確保完成或忽略後，Game、Fire、Snake、Shield、Level 的不變式仍成立。"
+

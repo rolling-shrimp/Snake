@@ -1,0 +1,105 @@
+use_case: activate-third-level-play
+bounded_context: snake-game
+aggregate: game
+frame_type: RIF
+
+spec_refs:
+  requirement: "frame.yaml#use_case.requirement"
+  domain: domain_spec.yaml
+  technical: technical_spec.yaml
+
+scenarios:
+  - id: SCN-ACTIVATE-THIRD-LEVEL-PLAY-001
+    title: "成功啟動第三關"
+    description: "五種物件各一個且位置合法；蛇長保持 3，最後公開 Playing 並啟動移動與門週期。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - RIF-ACTIVATE-THIRD-LEVEL-PLAY-001
+        - RIF-ACTIVATE-THIRD-LEVEL-PLAY-002
+        - RIF-ACTIVATE-THIRD-LEVEL-PLAY-003
+        - RIF-ACTIVATE-THIRD-LEVEL-PLAY-004
+      domain_rules:
+        - DOM-ACTIVATE-THIRD-LEVEL-PLAY-PRE-001
+        - DOM-ACTIVATE-THIRD-LEVEL-PLAY-POST-001
+      technical_contracts:
+        - ActivateThirdLevelPlayResult.IsSuccess
+        - TECH-ACTIVATE-THIRD-LEVEL-PLAY-STATE-001
+    given:
+      - fact: "第三關 Ready，迷宮與門已準備，開始命令已接受。"
+    when:
+      action: activate_third_level_play
+      input:
+        type: ActivateThirdLevelPlayCommand
+        fields: {}
+    then:
+      output:
+        type: ActivateThirdLevelPlayResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
+      reaction_effect: "五種物件各一個且位置合法；蛇長保持 3，最後公開 Playing 並啟動移動與門週期。"
+
+  - id: SCN-ACTIVATE-THIRD-LEVEL-PLAY-002
+    title: "錯誤來源事件"
+    description: "正常忽略，不產生物件、不啟動移動或門週期。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - RIF-ACTIVATE-THIRD-LEVEL-PLAY-001
+        - RIF-ACTIVATE-THIRD-LEVEL-PLAY-004
+      domain_rules:
+        - DOM-ACTIVATE-THIRD-LEVEL-PLAY-NOOP-001
+        - DOM-ACTIVATE-THIRD-LEVEL-PLAY-INV-001
+      technical_contracts:
+        - ActivateThirdLevelPlayResult.IsSuccess
+        - TECH-ACTIVATE-THIRD-LEVEL-PLAY-NOOP-001
+    given:
+      - fact: "事件不是由 start-third-level 成功接受所產生。"
+    when:
+      action: activate_third_level_play
+      input:
+        type: ActivateThirdLevelPlayCommand
+        fields: {}
+    then:
+      output:
+        type: ActivateThirdLevelPlayResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
+      domain_state:
+        unchanged: true
+
+  - id: SCN-ACTIVATE-THIRD-LEVEL-PLAY-003
+    title: "重複事件"
+    description: "正常忽略，不重生物件或重設任何計時。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - RIF-ACTIVATE-THIRD-LEVEL-PLAY-001
+        - RIF-ACTIVATE-THIRD-LEVEL-PLAY-004
+      domain_rules:
+        - DOM-ACTIVATE-THIRD-LEVEL-PLAY-NOOP-001
+        - DOM-ACTIVATE-THIRD-LEVEL-PLAY-INV-001
+      technical_contracts:
+        - ActivateThirdLevelPlayResult.IsSuccess
+        - TECH-ACTIVATE-THIRD-LEVEL-PLAY-NOOP-001
+    given:
+      - fact: "相同 StartThirdLevelAccepted 已處理。"
+    when:
+      action: activate_third_level_play
+      input:
+        type: ActivateThirdLevelPlayCommand
+        fields: {}
+    then:
+      output:
+        type: ActivateThirdLevelPlayResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
+      domain_state:
+        unchanged: true
+

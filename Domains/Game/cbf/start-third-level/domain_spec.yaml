@@ -1,0 +1,108 @@
+use_case: start-third-level
+bounded_context: snake-game
+aggregate: game
+frame_type: CBF
+
+domain_refs:
+  - domain: Game
+    path: ../../domain_spec.yaml
+    aggregate: Game
+  - domain: Level
+    path: ../../../Level/domain_spec.yaml
+    aggregate: Level
+  - domain: DoorAndMaze
+    path: ../../../DoorAndMaze/domain_spec.yaml
+    aggregate: DoorAndMaze
+  - domain: Shield
+    path: ../../../Shield/domain_spec.yaml
+    aggregate: Shield
+
+traceability:
+  requirement: "frame.yaml#use_case.requirement"
+  frame_checks:
+    - CBF-START-THIRD-LEVEL-001
+    - CBF-START-THIRD-LEVEL-002
+    - CBF-START-THIRD-LEVEL-003
+    - CBF-START-THIRD-LEVEL-004
+
+contract:
+  input:
+    data: StartThirdLevelCommand
+    fields:
+      []
+    rules:
+      - rule_id: DOM-START-THIRD-LEVEL-IN-001
+        description: "Input 來自第三關待開始畫面的「開始」按鈕。，只能代表一次 start-third-level 要求。"
+        domain_field_refs: []
+        domain_rule_refs:
+          - GAME-REL-002
+          - GAME-REL-003
+          - LEVEL-INV-001
+          - DOOR-MAZE-INV-001
+          - SHIELD-RESET-001
+
+  output:
+    data: StartThirdLevelResult
+    rules:
+      - rule_id: DOM-START-THIRD-LEVEL-OUT-001
+        description: "Output 表示 start-third-level 是否完成；預期的不適用條件以成功 no-op 表示。"
+        domain_field_refs: []
+        domain_rule_refs: []
+
+  preconditions:
+    - rule_id: DOM-START-THIRD-LEVEL-PRE-001
+      description: "game.phase == Ready 且 level.number == 3"
+      domain_field_refs: []
+      domain_rule_refs:
+        - GAME-REL-002
+        - GAME-REL-003
+        - LEVEL-INV-001
+        - DOOR-MAZE-INV-001
+        - SHIELD-RESET-001
+
+  invariants:
+    - rule_id: DOM-START-THIRD-LEVEL-INV-001
+      description: "只交接一次 activate-third-level-play，不建立部分 Playing 狀態"
+      domain_field_refs: []
+      domain_rule_refs:
+        - GAME-REL-002
+        - GAME-REL-003
+        - LEVEL-INV-001
+        - DOOR-MAZE-INV-001
+        - SHIELD-RESET-001
+
+  process:
+    - order: 1
+      action: "辨識並驗證 第三關開始按鈕 click。"
+    - order: 2
+      action: "確認 game.phase == Ready 且 level.number == 3。"
+    - order: 3
+      action: "只交接一次 activate-third-level-play，不建立部分 Playing 狀態"
+
+  postconditions:
+    - rule_id: DOM-START-THIRD-LEVEL-POST-001
+      description: "命令被接受一次並交接 activate-third-level-play 一次；CBF 不直接產生物件或啟動門週期。"
+      domain_field_refs: []
+      domain_rule_refs:
+        - GAME-REL-002
+        - GAME-REL-003
+        - LEVEL-INV-001
+        - DOOR-MAZE-INV-001
+        - SHIELD-RESET-001
+
+  contract_violations: []
+
+  not_applicable:
+    - rule_id: DOM-START-THIRD-LEVEL-NOOP-001
+      condition: "目前不是第三關 Ready，或同一 Ready 狀態的開始命令已接受。"
+      behavior: ignore
+      error: none
+      state_guarantee: "正常忽略，不交接 RIF，所有 Domain 狀態保持不變。"
+      domain_field_refs: []
+      domain_rule_refs:
+        - GAME-REL-002
+        - GAME-REL-003
+        - LEVEL-INV-001
+        - DOOR-MAZE-INV-001
+        - SHIELD-RESET-001
+

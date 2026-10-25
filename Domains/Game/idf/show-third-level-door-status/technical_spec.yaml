@@ -1,0 +1,68 @@
+use_case: show-third-level-door-status
+bounded_context: snake-game
+aggregate: game
+frame_type: IDF
+
+spec_refs:
+  domain: domain_spec.yaml
+
+input:
+  type: ShowThirdLevelDoorStatusQuery
+  source: display_refresh
+  fields: []
+
+output:
+  type: ShowThirdLevelDoorStatusResult
+  fields:
+    - name: IsSuccess
+      csharp_type: bool
+      required: true
+    - name: FailureCode
+      csharp_type: "string?"
+      required: true
+    - name: FailureMessage
+      csharp_type: "string?"
+      required: true
+    - name: Data
+      csharp_type: "ThirdLevelDoorStatusRspDTO?"
+      required: true
+
+data_contract:
+  type: ThirdLevelDoorStatusRspDTO
+  fields:
+    - name: Doors
+      csharp_type: "List<DoorStatusDTO>"
+      required: true
+      description: "每扇門的識別、位置與目前狀態"
+    - name: IsCycleActive
+      csharp_type: "bool"
+      required: true
+      description: "只有第三關 Playing 為 true"
+
+read_port:
+  name: IThirdLevelDoorStatusReadPort
+  returns: ThirdLevelDoorStatusRspDTO
+  side_effect_free: true
+
+domain_to_technical_mapping:
+  - domain_rules: [DOM-SHOW-THIRD-LEVEL-DOOR-STATUS-IN-001, DOM-SHOW-THIRD-LEVEL-DOOR-STATUS-PRE-001]
+    target: ShowThirdLevelDoorStatusQuery
+    description: "無欄位 Query 只辨識本次顯示要求並驗證可見條件。"
+  - domain_rules: [DOM-SHOW-THIRD-LEVEL-DOOR-STATUS-POST-001]
+    target: ThirdLevelDoorStatusRspDTO
+    description: "每扇門輸出位置與 Open、ClosingWarning、CloseDeferred 或 Closed；提醒與實際通行政策一致"
+
+state_mappings:
+  - mapping_id: TECH-SHOW-THIRD-LEVEL-DOOR-STATUS-STATE-001
+    description: "Projection 與 Query 都不得呼叫改變 Domain 狀態的方法。"
+
+error_mappings:
+  - mapping_id: TECH-SHOW-THIRD-LEVEL-DOOR-STATUS-ERR-001
+    condition: "不符合 level.number == 3 且 game.phase 為 Ready 或 Playing"
+    result: ShowThirdLevelDoorStatusResult
+    failure_code: INVALID_GAME_PHASE
+    failure_message: "目前沒有可顯示的第三關門狀態。"
+    data: null
+
+no_op_mappings: []
+

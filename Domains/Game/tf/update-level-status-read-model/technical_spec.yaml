@@ -1,0 +1,69 @@
+use_case: update-level-status-read-model
+bounded_context: snake-game
+aggregate: game
+frame_type: TF
+
+spec_refs:
+  domain: domain_spec.yaml
+
+input:
+  type: UpdateLevelStatusReadModelCommand
+  source: "已提交的 Domain Event 與其單調遞增版本。"
+  fields:
+    - name: SourceEventId
+      csharp_type: string
+      required: true
+    - name: SourceVersion
+      csharp_type: long
+      required: true
+
+output:
+  type: UpdateLevelStatusReadModelResult
+  fields:
+    - name: IsSuccess
+      csharp_type: bool
+      required: true
+    - name: FailureCode
+      csharp_type: "string?"
+      required: true
+    - name: FailureMessage
+      csharp_type: "string?"
+      required: true
+  domain_output: "更新 FirstLevelStatusReadModel，不回寫來源 Domain。"
+
+read_model:
+  type: LevelStatusReadModel
+  fields:
+    - name: LevelName
+      csharp_type: string
+    - name: CurrentLength
+      csharp_type: int
+    - name: TargetLength
+      csharp_type: int
+    - name: ProgressPercent
+      csharp_type: int
+    - name: ShieldRemainingCharges
+      csharp_type: "int?"
+    - name: SourceVersion
+      csharp_type: long
+
+domain_to_technical_mapping:
+  - domain_rules: [DOM-UPDATE-LEVEL-STATUS-READ-MODEL-IN-001, DOM-UPDATE-LEVEL-STATUS-READ-MODEL-PRE-001]
+    target: UpdateLevelStatusReadModelCommand
+    description: "以 SourceEventId 去重並以 SourceVersion 拒絕舊事件。"
+  - domain_rules: [DOM-UPDATE-LEVEL-STATUS-READ-MODEL-INV-001, DOM-UPDATE-LEVEL-STATUS-READ-MODEL-POST-001]
+    target: LevelStatusReadModel
+    description: "映射關卡名稱、實際蛇長、目標、限制後進度與適用的護盾次數。"
+
+state_mappings:
+  - mapping_id: TECH-UPDATE-LEVEL-STATUS-READ-MODEL-STATE-001
+    description: "投影寫入與最後來源版本在同一原子操作完成。"
+  - mapping_id: TECH-UPDATE-LEVEL-STATUS-READ-MODEL-STATE-002
+    description: "投影不得呼叫任何改變 Entity 或 Aggregate 的行為。"
+
+error_mappings: []
+
+no_op_mappings:
+  - mapping_id: TECH-UPDATE-LEVEL-STATUS-READ-MODEL-NOOP-001
+    condition: "重複 SourceEventId 或非遞增 SourceVersion。"
+    behavior: "直接成功結束，不覆寫較新的 Read Model。"

@@ -1,0 +1,63 @@
+use_case: set-snake-direction
+bounded_context: snake-game
+aggregate: game
+frame_type: SWF
+
+spec_refs:
+  domain: domain_spec.yaml
+
+input:
+  type: SetSnakeDirectionCommand
+  source: "WinForms 方向鍵事件。"
+  fields:
+    - name: Direction
+      csharp_type: "Direction"
+      required: true
+
+output:
+  type: SetSnakeDirectionResult
+  fields:
+    - name: IsSuccess
+      csharp_type: bool
+      required: true
+    - name: FailureCode
+      csharp_type: "string?"
+      required: true
+    - name: FailureMessage
+      csharp_type: "string?"
+      required: true
+  domain_output: "只更新 Snake.next_direction；非法或直接反向輸入保持原方向"
+
+types:
+  - name: SetSnakeDirectionCommand
+    fields:
+      - name: Direction
+        csharp_type: Direction
+  - name: SetSnakeDirectionResult
+    fields:
+      - name: IsSuccess
+        csharp_type: bool
+      - name: FailureCode
+        csharp_type: "string?"
+      - name: FailureMessage
+        csharp_type: "string?"
+
+domain_to_technical_mapping:
+  - domain_rules: [DOM-SET-SNAKE-DIRECTION-IN-001, DOM-SET-SNAKE-DIRECTION-PRE-001]
+    target: SetSnakeDirectionCommand
+    description: "將外部觸發映射為 SetSnakeDirectionCommand，並在執行效果前驗證前置條件。"
+  - domain_rules: [DOM-SET-SNAKE-DIRECTION-INV-001, DOM-SET-SNAKE-DIRECTION-POST-001]
+    target: SetSnakeDirectionResult
+    description: "只更新 Snake.next_direction；非法或直接反向輸入保持原方向"
+
+state_mappings:
+  - mapping_id: TECH-SET-SNAKE-DIRECTION-STATE-001
+    description: "Snake.next_direction 原子更新為 Up，蛇的位置與長度在本次操作中不變。"
+
+error_mappings: []
+
+no_op_mappings:
+  - mapping_id: TECH-SET-SNAKE-DIRECTION-NOOP-001
+    condition: "Game 不在 Playing，或玩家輸入與目前方向直接相反的 Left。"
+    behavior: "正常忽略，方向、位置、長度與其他 Domain 狀態全部不變。"
+

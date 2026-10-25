@@ -1,0 +1,80 @@
+use_case: show-game-over-result
+bounded_context: snake-game
+aggregate: game
+frame_type: IDF
+
+spec_refs:
+  domain: domain_spec.yaml
+
+input:
+  type: ShowGameOverResultQuery
+  source: display_refresh
+  fields: []
+
+output:
+  type: ShowGameOverResultResult
+  fields:
+    - name: IsSuccess
+      csharp_type: bool
+      required: true
+    - name: FailureCode
+      csharp_type: "string?"
+      required: true
+    - name: FailureMessage
+      csharp_type: "string?"
+      required: true
+    - name: Data
+      csharp_type: "GameOverResultRspDTO?"
+      required: true
+
+data_contract:
+  type: GameOverResultRspDTO
+  fields:
+    - name: FailedLevel
+      csharp_type: "int"
+      required: true
+      description: "失敗關卡"
+    - name: FinalLength
+      csharp_type: "int"
+      required: true
+      description: "最後有效蛇長，FatalFire 最低為 0"
+    - name: DeathCause
+      csharp_type: "DeathCause"
+      required: true
+      description: "未被護盾挽救的死亡原因"
+    - name: ProgressPercent
+      csharp_type: "int"
+      required: true
+      description: "限制於 0 至 100"
+    - name: IsReplayButtonVisible
+      csharp_type: "bool"
+      required: true
+      description: "固定為 true"
+
+read_port:
+  name: IGameOverResultReadPort
+  returns: GameOverResultRspDTO
+  side_effect_free: true
+
+domain_to_technical_mapping:
+  - domain_rules: [DOM-SHOW-GAME-OVER-RESULT-IN-001, DOM-SHOW-GAME-OVER-RESULT-PRE-001]
+    target: ShowGameOverResultQuery
+    description: "無欄位 Query 只辨識本次顯示要求並驗證可見條件。"
+  - domain_rules: [DOM-SHOW-GAME-OVER-RESULT-POST-001]
+    target: GameOverResultRspDTO
+    description: "顯示 Game Over、失敗關卡、最後蛇長、death cause、最低 0% 的進度與重玩按鈕"
+
+state_mappings:
+  - mapping_id: TECH-SHOW-GAME-OVER-RESULT-STATE-001
+    description: "Projection 與 Query 都不得呼叫改變 Domain 狀態的方法。"
+
+error_mappings:
+  - mapping_id: TECH-SHOW-GAME-OVER-RESULT-ERR-001
+    condition: "不符合 game.phase == GameOver 且最近結果為 Failed"
+    result: ShowGameOverResultResult
+    failure_code: RESULT_NOT_AVAILABLE
+    failure_message: "目前沒有可顯示的失敗結果。"
+    data: null
+
+no_op_mappings: []
+

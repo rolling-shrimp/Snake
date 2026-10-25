@@ -1,0 +1,106 @@
+use_case: reset-game-for-replay
+bounded_context: snake-game
+aggregate: game
+frame_type: RIF
+
+spec_refs:
+  requirement: "frame.yaml#use_case.requirement"
+  domain: domain_spec.yaml
+  technical: technical_spec.yaml
+
+scenarios:
+  - id: SCN-RESET-GAME-FOR-REPLAY-001
+    title: "失敗後重玩"
+    description: "清除舊輪次，第一關蛇長 3、進度 15%、草莓已產生、移動已開始，Game 直接為 Playing。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - RIF-RESET-GAME-FOR-REPLAY-001
+        - RIF-RESET-GAME-FOR-REPLAY-002
+        - RIF-RESET-GAME-FOR-REPLAY-003
+        - RIF-RESET-GAME-FOR-REPLAY-004
+      domain_rules:
+        - DOM-RESET-GAME-FOR-REPLAY-PRE-001
+        - DOM-RESET-GAME-FOR-REPLAY-POST-001
+      technical_contracts:
+        - ResetGameForReplayResult.IsSuccess
+        - TECH-RESET-GAME-FOR-REPLAY-STATE-001
+    given:
+      - fact: "Game 為 GameOver，RestartGameAccepted 尚未處理。"
+    when:
+      action: reset_game_for_replay
+      input:
+        type: ResetGameForReplayCommand
+        fields: {}
+    then:
+      output:
+        type: ResetGameForReplayResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
+      reaction_effect: "清除舊輪次，第一關蛇長 3、進度 15%、草莓已產生、移動已開始，Game 直接為 Playing。"
+
+  - id: SCN-RESET-GAME-FOR-REPLAY-002
+    title: "完成後重玩"
+    description: "清除通關結果並以相同第一關 Playing 狀態開始新輪次。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - RIF-RESET-GAME-FOR-REPLAY-001
+        - RIF-RESET-GAME-FOR-REPLAY-002
+        - RIF-RESET-GAME-FOR-REPLAY-003
+        - RIF-RESET-GAME-FOR-REPLAY-004
+      domain_rules:
+        - DOM-RESET-GAME-FOR-REPLAY-PRE-001
+        - DOM-RESET-GAME-FOR-REPLAY-POST-001
+      technical_contracts:
+        - ResetGameForReplayResult.IsSuccess
+        - TECH-RESET-GAME-FOR-REPLAY-STATE-001
+    given:
+      - fact: "Game 為 Completed，RestartGameAccepted 尚未處理。"
+    when:
+      action: reset_game_for_replay
+      input:
+        type: ResetGameForReplayCommand
+        fields: {}
+    then:
+      output:
+        type: ResetGameForReplayResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
+      reaction_effect: "清除通關結果並以相同第一關 Playing 狀態開始新輪次。"
+
+  - id: SCN-RESET-GAME-FOR-REPLAY-003
+    title: "重複或非終局事件"
+    description: "正常忽略，不清除或重設目前輪次。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - RIF-RESET-GAME-FOR-REPLAY-001
+        - RIF-RESET-GAME-FOR-REPLAY-004
+      domain_rules:
+        - DOM-RESET-GAME-FOR-REPLAY-NOOP-001
+        - DOM-RESET-GAME-FOR-REPLAY-INV-001
+      technical_contracts:
+        - ResetGameForReplayResult.IsSuccess
+        - TECH-RESET-GAME-FOR-REPLAY-NOOP-001
+    given:
+      - fact: "事件已處理，或 Game 不是 GameOver／Completed。"
+    when:
+      action: reset_game_for_replay
+      input:
+        type: ResetGameForReplayCommand
+        fields: {}
+    then:
+      output:
+        type: ResetGameForReplayResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
+      domain_state:
+        unchanged: true
+

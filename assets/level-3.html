@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>貪吃蛇第三關待開始畫面</title>
+  <link rel="stylesheet" href="ui-preview.css">
+</head>
+<body>
+  <main class="game-preview level-3 has-handoff" aria-label="貪吃蛇第三關待開始畫面">
+    <section class="handoff" aria-label="第二關通關結果">
+      <div class="handoff-title">第二關過關</div>
+      <div class="handoff-score">通關蛇長：20 格</div>
+    </section>
+
+    <div class="preview-content">
+      <div class="board" data-board data-level="3" role="img" aria-label="10 乘 10 迷宮棋盤，包含外牆、內牆和一扇開啟的門；安全起點有一條向右、長度三格且停止的蛇，棋盤上沒有物件"></div>
+
+      <section class="information-panel" aria-labelledby="level-heading">
+        <h1 class="level-heading" id="level-heading">第三關</h1>
+
+        <div class="status-card">
+          <div class="status-row">
+            <div>
+              <span class="status-label">目前蛇長</span>
+              <strong class="length-value">3 / 50</strong>
+            </div>
+            <div class="shield-count">
+              <span class="status-label">護盾保命次數</span>
+              <strong>0</strong>
+            </div>
+          </div>
+          <div class="progress-track" role="progressbar" aria-label="過關進度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="6">
+            <div class="progress-fill" style="--progress: 6%"></div>
+          </div>
+          <div class="progress-copy"><span>過關進度 6%</span><span>目標 50 格</span></div>
+        </div>
+
+        <section class="rules-card" aria-labelledby="rules-heading">
+          <h2 id="rules-heading">規則提示</h2>
+          <ul class="rule-list">
+            <li class="rule-item"><span class="rule-icon" aria-hidden="true">🍓</span><span>普通食物：蛇長 +1 格</span></li>
+            <li class="rule-item"><span class="rule-icon" aria-hidden="true">🫐</span><span>特殊食物：蛇長 +2 格</span></li>
+            <li class="rule-item"><span class="rule-icon" aria-hidden="true">🛡️</span><span>護盾：保命次數 +1</span></li>
+            <li class="rule-item"><span class="rule-icon" aria-hidden="true">🔥</span><span>火焰：蛇長 −2 格</span></li>
+            <li class="rule-item"><span class="rule-icon" aria-hidden="true">💣</span><span>炸彈：立即死亡</span></li>
+            <li class="rule-item"><span class="rule-icon plain-icon" aria-hidden="true">▦</span><span>牆壁不可穿越</span></li>
+            <li class="rule-item"><span class="rule-icon plain-icon" aria-hidden="true">◇</span><span>門目前：開啟</span></li>
+          </ul>
+        </section>
+
+        <button class="start-button" type="button">開始</button>
+      </section>
+    </div>
+  </main>
+  <script src="ui-preview.js"></script>
+</body>
+</html>

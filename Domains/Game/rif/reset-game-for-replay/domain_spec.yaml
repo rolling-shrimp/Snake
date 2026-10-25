@@ -1,0 +1,125 @@
+use_case: reset-game-for-replay
+bounded_context: snake-game
+aggregate: game
+frame_type: RIF
+
+domain_refs:
+  - domain: Game
+    path: ../../domain_spec.yaml
+    aggregate: Game
+  - domain: Level
+    path: ../../../Level/domain_spec.yaml
+    aggregate: Level
+  - domain: Snake
+    path: ../../../Snake/domain_spec.yaml
+    aggregate: Snake
+  - domain: Board
+    path: ../../../Board/domain_spec.yaml
+    aggregate: Board
+  - domain: Food
+    path: ../../../Food/domain_spec.yaml
+    aggregate: Food
+  - domain: Shield
+    path: ../../../Shield/domain_spec.yaml
+    aggregate: Shield
+  - domain: Fire
+    path: ../../../Fire/domain_spec.yaml
+    aggregate: Fire
+  - domain: Bomb
+    path: ../../../Bomb/domain_spec.yaml
+    aggregate: Bomb
+  - domain: DoorAndMaze
+    path: ../../../DoorAndMaze/domain_spec.yaml
+    aggregate: DoorAndMaze
+  - domain: GameResult
+    path: ../../../GameResult/domain_spec.yaml
+    aggregate: GameResult
+
+traceability:
+  requirement: "frame.yaml#use_case.requirement"
+  frame_checks:
+    - RIF-RESET-GAME-FOR-REPLAY-001
+    - RIF-RESET-GAME-FOR-REPLAY-002
+    - RIF-RESET-GAME-FOR-REPLAY-003
+    - RIF-RESET-GAME-FOR-REPLAY-004
+
+contract:
+  input:
+    data: ResetGameForReplayCommand
+    fields:
+      []
+    rules:
+      - rule_id: DOM-RESET-GAME-FOR-REPLAY-IN-001
+        description: "Input 只能由未處理的 RestartGameAccepted domain event 產生。"
+        domain_rule_refs:
+          - GAME-REL-009
+          - GAME-REL-010
+          - SNAKE-RESET-001
+          - SHIELD-RESET-001
+          - RESULT-RESET-001
+          - FOOD-SPAWN-001
+
+  output:
+    data: ResetGameForReplayResult
+    rules:
+      - rule_id: DOM-RESET-GAME-FOR-REPLAY-OUT-001
+        description: "Output 表示反應是否完整結束；錯誤來源或重複事件以成功 no-op 表示。"
+        domain_rule_refs: []
+
+  preconditions:
+    - rule_id: DOM-RESET-GAME-FOR-REPLAY-PRE-001
+      description: "game.phase == GameOver 或 Completed，且重玩事件尚未處理"
+      domain_rule_refs:
+        - GAME-REL-009
+        - GAME-REL-010
+        - SNAKE-RESET-001
+        - SHIELD-RESET-001
+        - RESULT-RESET-001
+        - FOOD-SPAWN-001
+
+  invariants:
+    - rule_id: DOM-RESET-GAME-FOR-REPLAY-INV-001
+      description: "相同 trigger 最多造成一次效果；清除結果與所有關卡狀態，重設第一關蛇與棋盤，立即產生普通食物並以 Playing 開始，不再顯示開始按鈕。"
+      domain_rule_refs:
+        - GAME-REL-009
+        - GAME-REL-010
+        - SNAKE-RESET-001
+        - SHIELD-RESET-001
+        - RESULT-RESET-001
+        - FOOD-SPAWN-001
+
+  process:
+    - order: 1
+      action: "驗證事件來源、必要狀態與去重識別。"
+    - order: 2
+      action: "清除結果與所有關卡狀態，重設第一關蛇與棋盤，立即產生普通食物並以 Playing 開始，不再顯示開始按鈕"
+    - order: 3
+      action: "全部動作成功後才標記事件已處理並公開最終狀態。"
+
+  postconditions:
+    - rule_id: DOM-RESET-GAME-FOR-REPLAY-POST-001
+      description: "清除結果與所有關卡狀態，重設第一關蛇與棋盤，立即產生普通食物並以 Playing 開始，不再顯示開始按鈕"
+      domain_rule_refs:
+        - GAME-REL-009
+        - GAME-REL-010
+        - SNAKE-RESET-001
+        - SHIELD-RESET-001
+        - RESULT-RESET-001
+        - FOOD-SPAWN-001
+
+  contract_violations: []
+
+  not_applicable:
+    - rule_id: DOM-RESET-GAME-FOR-REPLAY-NOOP-001
+      condition: "事件已處理，或 Game 不是 GameOver／Completed。"
+      behavior: ignore
+      error: none
+      state_guarantee: "正常忽略，不清除或重設目前輪次。"
+      domain_rule_refs:
+        - GAME-REL-009
+        - GAME-REL-010
+        - SNAKE-RESET-001
+        - SHIELD-RESET-001
+        - RESULT-RESET-001
+        - FOOD-SPAWN-001
+

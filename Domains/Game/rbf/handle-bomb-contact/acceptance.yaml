@@ -1,0 +1,74 @@
+use_case: handle-bomb-contact
+bounded_context: snake-game
+aggregate: game
+frame_type: RBF
+
+spec_refs:
+  requirement: "frame.yaml#use_case.requirement"
+  domain: domain_spec.yaml
+  technical: technical_spec.yaml
+
+scenarios:
+  - id: SCN-HANDLE-BOMB-CONTACT-001
+    title: "第三關碰到炸彈"
+    description: "炸彈消失並產生一次 BombCollision；本 Use Case 不直接結束遊戲。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - RBF-HANDLE-BOMB-CONTACT-001
+        - RBF-HANDLE-BOMB-CONTACT-002
+        - RBF-HANDLE-BOMB-CONTACT-003
+        - RBF-HANDLE-BOMB-CONTACT-004
+      domain_rules:
+        - DOM-HANDLE-BOMB-CONTACT-PRE-001
+        - DOM-HANDLE-BOMB-CONTACT-POST-001
+      technical_contracts:
+        - HandleBombContactResult.IsSuccess
+        - TECH-HANDLE-BOMB-CONTACT-STATE-001
+    given:
+      - fact: "第三關 Playing，蛇頭接觸 active BombItem。"
+    when:
+      action: handle_bomb_contact
+      input:
+        type: HandleBombContactCommand
+        fields: {}
+    then:
+      output:
+        type: HandleBombContactResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
+      domain_effect: "炸彈消失並產生一次 BombCollision；本 Use Case 不直接結束遊戲。"
+
+  - id: SCN-HANDLE-BOMB-CONTACT-002
+    title: "非第三關或炸彈已失效"
+    description: "正常忽略，不產生死亡事件。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - RBF-HANDLE-BOMB-CONTACT-001
+        - RBF-HANDLE-BOMB-CONTACT-004
+      domain_rules:
+        - DOM-HANDLE-BOMB-CONTACT-NOOP-001
+        - DOM-HANDLE-BOMB-CONTACT-INV-001
+      technical_contracts:
+        - HandleBombContactResult.IsSuccess
+        - TECH-HANDLE-BOMB-CONTACT-NOOP-001
+    given:
+      - fact: "Level 不是 3，或 BombItem 已被處理。"
+    when:
+      action: handle_bomb_contact
+      input:
+        type: HandleBombContactCommand
+        fields: {}
+    then:
+      output:
+        type: HandleBombContactResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
+      domain_state:
+        unchanged: true
+

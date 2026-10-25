@@ -1,0 +1,139 @@
+use_case: update-level-status-read-model
+bounded_context: snake-game
+aggregate: game
+frame_type: TF
+
+spec_refs:
+  requirement: "frame.yaml#use_case.requirement"
+  domain: domain_spec.yaml
+  technical: technical_spec.yaml
+
+scenarios:
+  - id: SCN-UPDATE-LEVEL-STATUS-READ-MODEL-001
+    title: "第一、二關狀態投影"
+    description: "蛇長 3、目標 20 應顯示 3/20 與 15%。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - TF-UPDATE-LEVEL-STATUS-READ-MODEL-001
+        - TF-UPDATE-LEVEL-STATUS-READ-MODEL-002
+        - TF-UPDATE-LEVEL-STATUS-READ-MODEL-003
+        - TF-UPDATE-LEVEL-STATUS-READ-MODEL-004
+      domain_rules:
+        - DOM-UPDATE-LEVEL-STATUS-READ-MODEL-IN-001
+        - DOM-UPDATE-LEVEL-STATUS-READ-MODEL-PRE-001
+        - DOM-UPDATE-LEVEL-STATUS-READ-MODEL-INV-001
+        - DOM-UPDATE-LEVEL-STATUS-READ-MODEL-POST-001
+      technical_contracts:
+        - LevelStatusReadModel.CurrentLength
+        - LevelStatusReadModel.TargetLength
+        - LevelStatusReadModel.ProgressPercent
+        - TECH-UPDATE-LEVEL-STATUS-READ-MODEL-STATE-001
+    given:
+      - fact: "第一或第二關的最新 Domain 事實為蛇長 3、目標 20。"
+    when:
+      action: update_level_status_read_model
+      input:
+        type: UpdateLevelStatusReadModelCommand
+        fields:
+          source_event_id: UNIQUE_EVENT_ID
+          source_version: NEXT_VERSION
+    then:
+      read_model:
+        current_length: 3
+        target_length: 20
+        progress_percent: 15
+      source_domain_state:
+        unchanged: true
+
+  - id: SCN-UPDATE-LEVEL-STATUS-READ-MODEL-002
+    title: "第三關狀態投影"
+    description: "第三關蛇長 3、目標 50 應顯示 3/50 與 6%。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - TF-UPDATE-LEVEL-STATUS-READ-MODEL-001
+        - TF-UPDATE-LEVEL-STATUS-READ-MODEL-002
+        - TF-UPDATE-LEVEL-STATUS-READ-MODEL-003
+        - TF-UPDATE-LEVEL-STATUS-READ-MODEL-004
+      domain_rules:
+        - DOM-UPDATE-LEVEL-STATUS-READ-MODEL-IN-001
+        - DOM-UPDATE-LEVEL-STATUS-READ-MODEL-PRE-001
+        - DOM-UPDATE-LEVEL-STATUS-READ-MODEL-INV-001
+        - DOM-UPDATE-LEVEL-STATUS-READ-MODEL-POST-001
+      technical_contracts:
+        - LevelStatusReadModel.CurrentLength
+        - LevelStatusReadModel.TargetLength
+        - LevelStatusReadModel.ProgressPercent
+        - LevelStatusReadModel.ShieldRemainingCharges
+    given:
+      - fact: "第三關最新 Domain 事實為蛇長 3、目標 50、護盾 0。"
+    when:
+      action: update_level_status_read_model
+      input:
+        type: UpdateLevelStatusReadModelCommand
+        fields:
+          source_event_id: UNIQUE_EVENT_ID
+          source_version: NEXT_VERSION
+    then:
+      read_model:
+        current_length: 3
+        target_length: 50
+        progress_percent: 6
+        shield_remaining_charges: 0
+
+  - id: SCN-UPDATE-LEVEL-STATUS-READ-MODEL-003
+    title: "進度上下限與實際蛇長"
+    description: "超過目標保留實際蛇長並顯示 100%；FatalFire 結果最低顯示 0%。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - TF-UPDATE-LEVEL-STATUS-READ-MODEL-001
+        - TF-UPDATE-LEVEL-STATUS-READ-MODEL-002
+        - TF-UPDATE-LEVEL-STATUS-READ-MODEL-003
+        - TF-UPDATE-LEVEL-STATUS-READ-MODEL-004
+      domain_rules:
+        - DOM-UPDATE-LEVEL-STATUS-READ-MODEL-INV-001
+        - DOM-UPDATE-LEVEL-STATUS-READ-MODEL-POST-001
+      technical_contracts:
+        - LevelStatusReadModel.CurrentLength
+        - LevelStatusReadModel.ProgressPercent
+    given:
+      - fact: "第三關實際蛇長為 51，或 FatalFire 最終長度為 0。"
+    when:
+      action: update_level_status_read_model
+      input:
+        type: UpdateLevelStatusReadModelCommand
+        fields:
+          source_event_id: UNIQUE_EVENT_ID
+          source_version: NEXT_VERSION
+    then:
+      policy:
+        actual_length_preserved: true
+        progress_range: "0..100"
+
+  - id: SCN-UPDATE-LEVEL-STATUS-READ-MODEL-004
+    title: "正常忽略重複或舊事件"
+    description: "重複事件不得覆寫 Read Model 或改變 Domain。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - TF-UPDATE-LEVEL-STATUS-READ-MODEL-001
+        - TF-UPDATE-LEVEL-STATUS-READ-MODEL-004
+      domain_rules:
+        - DOM-UPDATE-LEVEL-STATUS-READ-MODEL-PRE-001
+        - DOM-UPDATE-LEVEL-STATUS-READ-MODEL-NOOP-001
+      technical_contracts:
+        - TECH-UPDATE-LEVEL-STATUS-READ-MODEL-NOOP-001
+    given:
+      - fact: "SourceEventId 已處理，或 SourceVersion 小於等於目前版本。"
+    when:
+      action: update_level_status_read_model
+      input:
+        type: UpdateLevelStatusReadModelCommand
+        fields: {}
+    then:
+      read_model:
+        unchanged: true
+      source_domain_state:
+        unchanged: true

@@ -28,6 +28,9 @@ scenarios:
         - DOM-START-FIRST-LEVEL-POST-001
         - DOM-START-FIRST-LEVEL-POST-002
       technical_contracts:
+        - StartFirstLevelResult.IsSuccess
+        - StartFirstLevelResult.FailureCode
+        - StartFirstLevelResult.FailureMessage
         - TECH-START-FIRST-LEVEL-STATE-001
         - TECH-START-FIRST-LEVEL-STATE-002
     given:
@@ -38,9 +41,16 @@ scenarios:
           accepted_start_command_count: 0
     when:
       action: click_start_button
-      input: null
+      input:
+        type: StartFirstLevelCommand
+        fields: {}
     then:
-      output: void
+      output:
+        type: StartFirstLevelResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
       use_case_handoff:
         target: activate-first-level-play
         count: 1
@@ -60,6 +70,9 @@ scenarios:
         - DOM-START-FIRST-LEVEL-INV-001
         - DOM-START-FIRST-LEVEL-NOOP-001
       technical_contracts:
+        - StartFirstLevelResult.IsSuccess
+        - StartFirstLevelResult.FailureCode
+        - StartFirstLevelResult.FailureMessage
         - TECH-START-FIRST-LEVEL-NOOP-001
     given:
       - state: first_level_playing
@@ -67,9 +80,16 @@ scenarios:
           level: 1
     when:
       action: click_start_button
-      input: null
+      input:
+        type: StartFirstLevelCommand
+        fields: {}
     then:
-      output: void
+      output:
+        type: StartFirstLevelResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
       error: null
       use_case_handoff:
         target: activate-first-level-play
@@ -90,6 +110,9 @@ scenarios:
         - DOM-START-FIRST-LEVEL-POST-002
         - DOM-START-FIRST-LEVEL-NOOP-002
       technical_contracts:
+        - StartFirstLevelResult.IsSuccess
+        - StartFirstLevelResult.FailureCode
+        - StartFirstLevelResult.FailureMessage
         - TECH-START-FIRST-LEVEL-STATE-002
         - TECH-START-FIRST-LEVEL-STATE-003
         - TECH-START-FIRST-LEVEL-NOOP-002
@@ -102,9 +125,16 @@ scenarios:
     when:
       action: click_start_button_repeatedly
       input:
+        type: StartFirstLevelCommand
+        fields: {}
         click_count: 2
     then:
-      output: void
+      output:
+        type: StartFirstLevelResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
       error: null
       use_case_handoff:
         target: activate-first-level-play

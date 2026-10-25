@@ -1,0 +1,32 @@
+bounded_context: snake-game
+aggregate: game
+
+use_case:
+  name: handle-shield-contact
+  requirement: "第二、三關蛇頭接觸護盾時，護盾消失且保命次數增加 1。"
+frame_type: RBF
+
+world_facts:
+  actor: system
+  trigger: "snake head contacts active ShieldItem"
+  required_condition: "game.phase == Playing、level.number 為 2 或 3，且接觸 active ShieldItem"
+  required_behavior: "移除護盾、remaining_charges 增加 1，並保留本關已產生護盾數量"
+  execution_policy: once_per_condition_fact
+
+frame_concerns:
+  - concern_ref: RBF-CONCERN-001
+    check_id: RBF-HANDLE-SHIELD-CONTACT-001
+    description: "確保只有 snake head contacts active ShieldItem 的完整條件成立時才發動 handle-shield-contact。"
+
+  - concern_ref: RBF-CONCERN-002
+    check_id: RBF-HANDLE-SHIELD-CONTACT-002
+    description: "確保同一條件事實最多執行一次，不因重複通知重複套用效果。"
+
+  - concern_ref: RBF-CONCERN-003
+    check_id: RBF-HANDLE-SHIELD-CONTACT-003
+    description: "確保 移除護盾、remaining_charges 增加 1，並保留本關已產生護盾數量 的所有必要動作完整完成。"
+
+  - concern_ref: RBF-CONCERN-004
+    check_id: RBF-HANDLE-SHIELD-CONTACT-004
+    description: "確保完成或忽略後，Game、Shield、Level 的不變式仍成立。"
+

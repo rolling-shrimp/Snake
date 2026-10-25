@@ -1,0 +1,32 @@
+bounded_context: snake-game
+aggregate: game
+
+use_case:
+  name: handle-self-collision
+  requirement: "蛇頭下一格與既有蛇身重疊時產生 SelfCollision 死亡事件。"
+frame_type: RBF
+
+world_facts:
+  actor: system
+  trigger: "next snake head cell overlaps existing body"
+  required_condition: "game.phase == Playing 且碰撞事實來自本次有效移動"
+  required_behavior: "產生一次 SelfCollision，等待 Shield 決定保命或 GameOver"
+  execution_policy: once_per_condition_fact
+
+frame_concerns:
+  - concern_ref: RBF-CONCERN-001
+    check_id: RBF-HANDLE-SELF-COLLISION-001
+    description: "確保只有 next snake head cell overlaps existing body 的完整條件成立時才發動 handle-self-collision。"
+
+  - concern_ref: RBF-CONCERN-002
+    check_id: RBF-HANDLE-SELF-COLLISION-002
+    description: "確保同一條件事實最多執行一次，不因重複通知重複套用效果。"
+
+  - concern_ref: RBF-CONCERN-003
+    check_id: RBF-HANDLE-SELF-COLLISION-003
+    description: "確保 產生一次 SelfCollision，等待 Shield 決定保命或 GameOver 的所有必要動作完整完成。"
+
+  - concern_ref: RBF-CONCERN-004
+    check_id: RBF-HANDLE-SELF-COLLISION-004
+    description: "確保完成或忽略後，Game、Snake、Shield、GameResult 的不變式仍成立。"
+

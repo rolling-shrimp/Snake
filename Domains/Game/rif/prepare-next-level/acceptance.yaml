@@ -1,0 +1,106 @@
+use_case: prepare-next-level
+bounded_context: snake-game
+aggregate: game
+frame_type: RIF
+
+spec_refs:
+  requirement: "frame.yaml#use_case.requirement"
+  domain: domain_spec.yaml
+  technical: technical_spec.yaml
+
+scenarios:
+  - id: SCN-PREPARE-NEXT-LEVEL-001
+    title: "第一關後準備第二關"
+    description: "保留第一關成績；第二關 Ready、蛇長 3、進度 15%、護盾 0，棋盤尚無遊玩物件。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - RIF-PREPARE-NEXT-LEVEL-001
+        - RIF-PREPARE-NEXT-LEVEL-002
+        - RIF-PREPARE-NEXT-LEVEL-003
+        - RIF-PREPARE-NEXT-LEVEL-004
+      domain_rules:
+        - DOM-PREPARE-NEXT-LEVEL-PRE-001
+        - DOM-PREPARE-NEXT-LEVEL-POST-001
+      technical_contracts:
+        - PrepareNextLevelResult.IsSuccess
+        - TECH-PREPARE-NEXT-LEVEL-STATE-001
+    given:
+      - fact: "第一關 Passed 已記錄，第二關尚未建立。"
+    when:
+      action: prepare_next_level
+      input:
+        type: PrepareNextLevelCommand
+        fields: {}
+    then:
+      output:
+        type: PrepareNextLevelResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
+      reaction_effect: "保留第一關成績；第二關 Ready、蛇長 3、進度 15%、護盾 0，棋盤尚無遊玩物件。"
+
+  - id: SCN-PREPARE-NEXT-LEVEL-002
+    title: "第二關後準備第三關"
+    description: "保留第二關成績；第三關迷宮 Ready、蛇長 3、進度 6%、護盾 0，門已可顯示但週期未啟動。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - RIF-PREPARE-NEXT-LEVEL-001
+        - RIF-PREPARE-NEXT-LEVEL-002
+        - RIF-PREPARE-NEXT-LEVEL-003
+        - RIF-PREPARE-NEXT-LEVEL-004
+      domain_rules:
+        - DOM-PREPARE-NEXT-LEVEL-PRE-001
+        - DOM-PREPARE-NEXT-LEVEL-POST-001
+      technical_contracts:
+        - PrepareNextLevelResult.IsSuccess
+        - TECH-PREPARE-NEXT-LEVEL-STATE-001
+    given:
+      - fact: "第二關 Passed 已記錄，第三關尚未建立。"
+    when:
+      action: prepare_next_level
+      input:
+        type: PrepareNextLevelCommand
+        fields: {}
+    then:
+      output:
+        type: PrepareNextLevelResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
+      reaction_effect: "保留第二關成績；第三關迷宮 Ready、蛇長 3、進度 6%、護盾 0，門已可顯示但週期未啟動。"
+
+  - id: SCN-PREPARE-NEXT-LEVEL-003
+    title: "第三關或非 Passed"
+    description: "正常忽略，不建立不存在的下一關。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - RIF-PREPARE-NEXT-LEVEL-001
+        - RIF-PREPARE-NEXT-LEVEL-004
+      domain_rules:
+        - DOM-PREPARE-NEXT-LEVEL-NOOP-001
+        - DOM-PREPARE-NEXT-LEVEL-INV-001
+      technical_contracts:
+        - PrepareNextLevelResult.IsSuccess
+        - TECH-PREPARE-NEXT-LEVEL-NOOP-001
+    given:
+      - fact: "CompletedLevel 為 3，或上一關結果不是 Passed。"
+    when:
+      action: prepare_next_level
+      input:
+        type: PrepareNextLevelCommand
+        fields: {}
+    then:
+      output:
+        type: PrepareNextLevelResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
+      domain_state:
+        unchanged: true
+

@@ -1,0 +1,64 @@
+use_case: handle-bomb-contact
+bounded_context: snake-game
+aggregate: game
+frame_type: RBF
+
+spec_refs:
+  domain: domain_spec.yaml
+
+input:
+  type: HandleBombContactCommand
+  source: "系統條件監測：snake head contacts active BombItem"
+  fields:
+    - name: BombItemId
+      csharp_type: string
+      required: true
+
+output:
+  type: HandleBombContactResult
+  fields:
+    - name: IsSuccess
+      csharp_type: bool
+      required: true
+    - name: FailureCode
+      csharp_type: "string?"
+      required: true
+    - name: FailureMessage
+      csharp_type: "string?"
+      required: true
+  domain_output: "移除炸彈並產生 BombCollision 死亡事實，等待 Shield 決定保命或 GameOver"
+
+types:
+  - name: HandleBombContactCommand
+    fields:
+      - name: BombItemId
+        csharp_type: string
+        required: true
+  - name: HandleBombContactResult
+    fields:
+      - name: IsSuccess
+        csharp_type: bool
+      - name: FailureCode
+        csharp_type: "string?"
+      - name: FailureMessage
+        csharp_type: "string?"
+
+domain_to_technical_mapping:
+  - domain_rules: [DOM-HANDLE-BOMB-CONTACT-IN-001, DOM-HANDLE-BOMB-CONTACT-PRE-001]
+    target: HandleBombContactCommand
+    description: "條件事實映射為一次可去重的自動命令。"
+  - domain_rules: [DOM-HANDLE-BOMB-CONTACT-INV-001, DOM-HANDLE-BOMB-CONTACT-POST-001]
+    target: HandleBombContactResult
+    description: "移除炸彈並產生 BombCollision 死亡事實，等待 Shield 決定保命或 GameOver"
+
+state_mappings:
+  - mapping_id: TECH-HANDLE-BOMB-CONTACT-STATE-001
+    description: "移除炸彈並產生 BombCollision 死亡事實，等待 Shield 決定保命或 GameOver"
+
+error_mappings: []
+
+no_op_mappings:
+  - mapping_id: TECH-HANDLE-BOMB-CONTACT-NOOP-001
+    condition: "Level 不是 3，或 BombItem 已被處理。"
+    behavior: "正常忽略，不產生死亡事件。"
+

@@ -1,0 +1,102 @@
+use_case: evaluate-level-completion
+bounded_context: snake-game
+aggregate: game
+frame_type: RBF
+
+domain_refs:
+  - domain: Game
+    path: ../../domain_spec.yaml
+    aggregate: Game
+  - domain: Level
+    path: ../../../Level/domain_spec.yaml
+    aggregate: Level
+  - domain: Snake
+    path: ../../../Snake/domain_spec.yaml
+    aggregate: Snake
+  - domain: GameResult
+    path: ../../../GameResult/domain_spec.yaml
+    aggregate: GameResult
+
+traceability:
+  requirement: "frame.yaml#use_case.requirement"
+  frame_checks:
+    - RBF-EVALUATE-LEVEL-COMPLETION-001
+    - RBF-EVALUATE-LEVEL-COMPLETION-002
+    - RBF-EVALUATE-LEVEL-COMPLETION-003
+    - RBF-EVALUATE-LEVEL-COMPLETION-004
+
+contract:
+  input:
+    data: EvaluateLevelCompletionCommand
+    fields:
+      []
+    rules:
+      - rule_id: DOM-EVALUATE-LEVEL-COMPLETION-IN-001
+        description: "Input 表示一次已觀察到的條件事實：snake length change has completed。"
+        domain_rule_refs:
+          - LEVEL-COMPLETE-001
+          - LEVEL-COMPLETE-002
+          - LEVEL-COMPLETE-003
+          - LEVEL-COMPLETE-004
+          - LEVEL-PROGRESS-003
+
+  output:
+    data: EvaluateLevelCompletionResult
+    rules:
+      - rule_id: DOM-EVALUATE-LEVEL-COMPLETION-OUT-001
+        description: "Output 表示必要行為是否完成；不適用條件以成功 no-op 表示。"
+        domain_rule_refs: []
+
+  preconditions:
+    - rule_id: DOM-EVALUATE-LEVEL-COMPLETION-PRE-001
+      description: "game.phase == Playing 且 length change 已完整提交"
+      domain_rule_refs:
+        - LEVEL-COMPLETE-001
+        - LEVEL-COMPLETE-002
+        - LEVEL-COMPLETE-003
+        - LEVEL-COMPLETE-004
+        - LEVEL-PROGRESS-003
+
+  invariants:
+    - rule_id: DOM-EVALUATE-LEVEL-COMPLETION-INV-001
+      description: "同一條件事實最多處理一次；蛇長達標時只產生一次 LevelPassed；未達標時保持 Playing。"
+      domain_rule_refs:
+        - LEVEL-COMPLETE-001
+        - LEVEL-COMPLETE-002
+        - LEVEL-COMPLETE-003
+        - LEVEL-COMPLETE-004
+        - LEVEL-PROGRESS-003
+
+  process:
+    - order: 1
+      action: "確認觸發事實與 game.phase == Playing 且 length change 已完整提交。"
+    - order: 2
+      action: "蛇長達標時只產生一次 LevelPassed；未達標時保持 Playing"
+    - order: 3
+      action: "發布後續流程需要的結果事實，但不越權執行其他 Use Case。"
+
+  postconditions:
+    - rule_id: DOM-EVALUATE-LEVEL-COMPLETION-POST-001
+      description: "蛇長達標時只產生一次 LevelPassed；未達標時保持 Playing"
+      domain_rule_refs:
+        - LEVEL-COMPLETE-001
+        - LEVEL-COMPLETE-002
+        - LEVEL-COMPLETE-003
+        - LEVEL-COMPLETE-004
+        - LEVEL-PROGRESS-003
+
+  contract_violations: []
+
+  not_applicable:
+    - rule_id: DOM-EVALUATE-LEVEL-COMPLETION-NOOP-001
+      condition: "第一或第二關蛇長小於 20，或第三關蛇長小於 50。"
+      behavior: ignore
+      error: none
+      state_guarantee: "正常完成判定並保持 Playing，不產生 LevelPassed。"
+      domain_rule_refs:
+        - LEVEL-COMPLETE-001
+        - LEVEL-COMPLETE-002
+        - LEVEL-COMPLETE-003
+        - LEVEL-COMPLETE-004
+        - LEVEL-PROGRESS-003
+

@@ -29,6 +29,10 @@ scenarios:
         - DOM-READY-BOARD-POST-001
         - DOM-READY-BOARD-POST-002
       technical_contracts:
+        - ShowFirstLevelReadyBoardResult.IsSuccess
+        - ShowFirstLevelReadyBoardResult.FailureCode
+        - ShowFirstLevelReadyBoardResult.FailureMessage
+        - ShowFirstLevelReadyBoardResult.Data
         - FirstLevelReadyBoardRspDTO.BoardRows
         - FirstLevelReadyBoardRspDTO.BoardColumns
         - FirstLevelReadyBoardRspDTO.SnakeCells
@@ -47,18 +51,24 @@ scenarios:
           clock_running: false
     when:
       action: execute_use_case
-      input: null
+      input:
+        type: ShowFirstLevelReadyBoardQuery
+        fields: {}
     then:
       output:
-        type: FirstLevelReadyBoardRspDTO
+        type: ShowFirstLevelReadyBoardResult
         fields:
-          board_rows: 10
-          board_columns: 10
-          snake_cells:
-            count: 3
-            all_in_bounds: true
-            all_unique: true
-          is_start_button_visible: true
+          is_success: true
+          failure_code: null
+          failure_message: null
+          data:
+            board_rows: 10
+            board_columns: 10
+            snake_cells:
+              count: 3
+              all_in_bounds: true
+              all_unique: true
+            is_start_button_visible: true
       domain_state:
         unchanged: true
         snake_moved: false
@@ -77,6 +87,10 @@ scenarios:
         - DOM-READY-BOARD-PRE-001
         - DOM-READY-BOARD-ERR-001
       technical_contracts:
+        - ShowFirstLevelReadyBoardResult.IsSuccess
+        - ShowFirstLevelReadyBoardResult.FailureCode
+        - ShowFirstLevelReadyBoardResult.FailureMessage
+        - ShowFirstLevelReadyBoardResult.Data
         - TECH-READY-BOARD-ERR-001
     given:
       - state: first_level_playing
@@ -84,10 +98,16 @@ scenarios:
           level: 1
     when:
       action: execute_use_case
-      input: null
+      input:
+        type: ShowFirstLevelReadyBoardQuery
+        fields: {}
     then:
-      error:
-        domain_code: INVALID_GAME_PHASE
-        technical_type: InvalidOperationException
+      output:
+        type: ShowFirstLevelReadyBoardResult
+        fields:
+          is_success: false
+          failure_code: INVALID_GAME_PHASE
+          failure_message: "目前不是第一關待開始階段。"
+          data: null
       domain_state:
         unchanged: true

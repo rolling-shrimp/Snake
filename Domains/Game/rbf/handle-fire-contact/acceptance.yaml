@@ -1,0 +1,106 @@
+use_case: handle-fire-contact
+bounded_context: snake-game
+aggregate: game
+frame_type: RBF
+
+spec_refs:
+  requirement: "frame.yaml#use_case.requirement"
+  domain: domain_spec.yaml
+  technical: technical_spec.yaml
+
+scenarios:
+  - id: SCN-HANDLE-FIRE-CONTACT-001
+    title: "非致死火焰"
+    description: "火焰消失、蛇長成為 3、護盾次數不變，並在減長後更新進度。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - RBF-HANDLE-FIRE-CONTACT-001
+        - RBF-HANDLE-FIRE-CONTACT-002
+        - RBF-HANDLE-FIRE-CONTACT-003
+        - RBF-HANDLE-FIRE-CONTACT-004
+      domain_rules:
+        - DOM-HANDLE-FIRE-CONTACT-PRE-001
+        - DOM-HANDLE-FIRE-CONTACT-POST-001
+      technical_contracts:
+        - HandleFireContactResult.IsSuccess
+        - TECH-HANDLE-FIRE-CONTACT-STATE-001
+    given:
+      - fact: "蛇長為 5，蛇頭接觸 active FireItem。"
+    when:
+      action: handle_fire_contact
+      input:
+        type: HandleFireContactCommand
+        fields: {}
+    then:
+      output:
+        type: HandleFireContactResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
+      domain_effect: "火焰消失、蛇長成為 3、護盾次數不變，並在減長後更新進度。"
+
+  - id: SCN-HANDLE-FIRE-CONTACT-002
+    title: "致死火焰"
+    description: "產生 FatalFire 與受擊前長度；是否提交長度 0 由 Shield 保命結果決定。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - RBF-HANDLE-FIRE-CONTACT-001
+        - RBF-HANDLE-FIRE-CONTACT-002
+        - RBF-HANDLE-FIRE-CONTACT-003
+        - RBF-HANDLE-FIRE-CONTACT-004
+      domain_rules:
+        - DOM-HANDLE-FIRE-CONTACT-PRE-001
+        - DOM-HANDLE-FIRE-CONTACT-POST-001
+      technical_contracts:
+        - HandleFireContactResult.IsSuccess
+        - TECH-HANDLE-FIRE-CONTACT-STATE-001
+    given:
+      - fact: "蛇長為 2，蛇頭接觸 active FireItem。"
+    when:
+      action: handle_fire_contact
+      input:
+        type: HandleFireContactCommand
+        fields: {}
+    then:
+      output:
+        type: HandleFireContactResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
+      domain_effect: "產生 FatalFire 與受擊前長度；是否提交長度 0 由 Shield 保命結果決定。"
+
+  - id: SCN-HANDLE-FIRE-CONTACT-003
+    title: "第一關或非 active 火焰"
+    description: "正常忽略，不改變蛇長、護盾或物件。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - RBF-HANDLE-FIRE-CONTACT-001
+        - RBF-HANDLE-FIRE-CONTACT-004
+      domain_rules:
+        - DOM-HANDLE-FIRE-CONTACT-NOOP-001
+        - DOM-HANDLE-FIRE-CONTACT-INV-001
+      technical_contracts:
+        - HandleFireContactResult.IsSuccess
+        - TECH-HANDLE-FIRE-CONTACT-NOOP-001
+    given:
+      - fact: "第一關，或接觸的 FireItem 已失效。"
+    when:
+      action: handle_fire_contact
+      input:
+        type: HandleFireContactCommand
+        fields: {}
+    then:
+      output:
+        type: HandleFireContactResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
+      domain_state:
+        unchanged: true
+

@@ -1,0 +1,64 @@
+use_case: prepare-next-level
+bounded_context: snake-game
+aggregate: game
+frame_type: RIF
+
+spec_refs:
+  domain: domain_spec.yaml
+
+input:
+  type: PrepareNextLevelCommand
+  source: "LevelPassed result recorded for level 1 or 2"
+  fields:
+    - name: CompletedLevel
+      csharp_type: "int"
+      required: true
+
+output:
+  type: PrepareNextLevelResult
+  fields:
+    - name: IsSuccess
+      csharp_type: bool
+      required: true
+    - name: FailureCode
+      csharp_type: "string?"
+      required: true
+    - name: FailureMessage
+      csharp_type: "string?"
+      required: true
+  domain_output: "依序前進關卡、重設蛇為長度 3 向右、清空護盾與物件、準備棋盤，最後公開下一關 Ready"
+
+types:
+  - name: PrepareNextLevelCommand
+    fields:
+      - name: CompletedLevel
+        csharp_type: "int"
+        required: true
+  - name: PrepareNextLevelResult
+    fields:
+      - name: IsSuccess
+        csharp_type: bool
+      - name: FailureCode
+        csharp_type: "string?"
+      - name: FailureMessage
+        csharp_type: "string?"
+
+domain_to_technical_mapping:
+  - domain_rules: [DOM-PREPARE-NEXT-LEVEL-IN-001, DOM-PREPARE-NEXT-LEVEL-PRE-001]
+    target: PrepareNextLevelCommand
+    description: "Domain Event 經 Reactor 去重後轉成一次內部 Command。"
+  - domain_rules: [DOM-PREPARE-NEXT-LEVEL-INV-001, DOM-PREPARE-NEXT-LEVEL-POST-001]
+    target: PrepareNextLevelResult
+    description: "依序前進關卡、重設蛇為長度 3 向右、清空護盾與物件、準備棋盤，最後公開下一關 Ready"
+
+state_mappings:
+  - mapping_id: TECH-PREPARE-NEXT-LEVEL-STATE-001
+    description: "依序前進關卡、重設蛇為長度 3 向右、清空護盾與物件、準備棋盤，最後公開下一關 Ready"
+
+error_mappings: []
+
+no_op_mappings:
+  - mapping_id: TECH-PREPARE-NEXT-LEVEL-NOOP-001
+    condition: "CompletedLevel 為 3，或上一關結果不是 Passed。"
+    behavior: "正常忽略，不建立不存在的下一關。"
+

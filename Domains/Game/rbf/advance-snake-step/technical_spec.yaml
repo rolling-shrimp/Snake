@@ -1,0 +1,64 @@
+use_case: advance-snake-step
+bounded_context: snake-game
+aggregate: game
+frame_type: RBF
+
+spec_refs:
+  domain: domain_spec.yaml
+
+input:
+  type: AdvanceSnakeStepCommand
+  source: "系統條件監測：movement interval reaches 250 milliseconds"
+  fields:
+    - name: ElapsedMilliseconds
+      csharp_type: int
+      required: true
+
+output:
+  type: AdvanceSnakeStepResult
+  fields:
+    - name: IsSuccess
+      csharp_type: bool
+      required: true
+    - name: FailureCode
+      csharp_type: "string?"
+      required: true
+    - name: FailureMessage
+      csharp_type: "string?"
+      required: true
+  domain_output: "每個有效 interval 只前進一格，套用目前關卡邊界政策並產生接觸或碰撞事實"
+
+types:
+  - name: AdvanceSnakeStepCommand
+    fields:
+      - name: ElapsedMilliseconds
+        csharp_type: int
+        required: true
+  - name: AdvanceSnakeStepResult
+    fields:
+      - name: IsSuccess
+        csharp_type: bool
+      - name: FailureCode
+        csharp_type: "string?"
+      - name: FailureMessage
+        csharp_type: "string?"
+
+domain_to_technical_mapping:
+  - domain_rules: [DOM-ADVANCE-SNAKE-STEP-IN-001, DOM-ADVANCE-SNAKE-STEP-PRE-001]
+    target: AdvanceSnakeStepCommand
+    description: "條件事實映射為一次可去重的自動命令。"
+  - domain_rules: [DOM-ADVANCE-SNAKE-STEP-INV-001, DOM-ADVANCE-SNAKE-STEP-POST-001]
+    target: AdvanceSnakeStepResult
+    description: "每個有效 interval 只前進一格，套用目前關卡邊界政策並產生接觸或碰撞事實"
+
+state_mappings:
+  - mapping_id: TECH-ADVANCE-SNAKE-STEP-STATE-001
+    description: "每個有效 interval 只前進一格，套用目前關卡邊界政策並產生接觸或碰撞事實"
+
+error_mappings: []
+
+no_op_mappings:
+  - mapping_id: TECH-ADVANCE-SNAKE-STEP-NOOP-001
+    condition: "未滿 250 毫秒，或 Game 不在 Playing。"
+    behavior: "正常忽略，不移動蛇、不推進遊戲時間結果。"
+

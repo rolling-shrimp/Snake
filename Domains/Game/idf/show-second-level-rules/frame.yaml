@@ -1,0 +1,31 @@
+bounded_context: snake-game
+aggregate: game
+
+use_case:
+  name: show-second-level-rules
+  requirement: "第二關待開始時，顯示普通食物、特殊食物、護盾與火焰的規則提示。"
+frame_type: IDF
+
+world_facts:
+  actor: display
+  required_state: "game.phase == Ready 且 level.number == 2"
+  visibility_scope: "只顯示第二關適用的四項物件提示"
+  side_effect_policy: none
+
+frame_concerns:
+  - concern_ref: IDF-CONCERN-001
+    check_id: IDF-SHOW-SECOND-LEVEL-RULES-001
+    description: "確保完整輸出 RuleHints。"
+
+  - concern_ref: IDF-CONCERN-002
+    check_id: IDF-SHOW-SECOND-LEVEL-RULES-002
+    description: "確保 依序顯示普通食物 +1、特殊食物 +2、護盾 +1 次保命、火焰 −2 格，且所有值來自目前 Domain 事實。"
+
+  - concern_ref: IDF-CONCERN-003
+    check_id: IDF-SHOW-SECOND-LEVEL-RULES-003
+    description: "確保 只顯示第二關適用的四項物件提示；排除 炸彈、牆壁、門、第三關規則。"
+
+  - concern_ref: IDF-CONCERN-004
+    check_id: IDF-SHOW-SECOND-LEVEL-RULES-004
+    description: "確保查詢不改變任何 Domain、Read Model 版本或遊戲時間。"
+

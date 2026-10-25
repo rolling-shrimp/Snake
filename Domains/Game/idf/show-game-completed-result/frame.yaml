@@ -1,0 +1,31 @@
+bounded_context: snake-game
+aggregate: game
+
+use_case:
+  name: show-game-completed-result
+  requirement: "第三關達標後，顯示整輪闖關成功、100% 進度與「重玩」按鈕。"
+frame_type: IDF
+
+world_facts:
+  actor: display
+  required_state: "game.phase == Completed 且第三關結果為 Passed"
+  visibility_scope: "只顯示本輪完成結果，不顯示 Game Over 或下一關"
+  side_effect_policy: none
+
+frame_concerns:
+  - concern_ref: IDF-CONCERN-001
+    check_id: IDF-SHOW-GAME-COMPLETED-RESULT-001
+    description: "確保完整輸出 FinalLength、ProgressPercent、SuccessMessage、IsReplayButtonVisible。"
+
+  - concern_ref: IDF-CONCERN-002
+    check_id: IDF-SHOW-GAME-COMPLETED-RESULT-002
+    description: "確保 顯示闖關成功、第三關實際通關蛇長、100% 進度與重玩按鈕，且所有值來自目前 Domain 事實。"
+
+  - concern_ref: IDF-CONCERN-003
+    check_id: IDF-SHOW-GAME-COMPLETED-RESULT-003
+    description: "確保 只顯示本輪完成結果，不顯示 Game Over 或下一關；排除 Game Over、不存在的第四關、被截斷為 50 的蛇長。"
+
+  - concern_ref: IDF-CONCERN-004
+    check_id: IDF-SHOW-GAME-COMPLETED-RESULT-004
+    description: "確保查詢不改變任何 Domain、Read Model 版本或遊戲時間。"
+

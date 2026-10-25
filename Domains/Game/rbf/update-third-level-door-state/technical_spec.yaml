@@ -1,0 +1,64 @@
+use_case: update-third-level-door-state
+bounded_context: snake-game
+aggregate: game
+frame_type: RBF
+
+spec_refs:
+  domain: domain_spec.yaml
+
+input:
+  type: UpdateThirdLevelDoorStateCommand
+  source: "系統條件監測：third-level door clock advances"
+  fields:
+    - name: ElapsedMilliseconds
+      csharp_type: int
+      required: true
+
+output:
+  type: UpdateThirdLevelDoorStateResult
+  fields:
+    - name: IsSuccess
+      csharp_type: bool
+      required: true
+    - name: FailureCode
+      csharp_type: "string?"
+      required: true
+    - name: FailureMessage
+      csharp_type: "string?"
+      required: true
+  domain_output: "依時間進入 ClosingWarning 或切換開關；蛇占用門格時延後關閉直到完全離開"
+
+types:
+  - name: UpdateThirdLevelDoorStateCommand
+    fields:
+      - name: ElapsedMilliseconds
+        csharp_type: int
+        required: true
+  - name: UpdateThirdLevelDoorStateResult
+    fields:
+      - name: IsSuccess
+        csharp_type: bool
+      - name: FailureCode
+        csharp_type: "string?"
+      - name: FailureMessage
+        csharp_type: "string?"
+
+domain_to_technical_mapping:
+  - domain_rules: [DOM-UPDATE-THIRD-LEVEL-DOOR-STATE-IN-001, DOM-UPDATE-THIRD-LEVEL-DOOR-STATE-PRE-001]
+    target: UpdateThirdLevelDoorStateCommand
+    description: "條件事實映射為一次可去重的自動命令。"
+  - domain_rules: [DOM-UPDATE-THIRD-LEVEL-DOOR-STATE-INV-001, DOM-UPDATE-THIRD-LEVEL-DOOR-STATE-POST-001]
+    target: UpdateThirdLevelDoorStateResult
+    description: "依時間進入 ClosingWarning 或切換開關；蛇占用門格時延後關閉直到完全離開"
+
+state_mappings:
+  - mapping_id: TECH-UPDATE-THIRD-LEVEL-DOOR-STATE-STATE-001
+    description: "依時間進入 ClosingWarning 或切換開關；蛇占用門格時延後關閉直到完全離開"
+
+error_mappings: []
+
+no_op_mappings:
+  - mapping_id: TECH-UPDATE-THIRD-LEVEL-DOOR-STATE-NOOP-001
+    condition: "Game 不在 Playing 或 Level 不是 3。"
+    behavior: "停止門週期並保持門狀態不變。"
+

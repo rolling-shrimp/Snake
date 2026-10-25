@@ -1,0 +1,102 @@
+schema_version: 1
+screen:
+  screen_id: second-level-playing
+  bounded_context: snake-game
+  aggregate: game
+  phase: playing
+  level: second
+  board_mode: active
+grain:
+  input: use_case_results_and_read_models
+  output: rendered_screen
+  contract_owner: WinForms
+presentation_relations:
+  - relation_id: PRES-SECOND-PLAYING-STATUS
+    target_use_case: show-second-level-status
+    ownership: reference_only
+    target_specs:
+      frame: ../../idf/show-second-level-status/frame.yaml
+      domain: ../../idf/show-second-level-status/domain_spec.yaml
+      technical: ../../idf/show-second-level-status/technical_spec.yaml
+    frame_check_refs: [IDF-SHOW-SECOND-LEVEL-STATUS-001]
+    domain_rule_refs: [DOM-SHOW-SECOND-LEVEL-STATUS-IN-001]
+    technical_contract_refs: [TECH-SHOW-SECOND-LEVEL-STATUS-STATE-001]
+  - relation_id: PRES-SECOND-PLAYING-BOARD
+    target_use_case: advance-snake-step
+    ownership: reference_only
+    target_specs:
+      frame: ../../rbf/advance-snake-step/frame.yaml
+      domain: ../../rbf/advance-snake-step/domain_spec.yaml
+      technical: ../../rbf/advance-snake-step/technical_spec.yaml
+    frame_check_refs: [RBF-ADVANCE-SNAKE-STEP-001]
+    domain_rule_refs: [DOM-ADVANCE-SNAKE-STEP-IN-001]
+    technical_contract_refs: [TECH-ADVANCE-SNAKE-STEP-STATE-001]
+  - relation_id: PRES-SECOND-PLAYING-RESCUE
+    target_use_case: rescue-with-shield
+    ownership: reference_only
+    target_specs:
+      frame: ../../rif/rescue-with-shield/frame.yaml
+      domain: ../../rif/rescue-with-shield/domain_spec.yaml
+      technical: ../../rif/rescue-with-shield/technical_spec.yaml
+    frame_check_refs: [RIF-RESCUE-WITH-SHIELD-001]
+    domain_rule_refs: [DOM-RESCUE-WITH-SHIELD-IN-001]
+    technical_contract_refs: [TECH-RESCUE-WITH-SHIELD-STATE-001]
+  - relation_id: PRES-SECOND-PLAYING-PREPARE-NEXT
+    target_use_case: prepare-next-level
+    ownership: reference_only
+    target_specs:
+      frame: ../../rif/prepare-next-level/frame.yaml
+      domain: ../../rif/prepare-next-level/domain_spec.yaml
+      technical: ../../rif/prepare-next-level/technical_spec.yaml
+    frame_check_refs: [RIF-PREPARE-NEXT-LEVEL-001]
+    domain_rule_refs: [DOM-PREPARE-NEXT-LEVEL-IN-001]
+    technical_contract_refs: [TECH-PREPARE-NEXT-LEVEL-STATE-001]
+  - relation_id: PRES-SECOND-PLAYING-END
+    target_use_case: end-current-level-play
+    ownership: reference_only
+    target_specs:
+      frame: ../../rif/end-current-level-play/frame.yaml
+      domain: ../../rif/end-current-level-play/domain_spec.yaml
+      technical: ../../rif/end-current-level-play/technical_spec.yaml
+    frame_check_refs: [RIF-END-CURRENT-LEVEL-PLAY-001]
+    domain_rule_refs: [DOM-END-CURRENT-LEVEL-PLAY-IN-001]
+    technical_contract_refs: [TECH-END-CURRENT-LEVEL-PLAY-STATE-001]
+visibility:
+  required:
+    - 10x10-board
+    - moving-snake
+    - strawberry
+    - blueberry
+    - shield
+    - fire
+    - second-level-name
+    - current-snake-length
+    - progress-bar-and-percentage
+    - current-shield-count
+    - second-level-rule-hints
+  forbidden:
+    - start-button
+    - first-level-result-card
+    - bomb
+    - walls
+    - door
+    - replay-button
+state_variants:
+  - variant_id: shield-rescue
+    trigger: shield_rescue
+    required_effects:
+      - shield-count-updated
+      - snake-restored-to-safe-start
+      - pre-hit-length-and-progress-preserved
+      - automatic-movement-resumed
+      - no-start-or-result-screen
+transitions:
+  - trigger: level_passed
+    relation_ref: PRES-SECOND-PLAYING-PREPARE-NEXT
+    target_screen: third-level-ready
+  - trigger: death
+    relation_ref: PRES-SECOND-PLAYING-END
+    target_screen: game-over
+  - trigger: shield_rescue
+    relation_ref: PRES-SECOND-PLAYING-RESCUE
+    target_screen: second-level-playing

@@ -22,6 +22,14 @@ public class GateApplication
                 PatternNetworkValidationResult validation = validator.Validate(networkPath);
                 result = new GateRunResult(validation.Issues, !validation.IsValid);
             }
+            else if (command == "validate-presentations")
+            {
+                string domainsPath = GetRequiredOption(options, "--domains");
+                string projectRoot = GetRequiredOption(options, "--project-root");
+                PresentationContractValidator validator = new PresentationContractValidator();
+                PresentationContractValidationResult validation = validator.Validate(domainsPath, projectRoot);
+                result = new GateRunResult(validation.Issues, validation.HasConfigurationError);
+            }
             else if (command == "check-code")
             {
                 string networkPath = GetRequiredOption(options, "--network");
@@ -71,6 +79,8 @@ public class GateApplication
             "--network",
             "--solution",
             "--node",
+            "--domains",
+            "--project-root",
             "--json-output"
         };
         int index = 0;
@@ -131,6 +141,7 @@ public class GateApplication
     {
         error.WriteLine("Usage:");
         error.WriteLine("  validate-network --network <path> [--json-output <file>]");
+        error.WriteLine("  validate-presentations --domains <path> --project-root <path> [--json-output <file>]");
         error.WriteLine("  check-code --network <path> --solution <solution> [--node <id>] [--json-output <file>]");
     }
 }

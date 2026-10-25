@@ -1,853 +1,504 @@
-using System.Diagnostics;
-using System.Drawing;
-using System.Drawing.Drawing2D;
-using System.Drawing.Text;
-using System.Windows.Forms;
+using Snake.UseCases;
 
-namespace Snake;
+namespace Snake.WinForms;
 
-public class GameForm : Form
+public class GameForm : Form, IGameView
 {
-    private const int LOGICAL_WIDTH = 1536;
-    private const int LOGICAL_HEIGHT = 1024;
-    private const int BOARD_X = 70;
-    private const int BOARD_Y = 112;
-    private const int BOARD_SIZE = 760;
-    private const int CELL_SIZE = 76;
-    private const int SIDEBAR_X = 900;
-    private const int SIDEBAR_Y = 104;
-    private const int SIDEBAR_WIDTH = 566;
-    private const int SIDEBAR_HEIGHT = 790;
+    private TableLayoutPanel _mainLayout;
+    private GameBoardControl _boardControl;
+    private FlowLayoutPanel _sidebarPanel;
+    private Label _levelLabel;
+    private Panel _statusPanel;
+    private Label _lengthLabel;
+    private Panel _shieldPanel;
+    private Label _shieldLabel;
+    private GameProgressControl _progressBar;
+    private Label _progressLabel;
+    private Panel _rulesPanel;
+    private FlowLayoutPanel _rulesList;
+    private Panel _resultPanel;
+    private Label _resultTitleLabel;
+    private Label _resultMessageLabel;
+    private Button _startButton;
+    private Button _replayButton;
+    private Label _errorLabel;
+    private System.Windows.Forms.Timer _gameTimer;
 
-    private SnakeGame _game;
-    private System.Windows.Forms.Timer _frameTimer = new System.Windows.Forms.Timer();
-    private List<string> _renderedText = new List<string>();
-    private Rectangle _startButton = new Rectangle(1062, 790, 242, 70);
-    private Rectangle _replayButton = new Rectangle(1062, 790, 242, 70);
-    private float _renderScale = 1.0f;
-    private float _renderOffsetX;
-    private float _renderOffsetY;
-    private bool _faulted;
-
-    public GameForm() : this(new SnakeGame(), true)
+    public GameForm()
     {
-    }
-
-    internal GameForm(SnakeGame game, bool initializeFirstLevel = false)
-    {
-        _game = game;
-        Text = string.Empty;
-        ClientSize = new Size(LOGICAL_WIDTH, LOGICAL_HEIGHT);
-        MinimumSize = new Size(960, 640);
+        Text = "貪吃蛇";
+        ClientSize = new Size(1280, 860);
+        MinimumSize = new Size(1000, 720);
         StartPosition = FormStartPosition.CenterScreen;
-        FormBorderStyle = FormBorderStyle.FixedSingle;
-        MaximizeBox = true;
+        BackColor = Color.FromArgb(251, 246, 232);
+        Font = new Font("Microsoft JhengHei", 11, FontStyle.Regular, GraphicsUnit.Point);
         KeyPreview = true;
-        DoubleBuffered = true;
-        BackColor = Color.FromArgb(245, 244, 236);
+        AutoScaleMode = AutoScaleMode.Dpi;
 
-        _frameTimer.Interval = 16;
-        _frameTimer.Tick += OnFrameTimerTick;
+        _mainLayout = new TableLayoutPanel();
+        _boardControl = new GameBoardControl();
+        _sidebarPanel = new FlowLayoutPanel();
+        _levelLabel = CreateLabel(34, FontStyle.Bold, 68, ContentAlignment.MiddleCenter);
+        _statusPanel = CreateCardPanel();
+        _lengthLabel = CreateLabel(34, FontStyle.Bold, 52, ContentAlignment.MiddleLeft);
+        _shieldPanel = CreateCardPanel();
+        _shieldLabel = CreateLabel(21, FontStyle.Bold, 48, ContentAlignment.MiddleCenter);
+        _progressBar = new GameProgressControl();
+        _progressLabel = CreateLabel(12, FontStyle.Bold, 32, ContentAlignment.MiddleLeft);
+        _rulesPanel = CreateCardPanel();
+        _rulesList = new FlowLayoutPanel();
+        _resultPanel = CreateCardPanel();
+        _resultTitleLabel = CreateLabel(22, FontStyle.Bold, 42, ContentAlignment.MiddleCenter);
+        _resultMessageLabel = CreateLabel(12, FontStyle.Bold, 68, ContentAlignment.TopCenter);
+        _startButton = CreateActionButton("開始");
+        _replayButton = CreateActionButton("重玩");
+        _errorLabel = CreateLabel(11, FontStyle.Bold, 52, ContentAlignment.MiddleCenter);
+        _gameTimer = new System.Windows.Forms.Timer();
+
+        _gameTimer.Interval = 250;
+        _gameTimer.Tick += OnGameTimerTick;
         KeyDown += OnGameKeyDown;
-        MouseDown += OnGameMouseDown;
-        FormClosed += OnGameFormClosed;
-
-        if (initializeFirstLevel)
-        {
-            ExecuteUiOperation(nameof(SnakeGame.ShowFirstLevelReadyScreen), () =>
-            {
-                _game.ShowFirstLevelReadyScreen();
-                _game.UpdateLevelStatus(1);
-            });
-        }
-
-        _frameTimer.Start();
+        BuildLayout();
     }
 
-    internal IReadOnlyList<string> RenderedText => _renderedText;
-    internal SnakeGame Game => _game;
+    public event EventHandler? StartRequested;
+    public event EventHandler? ReplayRequested;
+    public event EventHandler<DirectionRequestedEventArgs>? DirectionRequested;
+    public event EventHandler<GameTickEventArgs>? TickRequested;
 
-    internal void StopFrameTimerForTest()
+    public void Render(GameViewModel viewModel)
     {
-        _frameTimer.Stop();
-    }
-
-    internal void ClickAtForTest(Point position)
-    {
-        OnGameMouseDown(this, new MouseEventArgs(MouseButtons.Left, 1, position.X, position.Y, 0));
-    }
-
-    protected override void OnPaint(PaintEventArgs eventArgs)
-    {
-        base.OnPaint(eventArgs);
-        _renderedText.Clear();
-        Graphics graphics = eventArgs.Graphics;
-        GraphicsState savedState = graphics.Save();
+        ArgumentNullException.ThrowIfNull(viewModel);
+        SuspendLayout();
         try
         {
-            _renderScale = Math.Min((float)ClientSize.Width / LOGICAL_WIDTH, (float)ClientSize.Height / LOGICAL_HEIGHT);
-            _renderOffsetX = (ClientSize.Width - LOGICAL_WIDTH * _renderScale) / 2.0f;
-            _renderOffsetY = (ClientSize.Height - LOGICAL_HEIGHT * _renderScale) / 2.0f;
-            graphics.TranslateTransform(_renderOffsetX, _renderOffsetY);
-            graphics.ScaleTransform(_renderScale, _renderScale);
-            graphics.SmoothingMode = SmoothingMode.AntiAlias;
-            graphics.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
+            _errorLabel.Visible = false;
+            _boardControl.Render(viewModel.Board);
+            _boardControl.Visible = viewModel.Board.IsVisible;
+            SetBoardLayout(viewModel.Board.IsVisible);
+            RenderStatus(viewModel.Status);
+            RenderRules(viewModel);
+            RenderResult(viewModel.ResultCard);
 
-            VerifyVisibleContract();
-            DrawScene(graphics);
-        }
-        catch (Exception exception)
-        {
-            HandleUnrecognizedFailure("畫面繪製", exception);
+            _startButton.Visible = viewModel.IsStartButtonVisible;
+            _startButton.Enabled = viewModel.IsStartButtonVisible;
+            _replayButton.Visible = viewModel.IsReplayButtonVisible;
+            _replayButton.Enabled = viewModel.IsReplayButtonVisible;
+
+            _gameTimer.Stop();
+            if (viewModel.IsMovementActive)
+            {
+                _gameTimer.Interval = Math.Max(1, viewModel.MovementIntervalMilliseconds);
+                _gameTimer.Start();
+            }
+
+            ResizeSidebarChildren();
         }
         finally
         {
-            graphics.Restore(savedState);
+            ResumeLayout(true);
         }
     }
 
-    private void DrawScene(Graphics graphics)
+    public void ShowFailure(string message)
     {
-        using (SolidBrush backgroundBrush = new SolidBrush(Color.FromArgb(245, 244, 236)))
-        {
-            graphics.FillRectangle(backgroundBrush, 0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
-        }
-
-        DrawBoard(graphics);
-        DrawSidebar(graphics);
+        _gameTimer.Stop();
+        _errorLabel.Text = message;
+        _errorLabel.Visible = true;
+        _startButton.Enabled = false;
+        _replayButton.Enabled = false;
+        ResizeSidebarChildren();
     }
 
-    private void DrawBoard(Graphics graphics)
+    protected override void Dispose(bool disposing)
     {
-        using (SolidBrush boardBrush = new SolidBrush(Color.FromArgb(255, 253, 244)))
-        using (Pen boardBorder = new Pen(Color.FromArgb(88, 120, 102), 5))
-        using (Pen gridPen = new Pen(Color.FromArgb(174, 197, 178), 2))
+        if (disposing)
         {
-            graphics.FillRectangle(boardBrush, BOARD_X, BOARD_Y, BOARD_SIZE, BOARD_SIZE);
-
-            for (int row = 0; row < 10; row++)
-            {
-                for (int column = 0; column < 10; column++)
-                {
-                    if ((row + column) % 2 == 1)
-                    {
-                        using SolidBrush tileBrush = new SolidBrush(Color.FromArgb(234, 243, 229));
-                        graphics.FillRectangle(tileBrush, BOARD_X + column * CELL_SIZE, BOARD_Y + row * CELL_SIZE, CELL_SIZE, CELL_SIZE);
-                    }
-                }
-            }
-
-            for (int index = 0; index <= 10; index++)
-            {
-                graphics.DrawLine(gridPen, BOARD_X + index * CELL_SIZE, BOARD_Y, BOARD_X + index * CELL_SIZE, BOARD_Y + BOARD_SIZE);
-                graphics.DrawLine(gridPen, BOARD_X, BOARD_Y + index * CELL_SIZE, BOARD_X + BOARD_SIZE, BOARD_Y + index * CELL_SIZE);
-            }
-
-            graphics.DrawRectangle(boardBorder, BOARD_X, BOARD_Y, BOARD_SIZE, BOARD_SIZE);
+            _gameTimer.Dispose();
         }
 
-        foreach (Point wall in _game.Walls)
-        {
-            DrawWall(graphics, wall);
-        }
-
-        for (int doorIndex = 0; doorIndex < _game.Doors.Count; doorIndex++)
-        {
-            DrawDoor(graphics, doorIndex);
-        }
-
-        foreach (KeyValuePair<Point, GameObjectType> gameObject in _game.Objects)
-        {
-            DrawObject(graphics, gameObject.Key, gameObject.Value);
-        }
-
-        DrawSnake(graphics);
+        base.Dispose(disposing);
     }
 
-    private void DrawWall(Graphics graphics, Point position)
+    private void BuildLayout()
     {
-        Rectangle rectangle = GetCellRectangle(position, 4);
-        using (SolidBrush wallBrush = new SolidBrush(Color.FromArgb(80, 96, 87)))
-        using (Pen wallPen = new Pen(Color.FromArgb(55, 70, 61), 3))
-        {
-            graphics.FillRectangle(wallBrush, rectangle);
-            graphics.DrawRectangle(wallPen, rectangle);
-        }
+        _mainLayout.Dock = DockStyle.Fill;
+        _mainLayout.ColumnCount = 2;
+        _mainLayout.RowCount = 1;
+        _mainLayout.Padding = new Padding(28, 24, 28, 28);
+        _mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 67));
+        _mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33));
+        _mainLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
-        using Pen seamPen = new Pen(Color.FromArgb(136, 150, 138), 2);
-        graphics.DrawLine(seamPen, rectangle.Left + 8, rectangle.Top + 18, rectangle.Right - 8, rectangle.Top + 18);
-        graphics.DrawLine(seamPen, rectangle.Left + 8, rectangle.Bottom - 18, rectangle.Right - 8, rectangle.Bottom - 18);
+        _boardControl.Dock = DockStyle.Fill;
+        _boardControl.Margin = new Padding(0, 0, 20, 0);
+
+        _sidebarPanel.Dock = DockStyle.Fill;
+        _sidebarPanel.FlowDirection = FlowDirection.TopDown;
+        _sidebarPanel.WrapContents = false;
+        _sidebarPanel.AutoScroll = true;
+        _sidebarPanel.Padding = new Padding(12, 4, 12, 12);
+        _sidebarPanel.BackColor = Color.FromArgb(255, 253, 242);
+        _sidebarPanel.AccessibleName = "關卡資訊";
+        _sidebarPanel.Resize += OnSidebarResize;
+
+        _levelLabel.BackColor = Color.FromArgb(211, 247, 190);
+        _levelLabel.ForeColor = Color.FromArgb(13, 58, 107);
+        _levelLabel.Margin = new Padding(0, 0, 0, 14);
+        _levelLabel.AccessibleName = "目前關卡";
+
+        BuildStatusCard();
+        BuildRulesCard();
+        BuildResultCard();
+
+        _startButton.Click += OnStartButtonClick;
+        _startButton.AccessibleName = "開始目前關卡";
+        _replayButton.Click += OnReplayButtonClick;
+        _replayButton.AccessibleName = "重新開始遊戲";
+        _errorLabel.ForeColor = Color.FromArgb(170, 48, 48);
+        _errorLabel.BackColor = Color.FromArgb(255, 235, 230);
+        _errorLabel.Visible = false;
+
+        _sidebarPanel.Controls.Add(_resultPanel);
+        _sidebarPanel.Controls.Add(_levelLabel);
+        _sidebarPanel.Controls.Add(_statusPanel);
+        _sidebarPanel.Controls.Add(_rulesPanel);
+        _sidebarPanel.Controls.Add(_startButton);
+        _sidebarPanel.Controls.Add(_replayButton);
+        _sidebarPanel.Controls.Add(_errorLabel);
+        _mainLayout.Controls.Add(_boardControl, 0, 0);
+        _mainLayout.Controls.Add(_sidebarPanel, 1, 0);
+        Controls.Add(_mainLayout);
     }
 
-    private void DrawDoor(Graphics graphics, int doorIndex)
+    private void BuildStatusCard()
     {
-        Point position = _game.Doors[doorIndex];
-        Rectangle rectangle = GetCellRectangle(position, 8);
-        bool isOpen = _game.IsDoorOpen(doorIndex);
-        bool isWarning = _game.IsDoorWarning(doorIndex);
-        bool warningVisible = !isWarning || Environment.TickCount64 / 250 % 2 == 0;
-        Color fillColor = isOpen ? Color.FromArgb(180, 218, 166) : Color.FromArgb(177, 91, 70);
-        Color edgeColor = isOpen ? Color.FromArgb(73, 125, 65) : Color.FromArgb(111, 52, 43);
-        if (!warningVisible)
+        _statusPanel.Height = 174;
+        _statusPanel.Padding = new Padding(18, 12, 18, 12);
+        _statusPanel.Margin = new Padding(0, 0, 0, 14);
+        _statusPanel.AccessibleName = "關卡狀態";
+
+        TableLayoutPanel statusLayout = new TableLayoutPanel
         {
-            fillColor = Color.FromArgb(248, 223, 145);
-            edgeColor = Color.FromArgb(210, 142, 47);
-        }
-
-        using (SolidBrush doorBrush = new SolidBrush(fillColor))
-        using (Pen doorPen = new Pen(edgeColor, 4))
-        {
-            graphics.FillRectangle(doorBrush, rectangle);
-            graphics.DrawRectangle(doorPen, rectangle);
-        }
-
-        if (!isOpen)
-        {
-            using Pen barPen = new Pen(Color.FromArgb(255, 240, 224), 4);
-            graphics.DrawLine(barPen, rectangle.Left + 10, rectangle.Top + 12, rectangle.Right - 10, rectangle.Bottom - 12);
-            graphics.DrawLine(barPen, rectangle.Right - 10, rectangle.Top + 12, rectangle.Left + 10, rectangle.Bottom - 12);
-        }
-        else
-        {
-            using Pen openingPen = new Pen(Color.FromArgb(245, 255, 228), 4);
-            graphics.DrawLine(openingPen, rectangle.Left + 12, rectangle.Bottom - 12, rectangle.Right - 12, rectangle.Bottom - 12);
-        }
-    }
-
-    private void DrawObject(Graphics graphics, Point position, GameObjectType objectType)
-    {
-        Rectangle rectangle = GetCellRectangle(position, 11);
-        DrawObjectIcon(graphics, objectType, rectangle);
-    }
-
-    private void DrawSnake(Graphics graphics)
-    {
-        for (int index = _game.Snake.Count - 1; index >= 0; index--)
-        {
-            Point position = _game.Snake[index];
-            Rectangle rectangle = GetCellRectangle(position, 8);
-            bool isHead = index == 0;
-            Color segmentColor = isHead ? Color.FromArgb(39, 128, 73) : Color.FromArgb(70, 157, 91);
-            using (SolidBrush snakeBrush = new SolidBrush(segmentColor))
-            using (Pen snakePen = new Pen(Color.FromArgb(31, 101, 59), 3))
-            {
-                graphics.FillEllipse(snakeBrush, rectangle);
-                graphics.DrawEllipse(snakePen, rectangle);
-            }
-
-            if (isHead)
-            {
-                DrawSnakeEyes(graphics, rectangle);
-            }
-        }
-    }
-
-    private void DrawSnakeEyes(Graphics graphics, Rectangle head)
-    {
-        Point firstEye = new Point(head.Left + head.Width / 3, head.Top + head.Height / 3);
-        Point secondEye = new Point(head.Left + head.Width * 2 / 3, head.Top + head.Height / 3);
-        using (SolidBrush eyeWhite = new SolidBrush(Color.FromArgb(246, 243, 217)))
-        using (SolidBrush eyeDark = new SolidBrush(Color.FromArgb(32, 58, 48)))
-        {
-            graphics.FillEllipse(eyeWhite, firstEye.X - 5, firstEye.Y - 5, 10, 10);
-            graphics.FillEllipse(eyeWhite, secondEye.X - 5, secondEye.Y - 5, 10, 10);
-            graphics.FillEllipse(eyeDark, firstEye.X - 2, firstEye.Y - 2, 5, 5);
-            graphics.FillEllipse(eyeDark, secondEye.X - 2, secondEye.Y - 2, 5, 5);
-        }
-    }
-
-    private void DrawSidebar(Graphics graphics)
-    {
-        using (SolidBrush cardBrush = new SolidBrush(Color.FromArgb(255, 253, 246)))
-        using (Pen cardPen = new Pen(Color.FromArgb(200, 215, 199), 3))
-        {
-            FillRoundedRectangle(graphics, cardBrush, SIDEBAR_X, SIDEBAR_Y, SIDEBAR_WIDTH, SIDEBAR_HEIGHT, 24);
-            DrawRoundedRectangle(graphics, cardPen, SIDEBAR_X, SIDEBAR_Y, SIDEBAR_WIDTH, SIDEBAR_HEIGHT, 24);
-        }
-
-        if (_game.Phase == GamePhase.GameOver)
-        {
-            DrawGameOverPanel(graphics);
-            return;
-        }
-
-        if (_game.Phase == GamePhase.Success)
-        {
-            DrawSuccessPanel(graphics);
-            return;
-        }
-
-        bool showPreviousResult = _game.Phase == GamePhase.Ready && _game.HasPreviousLevelResult;
-        if (showPreviousResult)
-        {
-            DrawPreviousResult(graphics);
-        }
-
-        float titleY = showPreviousResult ? 178 : 132;
-        DrawText(graphics, $"第{_game.Level}關", SIDEBAR_X + 25, titleY, SIDEBAR_WIDTH - 50, 56, 42, Color.FromArgb(36, 61, 50), true, StringAlignment.Center);
-        using (Pen separator = new Pen(Color.FromArgb(216, 225, 212), 2))
-        {
-            graphics.DrawLine(separator, SIDEBAR_X + 30, titleY + 62, SIDEBAR_X + SIDEBAR_WIDTH - 30, titleY + 62);
-        }
-
-        DrawLevelStatus(graphics, showPreviousResult ? 246 : 200);
-        DrawRulesPanel(graphics);
-
-        if (_game.Phase == GamePhase.Ready)
-        {
-            DrawActionButton(graphics, _startButton, "開始", Color.FromArgb(71, 123, 84));
-        }
-    }
-
-    private void DrawPreviousResult(Graphics graphics)
-    {
-        Rectangle rectangle = new Rectangle(SIDEBAR_X + 30, SIDEBAR_Y + 12, SIDEBAR_WIDTH - 60, 52);
-        using (SolidBrush resultBrush = new SolidBrush(Color.FromArgb(228, 240, 222)))
-        using (Pen resultPen = new Pen(Color.FromArgb(164, 194, 157), 2))
-        {
-            FillRoundedRectangle(graphics, resultBrush, rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height, 12);
-            DrawRoundedRectangle(graphics, resultPen, rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height, 12);
-        }
-
-        DrawText(graphics, $"第{_game.LastCompletedLevel}關通關　通關蛇長：{_game.LastCompletedLength} 格", rectangle.X + 8, rectangle.Y + 4, rectangle.Width - 16, rectangle.Height - 8, 22, Color.FromArgb(46, 95, 57), true, StringAlignment.Center);
-    }
-
-    private void DrawLevelStatus(Graphics graphics, float startY)
-    {
-        DrawText(graphics, "蛇長", SIDEBAR_X + 44, startY, 160, 36, 26, Color.FromArgb(66, 88, 75), false, StringAlignment.Near);
-        DrawText(graphics, $"{_game.SnakeLength} / {_game.TargetLength}", SIDEBAR_X + 44, startY + 29, 310, 69, 52, Color.FromArgb(36, 61, 50), true, StringAlignment.Near);
-        DrawText(graphics, $"目標 {_game.TargetLength} 格", SIDEBAR_X + 330, startY + 49, 190, 36, 22, Color.FromArgb(66, 88, 75), false, StringAlignment.Far);
-
-        int progress = _game.ProgressPercent;
-        DrawText(graphics, $"過關進度　{progress}%", SIDEBAR_X + 44, startY + 94, SIDEBAR_WIDTH - 88, 34, 22, Color.FromArgb(66, 88, 75), false, StringAlignment.Near);
-        Rectangle progressRectangle = new Rectangle(SIDEBAR_X + 44, (int)startY + 132, 478, 22);
-        using (SolidBrush trackBrush = new SolidBrush(Color.FromArgb(225, 231, 223)))
-        using (SolidBrush progressBrush = new SolidBrush(Color.FromArgb(91, 158, 104)))
-        {
-            FillRoundedRectangle(graphics, trackBrush, progressRectangle.X, progressRectangle.Y, progressRectangle.Width, progressRectangle.Height, 11);
-            int fillWidth = progressRectangle.Width * progress / 100;
-            if (fillWidth > 0)
-            {
-                FillRoundedRectangle(graphics, progressBrush, progressRectangle.X, progressRectangle.Y, fillWidth, progressRectangle.Height, 11);
-            }
-        }
-
-        if (_game.Level >= 2)
-        {
-            DrawText(graphics, $"保命次數　{_game.ShieldCount}", SIDEBAR_X + 44, startY + 159, SIDEBAR_WIDTH - 88, 34, 22, Color.FromArgb(66, 88, 75), false, StringAlignment.Near);
-        }
-    }
-
-    private void DrawRulesPanel(Graphics graphics)
-    {
-        Rectangle panel = new Rectangle(SIDEBAR_X + 30, 445, SIDEBAR_WIDTH - 60, 303);
-        using (SolidBrush rulesBrush = new SolidBrush(Color.FromArgb(250, 251, 245)))
-        using (Pen rulesPen = new Pen(Color.FromArgb(216, 225, 212), 2))
-        {
-            FillRoundedRectangle(graphics, rulesBrush, panel.X, panel.Y, panel.Width, panel.Height, 16);
-            DrawRoundedRectangle(graphics, rulesPen, panel.X, panel.Y, panel.Width, panel.Height, 16);
-        }
-
-        DrawText(graphics, "規則提示", panel.X + 26, panel.Y + 12, panel.Width - 52, 34, 23, Color.FromArgb(66, 88, 75), true, StringAlignment.Near);
-        List<(GameObjectType? Icon, string Text)> rules = GetRules();
-        int rowY = panel.Y + 52;
-        int rowHeight = rules.Count >= 6 ? 34 : 47;
-        for (int index = 0; index < rules.Count; index++)
-        {
-            (GameObjectType? icon, string text) = rules[index];
-            if (icon.HasValue)
-            {
-                DrawObjectIcon(graphics, icon.Value, new Rectangle(panel.X + 26, rowY + 2, 35, 35));
-            }
-            else
-            {
-                DrawRuleMarker(graphics, panel.X + 43, rowY + 19);
-            }
-
-            DrawText(graphics, text, panel.X + 75, rowY, panel.Width - 95, rowHeight, 21, Color.FromArgb(38, 59, 49), false, StringAlignment.Near);
-            rowY += rowHeight;
-            if (index < rules.Count - 1)
-            {
-                using Pen separator = new Pen(Color.FromArgb(228, 233, 223), 1);
-                graphics.DrawLine(separator, panel.X + 24, rowY, panel.Right - 24, rowY);
-            }
-        }
-    }
-
-    private List<(GameObjectType? Icon, string Text)> GetRules()
-    {
-        List<(GameObjectType? Icon, string Text)> rules = new List<(GameObjectType? Icon, string Text)>();
-        if (_game.Level == 1)
-        {
-            rules.Add((GameObjectType.Strawberry, "普通食物：草莓 +1 格"));
-            rules.Add((null, "棋盤邊界：可以穿越"));
-            rules.Add((null, "碰到自己的身體：死亡"));
-        }
-        else
-        {
-            rules.Add((GameObjectType.Strawberry, "普通食物：草莓 +1 格"));
-            rules.Add((GameObjectType.Blueberry, "特殊食物：藍莓 +2 格"));
-            rules.Add((GameObjectType.Shield, "護盾：+1 次保命"));
-            rules.Add((GameObjectType.Fire, "火焰：蛇長 −2 格"));
-            if (_game.Level == 3)
-            {
-                rules.Add((GameObjectType.Bomb, "炸彈：立即死亡"));
-                rules.Add((null, "迷宮牆：不可穿越"));
-                rules.Add((null, GetDoorStatusText()));
-            }
-        }
-
-        return rules;
-    }
-
-    private string GetDoorStatusText()
-    {
-        string firstDoor = _game.IsDoorOpen(0) ? "開啟" : "關閉";
-        string secondDoor = _game.IsDoorOpen(1) ? "開啟" : "關閉";
-        return $"門狀態：門一{firstDoor}、門二{secondDoor}";
-    }
-
-    private void DrawRuleMarker(Graphics graphics, int centerX, int centerY)
-    {
-        using (SolidBrush markerBrush = new SolidBrush(Color.FromArgb(112, 139, 118)))
-        {
-            graphics.FillEllipse(markerBrush, centerX - 7, centerY - 7, 14, 14);
-        }
-    }
-
-    private void DrawGameOverPanel(Graphics graphics)
-    {
-        DrawText(graphics, "Game Over", SIDEBAR_X + 30, SIDEBAR_Y + 74, SIDEBAR_WIDTH - 60, 66, 43, Color.FromArgb(140, 53, 47), true, StringAlignment.Center);
-        DrawText(graphics, $"第 {_game.FailedLevel} 關失敗", SIDEBAR_X + 52, SIDEBAR_Y + 222, SIDEBAR_WIDTH - 104, 48, 27, Color.FromArgb(38, 59, 49), false, StringAlignment.Center);
-        DrawText(graphics, $"最後蛇長：{_game.FinalLength} / {_game.TargetLength}", SIDEBAR_X + 52, SIDEBAR_Y + 284, SIDEBAR_WIDTH - 104, 58, 32, Color.FromArgb(36, 61, 50), true, StringAlignment.Center);
-        DrawText(graphics, $"過關進度　{_game.ProgressPercent}%", SIDEBAR_X + 52, SIDEBAR_Y + 360, SIDEBAR_WIDTH - 104, 38, 22, Color.FromArgb(66, 88, 75), false, StringAlignment.Center);
-        DrawProgressBar(graphics, SIDEBAR_X + 44, SIDEBAR_Y + 408, _game.ProgressPercent);
-        if (_game.FailedByFire)
-        {
-            DrawText(graphics, "火焰致死進度為 0%", SIDEBAR_X + 52, SIDEBAR_Y + 450, SIDEBAR_WIDTH - 104, 36, 20, Color.FromArgb(102, 78, 62), false, StringAlignment.Center);
-        }
-
-        DrawActionButton(graphics, _replayButton, "重玩", Color.FromArgb(71, 123, 84));
-    }
-
-    private void DrawSuccessPanel(Graphics graphics)
-    {
-        DrawText(graphics, "闖關成功", SIDEBAR_X + 30, SIDEBAR_Y + 76, SIDEBAR_WIDTH - 60, 70, 45, Color.FromArgb(46, 111, 61), true, StringAlignment.Center);
-        DrawText(graphics, $"蛇長：{_game.SnakeLength} / {_game.TargetLength}", SIDEBAR_X + 52, SIDEBAR_Y + 225, SIDEBAR_WIDTH - 104, 58, 32, Color.FromArgb(36, 61, 50), true, StringAlignment.Center);
-        DrawText(graphics, "過關進度　100%", SIDEBAR_X + 52, SIDEBAR_Y + 306, SIDEBAR_WIDTH - 104, 38, 22, Color.FromArgb(66, 88, 75), false, StringAlignment.Center);
-        DrawProgressBar(graphics, SIDEBAR_X + 44, SIDEBAR_Y + 354, 100);
-        DrawActionButton(graphics, _replayButton, "重玩", Color.FromArgb(71, 123, 84));
-    }
-
-    private void DrawProgressBar(Graphics graphics, int x, int y, int percent)
-    {
-        using (SolidBrush trackBrush = new SolidBrush(Color.FromArgb(225, 231, 223)))
-        using (SolidBrush progressBrush = new SolidBrush(Color.FromArgb(91, 158, 104)))
-        {
-            FillRoundedRectangle(graphics, trackBrush, x, y, 478, 22, 11);
-            int fillWidth = 478 * Math.Clamp(percent, 0, 100) / 100;
-            if (fillWidth > 0)
-            {
-                FillRoundedRectangle(graphics, progressBrush, x, y, fillWidth, 22, 11);
-            }
-        }
-    }
-
-    private void DrawActionButton(Graphics graphics, Rectangle rectangle, string label, Color fillColor)
-    {
-        using (SolidBrush buttonBrush = new SolidBrush(fillColor))
-        using (Pen buttonPen = new Pen(Color.FromArgb(45, 96, 57), 2))
-        {
-            FillRoundedRectangle(graphics, buttonBrush, rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height, 14);
-            DrawRoundedRectangle(graphics, buttonPen, rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height, 14);
-        }
-
-        DrawText(graphics, label, rectangle.X + 8, rectangle.Y + 5, rectangle.Width - 16, rectangle.Height - 10, 30, Color.White, true, StringAlignment.Center);
-    }
-
-    private void DrawObjectIcon(Graphics graphics, GameObjectType objectType, Rectangle rectangle)
-    {
-        if (objectType == GameObjectType.Strawberry)
-        {
-            DrawStrawberry(graphics, rectangle);
-        }
-        else if (objectType == GameObjectType.Blueberry)
-        {
-            DrawBlueberry(graphics, rectangle);
-        }
-        else if (objectType == GameObjectType.Shield)
-        {
-            DrawShield(graphics, rectangle);
-        }
-        else if (objectType == GameObjectType.Fire)
-        {
-            DrawFire(graphics, rectangle);
-        }
-        else if (objectType == GameObjectType.Bomb)
-        {
-            DrawBomb(graphics, rectangle);
-        }
-    }
-
-    private void DrawStrawberry(Graphics graphics, Rectangle rectangle)
-    {
-        PointF[] berryPoints = new PointF[]
-        {
-            new PointF(rectangle.Left + rectangle.Width * 0.50f, rectangle.Top + rectangle.Height * 0.28f),
-            new PointF(rectangle.Left + rectangle.Width * 0.88f, rectangle.Top + rectangle.Height * 0.34f),
-            new PointF(rectangle.Left + rectangle.Width * 0.77f, rectangle.Top + rectangle.Height * 0.72f),
-            new PointF(rectangle.Left + rectangle.Width * 0.50f, rectangle.Bottom - 1),
-            new PointF(rectangle.Left + rectangle.Width * 0.23f, rectangle.Top + rectangle.Height * 0.72f),
-            new PointF(rectangle.Left + rectangle.Width * 0.12f, rectangle.Top + rectangle.Height * 0.34f)
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 3,
+            BackColor = Color.Transparent
         };
+        statusLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 62));
+        statusLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 38));
+        statusLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 82));
+        statusLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
+        statusLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
 
-        using (SolidBrush berryBrush = new SolidBrush(Color.FromArgb(227, 76, 85)))
-        using (Pen berryPen = new Pen(Color.FromArgb(169, 45, 58), 2))
-        using (SolidBrush leafBrush = new SolidBrush(Color.FromArgb(79, 157, 84)))
-        using (SolidBrush seedBrush = new SolidBrush(Color.FromArgb(255, 241, 199)))
+        Panel lengthPanel = new Panel
         {
-            graphics.FillPolygon(berryBrush, berryPoints);
-            graphics.DrawPolygon(berryPen, berryPoints);
-            graphics.FillEllipse(leafBrush, rectangle.Left + rectangle.Width * 0.25f, rectangle.Top, rectangle.Width * 0.24f, rectangle.Height * 0.26f);
-            graphics.FillEllipse(leafBrush, rectangle.Left + rectangle.Width * 0.52f, rectangle.Top, rectangle.Width * 0.24f, rectangle.Height * 0.26f);
-            graphics.FillEllipse(seedBrush, rectangle.Left + rectangle.Width * 0.34f, rectangle.Top + rectangle.Height * 0.42f, 3, 5);
-            graphics.FillEllipse(seedBrush, rectangle.Left + rectangle.Width * 0.61f, rectangle.Top + rectangle.Height * 0.44f, 3, 5);
-            graphics.FillEllipse(seedBrush, rectangle.Left + rectangle.Width * 0.47f, rectangle.Top + rectangle.Height * 0.66f, 3, 5);
-        }
-    }
-
-    private void DrawBlueberry(Graphics graphics, Rectangle rectangle)
-    {
-        float diameter = rectangle.Width * 0.54f;
-        using (SolidBrush berryBrush = new SolidBrush(Color.FromArgb(63, 91, 168)))
-        using (Pen berryPen = new Pen(Color.FromArgb(45, 64, 126), 2))
-        using (SolidBrush leafBrush = new SolidBrush(Color.FromArgb(79, 157, 84)))
-        {
-            graphics.FillEllipse(berryBrush, rectangle.Left + 1, rectangle.Top + rectangle.Height * 0.30f, diameter, diameter);
-            graphics.DrawEllipse(berryPen, rectangle.Left + 1, rectangle.Top + rectangle.Height * 0.30f, diameter, diameter);
-            graphics.FillEllipse(berryBrush, rectangle.Left + rectangle.Width * 0.38f, rectangle.Top + rectangle.Height * 0.27f, diameter, diameter);
-            graphics.DrawEllipse(berryPen, rectangle.Left + rectangle.Width * 0.38f, rectangle.Top + rectangle.Height * 0.27f, diameter, diameter);
-            graphics.FillEllipse(leafBrush, rectangle.Left + rectangle.Width * 0.35f, rectangle.Top + 1, rectangle.Width * 0.30f, rectangle.Height * 0.22f);
-        }
-    }
-
-    private void DrawShield(Graphics graphics, Rectangle rectangle)
-    {
-        PointF[] shieldPoints = new PointF[]
-        {
-            new PointF(rectangle.Left + rectangle.Width * 0.50f, rectangle.Top + 1),
-            new PointF(rectangle.Right - 2, rectangle.Top + rectangle.Height * 0.20f),
-            new PointF(rectangle.Right - 5, rectangle.Top + rectangle.Height * 0.65f),
-            new PointF(rectangle.Left + rectangle.Width * 0.50f, rectangle.Bottom - 1),
-            new PointF(rectangle.Left + 5, rectangle.Top + rectangle.Height * 0.65f),
-            new PointF(rectangle.Left + 2, rectangle.Top + rectangle.Height * 0.20f)
+            Dock = DockStyle.Fill,
+            BackColor = Color.Transparent
         };
+        Label lengthCaption = CreateLabel(11, FontStyle.Bold, 28, ContentAlignment.BottomLeft);
+        lengthCaption.Text = "目前蛇長";
+        lengthCaption.ForeColor = Color.FromArgb(49, 83, 117);
+        _lengthLabel.Dock = DockStyle.Bottom;
+        _lengthLabel.ForeColor = Color.FromArgb(15, 55, 101);
+        lengthPanel.Controls.Add(_lengthLabel);
+        lengthPanel.Controls.Add(lengthCaption);
 
-        using (SolidBrush shieldBrush = new SolidBrush(Color.FromArgb(76, 137, 188)))
-        using (Pen shieldPen = new Pen(Color.FromArgb(42, 87, 130), 3))
-        using (Pen emblemPen = new Pen(Color.FromArgb(239, 247, 250), 3))
-        {
-            graphics.FillPolygon(shieldBrush, shieldPoints);
-            graphics.DrawPolygon(shieldPen, shieldPoints);
-            graphics.DrawLine(emblemPen, rectangle.Left + rectangle.Width / 2, rectangle.Top + rectangle.Height * 0.23f, rectangle.Left + rectangle.Width / 2, rectangle.Top + rectangle.Height * 0.72f);
-        }
+        _shieldPanel.Dock = DockStyle.Fill;
+        _shieldPanel.Margin = new Padding(10, 0, 0, 0);
+        Label shieldCaption = CreateLabel(10, FontStyle.Bold, 28, ContentAlignment.BottomCenter);
+        shieldCaption.Text = "護盾保命";
+        shieldCaption.ForeColor = Color.FromArgb(49, 83, 117);
+        _shieldLabel.Dock = DockStyle.Bottom;
+        _shieldLabel.ForeColor = Color.FromArgb(15, 55, 101);
+        _shieldPanel.Controls.Add(_shieldLabel);
+        _shieldPanel.Controls.Add(shieldCaption);
+
+        _progressBar.Dock = DockStyle.Fill;
+        _progressBar.Margin = new Padding(0, 3, 0, 3);
+        _progressLabel.Dock = DockStyle.Fill;
+        _progressLabel.ForeColor = Color.FromArgb(38, 76, 115);
+
+        statusLayout.Controls.Add(lengthPanel, 0, 0);
+        statusLayout.Controls.Add(_shieldPanel, 1, 0);
+        statusLayout.Controls.Add(_progressBar, 0, 1);
+        statusLayout.SetColumnSpan(_progressBar, 2);
+        statusLayout.Controls.Add(_progressLabel, 0, 2);
+        statusLayout.SetColumnSpan(_progressLabel, 2);
+        _statusPanel.Controls.Add(statusLayout);
     }
 
-    private void DrawFire(Graphics graphics, Rectangle rectangle)
+    private void BuildRulesCard()
     {
-        PointF[] firePoints = new PointF[]
-        {
-            new PointF(rectangle.Left + rectangle.Width * 0.50f, rectangle.Top),
-            new PointF(rectangle.Left + rectangle.Width * 0.70f, rectangle.Top + rectangle.Height * 0.35f),
-            new PointF(rectangle.Right - 1, rectangle.Top + rectangle.Height * 0.42f),
-            new PointF(rectangle.Left + rectangle.Width * 0.80f, rectangle.Bottom - 1),
-            new PointF(rectangle.Left + rectangle.Width * 0.28f, rectangle.Bottom - 1),
-            new PointF(rectangle.Left + 1, rectangle.Top + rectangle.Height * 0.48f),
-            new PointF(rectangle.Left + rectangle.Width * 0.37f, rectangle.Top + rectangle.Height * 0.41f)
-        };
+        _rulesPanel.Padding = new Padding(16, 12, 16, 12);
+        _rulesPanel.Margin = new Padding(0, 0, 0, 14);
+        _rulesPanel.AccessibleName = "規則提示";
 
-        using (SolidBrush fireBrush = new SolidBrush(Color.FromArgb(238, 115, 46)))
-        using (SolidBrush coreBrush = new SolidBrush(Color.FromArgb(255, 204, 83)))
-        {
-            graphics.FillPolygon(fireBrush, firePoints);
-            graphics.FillEllipse(coreBrush, rectangle.Left + rectangle.Width * 0.35f, rectangle.Top + rectangle.Height * 0.52f, rectangle.Width * 0.30f, rectangle.Height * 0.36f);
-        }
+        Label rulesTitle = CreateLabel(16, FontStyle.Bold, 36, ContentAlignment.MiddleLeft);
+        rulesTitle.Text = "規則提示";
+        rulesTitle.Dock = DockStyle.Top;
+        rulesTitle.ForeColor = Color.FromArgb(33, 71, 110);
+
+        _rulesList.Dock = DockStyle.Fill;
+        _rulesList.FlowDirection = FlowDirection.TopDown;
+        _rulesList.WrapContents = false;
+        _rulesList.BackColor = Color.Transparent;
+        _rulesPanel.Controls.Add(_rulesList);
+        _rulesPanel.Controls.Add(rulesTitle);
     }
 
-    private void DrawBomb(Graphics graphics, Rectangle rectangle)
+    private void BuildResultCard()
     {
-        Rectangle body = new Rectangle(rectangle.X + rectangle.Width / 8, rectangle.Y + rectangle.Height / 5, rectangle.Width * 3 / 4, rectangle.Height * 3 / 4);
-        using (SolidBrush bombBrush = new SolidBrush(Color.FromArgb(43, 47, 48)))
-        using (Pen bombPen = new Pen(Color.FromArgb(24, 27, 28), 2))
-        using (Pen fusePen = new Pen(Color.FromArgb(133, 91, 53), 3))
-        using (SolidBrush sparkBrush = new SolidBrush(Color.FromArgb(240, 170, 53)))
-        {
-            graphics.FillEllipse(bombBrush, body);
-            graphics.DrawEllipse(bombPen, body);
-            graphics.DrawLine(fusePen, body.Left + body.Width * 0.62f, body.Top + 2, body.Right - 2, rectangle.Top + 1);
-            graphics.FillEllipse(sparkBrush, rectangle.Right - 8, rectangle.Top + 1, 6, 6);
-        }
+        _resultPanel.Height = 126;
+        _resultPanel.Padding = new Padding(16, 10, 16, 8);
+        _resultPanel.Margin = new Padding(0, 0, 0, 14);
+        _resultPanel.BackColor = Color.FromArgb(231, 250, 211);
+        _resultPanel.Visible = false;
+        _resultPanel.AccessibleName = "遊戲結果";
+        _resultTitleLabel.Dock = DockStyle.Top;
+        _resultTitleLabel.ForeColor = Color.FromArgb(15, 55, 101);
+        _resultMessageLabel.Dock = DockStyle.Fill;
+        _resultMessageLabel.ForeColor = Color.FromArgb(38, 76, 115);
+        _resultPanel.Controls.Add(_resultMessageLabel);
+        _resultPanel.Controls.Add(_resultTitleLabel);
     }
 
-    private Rectangle GetCellRectangle(Point position, int inset)
+    private void RenderStatus(GameStatusViewModel? status)
     {
-        return new Rectangle(BOARD_X + position.X * CELL_SIZE + inset, BOARD_Y + position.Y * CELL_SIZE + inset, CELL_SIZE - inset * 2, CELL_SIZE - inset * 2);
-    }
-
-    private void DrawText(Graphics graphics, string text, float x, float y, float width, float height, float fontSize, Color color, bool bold, StringAlignment alignment)
-    {
-        _renderedText.Add(text);
-        FontStyle style = bold ? FontStyle.Bold : FontStyle.Regular;
-        using (Font font = new Font("Microsoft JhengHei", fontSize, style, GraphicsUnit.Pixel))
-        using (SolidBrush brush = new SolidBrush(color))
-        using (StringFormat format = new StringFormat())
-        {
-            format.Alignment = alignment;
-            format.LineAlignment = StringAlignment.Center;
-            format.Trimming = StringTrimming.EllipsisCharacter;
-            graphics.DrawString(text, font, brush, new RectangleF(x, y, width, height), format);
-        }
-    }
-
-    private void FillRoundedRectangle(Graphics graphics, Brush brush, int x, int y, int width, int height, int radius)
-    {
-        using (GraphicsPath path = CreateRoundedRectanglePath(x, y, width, height, radius))
-        {
-            graphics.FillPath(brush, path);
-        }
-    }
-
-    private void DrawRoundedRectangle(Graphics graphics, Pen pen, int x, int y, int width, int height, int radius)
-    {
-        using (GraphicsPath path = CreateRoundedRectanglePath(x, y, width, height, radius))
-        {
-            graphics.DrawPath(pen, path);
-        }
-    }
-
-    private GraphicsPath CreateRoundedRectanglePath(int x, int y, int width, int height, int radius)
-    {
-        GraphicsPath path = new GraphicsPath();
-        int diameter = radius * 2;
-        path.AddArc(x, y, diameter, diameter, 180, 90);
-        path.AddArc(x + width - diameter, y, diameter, diameter, 270, 90);
-        path.AddArc(x + width - diameter, y + height - diameter, diameter, diameter, 0, 90);
-        path.AddArc(x, y + height - diameter, diameter, diameter, 90, 90);
-        path.CloseFigure();
-        return path;
-    }
-
-    private void OnFrameTimerTick(object? sender, EventArgs eventArgs)
-    {
-        if (_faulted)
+        _statusPanel.Visible = status is not null;
+        _levelLabel.Visible = status is not null;
+        if (status is null)
         {
             return;
         }
 
-        int priorLevel = _game.Level;
-        string contractMethod = priorLevel == 1 ? nameof(SnakeGame.AdvanceFirstLevelStep) : priorLevel == 2 ? nameof(SnakeGame.AdvanceSecondLevelStep) : nameof(SnakeGame.AdvanceThirdLevelStep);
-        ExecuteUiOperation(contractMethod, () =>
+        _levelLabel.Text = status.LevelName;
+        _lengthLabel.Text = $"{status.CurrentLength} / {status.TargetLength}";
+        _shieldPanel.Visible = status.ShieldRemainingCharges is not null;
+        _shieldLabel.Text = $"{status.ShieldRemainingCharges ?? 0} 次";
+        _progressBar.SetProgress(status.ProgressPercent);
+        _progressLabel.Text = $"過關進度 {status.ProgressPercent}%     目標 {status.TargetLength} 格";
+    }
+
+    private void RenderRules(GameViewModel viewModel)
+    {
+        _rulesList.SuspendLayout();
+        try
         {
-            _game.UpdateGameTime();
-            if (_game.Phase == GamePhase.DeathPending)
+            _rulesList.Controls.Clear();
+            foreach (RuleHintViewModel ruleHint in viewModel.RuleHints)
             {
-                _game.ShowGameOverScreen();
-            }
-            else if (_game.Phase == GamePhase.SuccessPending)
-            {
-                _game.ShowThirdLevelSuccessScreen();
-            }
-            else if (_game.Level == 2 && priorLevel == 1)
-            {
-                _game.ShowSecondLevelReadyScreen();
-            }
-            else if (_game.Level == 3 && priorLevel == 2)
-            {
-                _game.ShowThirdLevelReadyScreen();
+                _rulesList.Controls.Add(CreateRuleLabel(
+                    GetRuleGlyph(ruleHint.Code),
+                    ruleHint.Text));
             }
 
-            _game.UpdateLevelStatus(_game.Level);
-        });
+            if (viewModel.ScreenId.StartsWith("third-level-", StringComparison.Ordinal)
+                && viewModel.Board.Doors.Count > 0)
+            {
+                string doorState = GetDoorStateText(viewModel.Board.Doors[0].State);
+                _rulesList.Controls.Add(CreateRuleLabel("[門]", $"門目前：{doorState}"));
+            }
+
+            _rulesPanel.Visible = _rulesList.Controls.Count > 0;
+            _rulesPanel.Height = 60 + _rulesList.Controls.Count * 43;
+        }
+        finally
+        {
+            _rulesList.ResumeLayout(true);
+        }
+    }
+
+    private void RenderResult(GameResultCardViewModel? resultCard)
+    {
+        _resultPanel.Visible = resultCard is not null;
+        if (resultCard is null)
+        {
+            return;
+        }
+
+        _resultTitleLabel.Text = resultCard.Title;
+        string levelText = resultCard.LevelNumber is null
+            ? string.Empty
+            : $"第 {resultCard.LevelNumber} 關 · ";
+        string detail = string.IsNullOrWhiteSpace(resultCard.Detail)
+            ? string.Empty
+            : $"{Environment.NewLine}{resultCard.Detail}";
+        _resultMessageLabel.Text =
+            $"{resultCard.Message}{Environment.NewLine}{levelText}最後蛇長 {resultCard.FinalLength}{detail}";
+        _resultPanel.AccessibleDescription = _resultMessageLabel.Text;
+    }
+
+    private Label CreateRuleLabel(string glyph, string text)
+    {
+        return new Label
+        {
+            AutoSize = false,
+            Height = 42,
+            Margin = new Padding(0),
+            Font = new Font("Microsoft JhengHei", 10.5f, FontStyle.Bold, GraphicsUnit.Point),
+            ForeColor = Color.FromArgb(30, 66, 101),
+            TextAlign = ContentAlignment.MiddleLeft,
+            Text = $"{glyph}   {text}",
+            AccessibleName = text
+        };
+    }
+
+    private Label CreateLabel(
+        float fontSize,
+        FontStyle style,
+        int height,
+        ContentAlignment alignment)
+    {
+        return new Label
+        {
+            AutoSize = false,
+            Height = height,
+            Font = new Font("Microsoft JhengHei", fontSize, style, GraphicsUnit.Point),
+            ForeColor = Color.FromArgb(43, 70, 54),
+            TextAlign = alignment,
+            BackColor = Color.Transparent
+        };
+    }
+
+    private Panel CreateCardPanel()
+    {
+        Panel panel = new Panel
+        {
+            BackColor = Color.FromArgb(255, 253, 245)
+        };
+        panel.Paint += OnCardPaint;
+        return panel;
+    }
+
+    private Button CreateActionButton(string text)
+    {
+        Button button = new Button
+        {
+            Text = text,
+            Height = 58,
+            Margin = new Padding(0, 0, 0, 14),
+            Font = new Font("Microsoft JhengHei", 18, FontStyle.Bold, GraphicsUnit.Point),
+            BackColor = Color.FromArgb(43, 171, 76),
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            Cursor = Cursors.Hand,
+            TabStop = true,
+            Visible = false
+        };
+        button.FlatAppearance.BorderSize = 0;
+        button.FlatAppearance.MouseOverBackColor = Color.FromArgb(55, 190, 86);
+        button.FlatAppearance.MouseDownBackColor = Color.FromArgb(21, 130, 58);
+        return button;
+    }
+
+    private void SetBoardLayout(bool isBoardVisible)
+    {
+        _mainLayout.ColumnStyles[0].Width = isBoardVisible ? 67 : 0;
+        _mainLayout.ColumnStyles[1].Width = isBoardVisible ? 33 : 100;
+        _boardControl.Margin = isBoardVisible
+            ? new Padding(0, 0, 20, 0)
+            : new Padding(0);
+    }
+
+    private void ResizeSidebarChildren()
+    {
+        int availableWidth = Math.Max(220, _sidebarPanel.ClientSize.Width - 32);
+        int controlWidth = Math.Min(560, availableWidth);
+        int sideMargin = Math.Max(0, (availableWidth - controlWidth) / 2);
+        foreach (Control control in _sidebarPanel.Controls)
+        {
+            control.Width = controlWidth;
+            control.Margin = new Padding(sideMargin, control.Margin.Top, sideMargin, control.Margin.Bottom);
+        }
+
+        foreach (Control control in _rulesList.Controls)
+        {
+            control.Width = Math.Max(160, _rulesList.ClientSize.Width - 4);
+        }
+    }
+
+    private string GetRuleGlyph(string code)
+    {
+        return code switch
+        {
+            "ORDINARY_FOOD_GROWTH" => "[草莓]",
+            "SPECIAL_FOOD_GROWTH" => "[藍莓]",
+            "SHIELD_RESCUE" => "[護盾]",
+            "FIRE_SHRINK" => "[火焰]",
+            "BOMB_FATAL" => "[炸彈]",
+            "BOUNDARY_WRAP" => "[穿越]",
+            "SELF_COLLISION_DEATH" => "[注意]",
+            "WALL_BLOCKED" => "[牆]",
+            _ => "•"
+        };
+    }
+
+    private string GetDoorStateText(string state)
+    {
+        return state switch
+        {
+            "Open" => "開啟",
+            "ClosingWarning" => "即將關閉",
+            "CloseDeferred" => "蛇身通過中，延後關閉",
+            "Closed" => "關閉",
+            _ => state
+        };
+    }
+
+    private void OnCardPaint(object? sender, PaintEventArgs eventArgs)
+    {
+        if (sender is not Panel panel)
+        {
+            return;
+        }
+
+        using Pen borderPen = new Pen(Color.FromArgb(243, 223, 160), 2);
+        eventArgs.Graphics.DrawRectangle(
+            borderPen,
+            1,
+            1,
+            Math.Max(0, panel.ClientSize.Width - 3),
+            Math.Max(0, panel.ClientSize.Height - 3));
+    }
+
+    private void OnSidebarResize(object? sender, EventArgs eventArgs)
+    {
+        ResizeSidebarChildren();
+    }
+
+    private void OnStartButtonClick(object? sender, EventArgs eventArgs)
+    {
+        StartRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void OnReplayButtonClick(object? sender, EventArgs eventArgs)
+    {
+        ReplayRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void OnGameTimerTick(object? sender, EventArgs eventArgs)
+    {
+        TickRequested?.Invoke(this, new GameTickEventArgs(_gameTimer.Interval));
     }
 
     private void OnGameKeyDown(object? sender, KeyEventArgs eventArgs)
     {
         Direction? direction = eventArgs.KeyCode switch
         {
-            Keys.Up => Direction.Up,
-            Keys.Down => Direction.Down,
-            Keys.Left => Direction.Left,
-            Keys.Right => Direction.Right,
+            Keys.Up or Keys.W => Direction.Up,
+            Keys.Down or Keys.S => Direction.Down,
+            Keys.Left or Keys.A => Direction.Left,
+            Keys.Right or Keys.D => Direction.Right,
             _ => null
         };
-
-        if (!direction.HasValue)
+        if (direction is null)
         {
             return;
         }
 
+        DirectionRequested?.Invoke(this, new DirectionRequestedEventArgs(direction.Value));
         eventArgs.Handled = true;
         eventArgs.SuppressKeyPress = true;
-        if (_faulted)
-        {
-            return;
-        }
-
-        ExecuteUiOperation(nameof(SnakeGame.SetDirection), () => _game.SetDirection(direction.Value));
-    }
-
-    private void OnGameMouseDown(object? sender, MouseEventArgs eventArgs)
-    {
-        if (_faulted || _renderScale <= 0)
-        {
-            return;
-        }
-
-        Point logicalPosition = new Point((int)((eventArgs.X - _renderOffsetX) / _renderScale), (int)((eventArgs.Y - _renderOffsetY) / _renderScale));
-        if (_game.Phase == GamePhase.Ready && _startButton.Contains(logicalPosition))
-        {
-            StartCurrentLevel();
-        }
-        else if ((_game.Phase == GamePhase.GameOver || _game.Phase == GamePhase.Success) && _replayButton.Contains(logicalPosition))
-        {
-            ExecuteUiOperation(nameof(SnakeGame.RestartGame), () =>
-            {
-                _game.RestartGame();
-                _game.UpdateLevelStatus(1);
-            });
-        }
-    }
-
-    private void StartCurrentLevel()
-    {
-        int level = _game.Level;
-        string contractMethod = level == 1 ? nameof(SnakeGame.StartFirstLevel) : level == 2 ? nameof(SnakeGame.StartSecondLevel) : nameof(SnakeGame.StartThirdLevel);
-        ExecuteUiOperation(contractMethod, () =>
-        {
-            if (level == 1)
-            {
-                _game.StartFirstLevel();
-            }
-            else if (level == 2)
-            {
-                _game.StartSecondLevel();
-            }
-            else if (level == 3)
-            {
-                _game.StartThirdLevel();
-            }
-
-            _game.UpdateLevelStatus(level);
-        });
-    }
-
-    private void ExecuteUiOperation(string contractMethod, Action operation)
-    {
-        try
-        {
-            operation();
-            VerifyVisibleContract();
-            Invalidate();
-        }
-        catch (ArgumentOutOfRangeException exception) when (IsContractViolation(exception))
-        {
-            HandleContractViolation(contractMethod, exception);
-        }
-        catch (InvalidOperationException exception) when (IsContractViolation(exception))
-        {
-            HandleContractViolation(contractMethod, exception);
-        }
-        catch (OutputContractViolationException exception)
-        {
-            HandleStoppedGameFailure(contractMethod, exception);
-        }
-        catch (Exception exception)
-        {
-            HandleStoppedGameFailure(contractMethod, exception);
-        }
-    }
-
-    private bool IsContractViolation(Exception exception)
-    {
-        return exception.Data.Contains("Snake.ContractViolation") && exception.Data["Snake.ContractViolation"] is bool isViolation && isViolation;
-    }
-
-    private void VerifyVisibleContract()
-    {
-        string contractMethod = _game.Phase switch
-        {
-            GamePhase.Ready when _game.Level == 1 => nameof(SnakeGame.ShowFirstLevelReadyScreen),
-            GamePhase.Ready when _game.Level == 2 => nameof(SnakeGame.ShowSecondLevelReadyScreen),
-            GamePhase.Ready when _game.Level == 3 => nameof(SnakeGame.ShowThirdLevelReadyScreen),
-            GamePhase.Playing when _game.Level == 1 => nameof(SnakeGame.StartFirstLevel),
-            GamePhase.Playing when _game.Level == 2 => nameof(SnakeGame.StartSecondLevel),
-            GamePhase.Playing when _game.Level == 3 => nameof(SnakeGame.StartThirdLevel),
-            GamePhase.GameOver => nameof(SnakeGame.ShowGameOverScreen),
-            GamePhase.Success => nameof(SnakeGame.ShowThirdLevelSuccessScreen),
-            _ => "GameScreen"
-        };
-
-        bool isValid = _game.StatusLevel == _game.Level && _game.ProgressPercent >= 0 && _game.ProgressPercent <= 100;
-        if (_game.Phase == GamePhase.Ready)
-        {
-            isValid = isValid && _game.SnakeLength == 3 && _game.Snake.Count == 3 && _game.Objects.Count == 0;
-            if (_game.Level >= 2)
-            {
-                isValid = isValid && _game.ShieldCount == 0 && _game.HasPreviousLevelResult;
-            }
-        }
-        else if (_game.Phase == GamePhase.Playing)
-        {
-            isValid = isValid && _game.Objects.Count > 0;
-        }
-        else if (_game.Phase == GamePhase.GameOver)
-        {
-            isValid = isValid && _game.FailedLevel >= 1 && _game.FailedLevel <= 3;
-        }
-        else if (_game.Phase == GamePhase.Success)
-        {
-            isValid = isValid && _game.Level == 3 && _game.SnakeLength >= 50 && _game.ProgressPercent == 100;
-        }
-
-        if (!isValid)
-        {
-            throw new OutputContractViolationException(contractMethod, "實際畫面狀態符合關卡、蛇長、進度、物件與按鈕的可見保證", $"level={_game.Level}, statusLevel={_game.StatusLevel}, phase={_game.Phase}, length={_game.SnakeLength}, progress={_game.ProgressPercent}, objects={_game.Objects.Count}");
-        }
-    }
-
-    private void HandleContractViolation(string contractMethod, Exception exception)
-    {
-        RecordDiagnostic(contractMethod, exception);
-        MessageBox.Show(this, "目前無法執行此操作", string.Empty, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-        Invalidate();
-    }
-
-    private void HandleStoppedGameFailure(string contractMethod, Exception exception)
-    {
-        _faulted = true;
-        _frameTimer.Stop();
-        RecordDiagnostic(contractMethod, exception);
-        MessageBox.Show(this, "遊戲發生錯誤，本輪已停止", string.Empty, MessageBoxButtons.OK, MessageBoxIcon.Error);
-    }
-
-    private void HandleUnrecognizedFailure(string contractMethod, Exception exception)
-    {
-        if (_faulted)
-        {
-            return;
-        }
-
-        HandleStoppedGameFailure(contractMethod, exception);
-    }
-
-    private void RecordDiagnostic(string contractMethod, Exception exception)
-    {
-        Trace.WriteLine($"[{DateTime.Now:O}] 合約方法：{contractMethod}；例外：{exception.GetType().FullName}；診斷：{exception}");
-    }
-
-    private void OnGameFormClosed(object? sender, FormClosedEventArgs eventArgs)
-    {
-        _frameTimer.Stop();
-        _frameTimer.Dispose();
     }
 }

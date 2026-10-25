@@ -1,0 +1,80 @@
+use_case: show-third-level-rules
+bounded_context: snake-game
+aggregate: game
+frame_type: IDF
+
+spec_refs:
+  requirement: "frame.yaml#use_case.requirement"
+  domain: domain_spec.yaml
+  technical: technical_spec.yaml
+
+scenarios:
+  - id: SCN-SHOW-THIRD-LEVEL-RULES-001
+    title: "成功顯示：第三關待開始時，顯示五種物件效果與不能穿牆的規則提示。"
+    description: "依序顯示普通食物 +1、特殊食物 +2、護盾 +1、火焰 −2、炸彈致命、不能穿牆"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - IDF-SHOW-THIRD-LEVEL-RULES-001
+        - IDF-SHOW-THIRD-LEVEL-RULES-002
+        - IDF-SHOW-THIRD-LEVEL-RULES-003
+        - IDF-SHOW-THIRD-LEVEL-RULES-004
+      domain_rules:
+        - DOM-SHOW-THIRD-LEVEL-RULES-PRE-001
+        - DOM-SHOW-THIRD-LEVEL-RULES-INV-001
+        - DOM-SHOW-THIRD-LEVEL-RULES-POST-001
+      technical_contracts:
+        - ShowThirdLevelRulesResult.Data
+        - TECH-SHOW-THIRD-LEVEL-RULES-STATE-001
+    given:
+      - fact: "game.phase == Ready 且 level.number == 3"
+    when:
+      action: execute_query
+      input:
+        type: ShowThirdLevelRulesQuery
+        fields: {}
+    then:
+      output:
+        type: ShowThirdLevelRulesResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
+          data_expectation: "依序顯示普通食物 +1、特殊食物 +2、護盾 +1、火焰 −2、炸彈致命、不能穿牆"
+      excludes:
+        - "第一、二關限定文字"
+        - "虛構倒數或分數規則"
+        - "門的過期狀態"
+      domain_state:
+        unchanged: true
+
+  - id: SCN-SHOW-THIRD-LEVEL-RULES-002
+    title: "失敗：目前不是第三關待開始階段。"
+    description: "不符合可見條件時拒絕查詢，不得洩漏部分資料。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - IDF-SHOW-THIRD-LEVEL-RULES-003
+        - IDF-SHOW-THIRD-LEVEL-RULES-004
+      domain_rules:
+        - DOM-SHOW-THIRD-LEVEL-RULES-ERR-001
+      technical_contracts:
+        - TECH-SHOW-THIRD-LEVEL-RULES-ERR-001
+    given:
+      - fact: "不符合 game.phase == Ready 且 level.number == 3"
+    when:
+      action: execute_query
+      input:
+        type: ShowThirdLevelRulesQuery
+        fields: {}
+    then:
+      output:
+        type: ShowThirdLevelRulesResult
+        fields:
+          is_success: false
+          failure_code: INVALID_GAME_PHASE
+          failure_message: "目前不是第三關待開始階段。"
+          data: null
+      domain_state:
+        unchanged: true
+

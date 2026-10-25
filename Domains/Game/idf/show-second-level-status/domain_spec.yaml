@@ -1,0 +1,126 @@
+use_case: show-second-level-status
+bounded_context: snake-game
+aggregate: game
+frame_type: IDF
+
+domain_refs:
+  - domain: Game
+    path: ../../domain_spec.yaml
+    aggregate: Game
+  - domain: Level
+    path: ../../../Level/domain_spec.yaml
+    aggregate: Level
+  - domain: Snake
+    path: ../../../Snake/domain_spec.yaml
+    aggregate: Snake
+  - domain: Shield
+    path: ../../../Shield/domain_spec.yaml
+    aggregate: Shield
+
+traceability:
+  requirement: "frame.yaml#use_case.requirement"
+  frame_checks:
+    - IDF-SHOW-SECOND-LEVEL-STATUS-001
+    - IDF-SHOW-SECOND-LEVEL-STATUS-002
+    - IDF-SHOW-SECOND-LEVEL-STATUS-003
+    - IDF-SHOW-SECOND-LEVEL-STATUS-004
+
+contract:
+  input:
+    data: none
+    rules:
+      - rule_id: DOM-SHOW-SECOND-LEVEL-STATUS-IN-001
+        description: "沒有外部業務資料；Query 讀取目前可見的 Domain／Read Model 事實。"
+        domain_rule_refs:
+          - LEVEL-POLICY-001
+          - LEVEL-PROGRESS-001
+          - LEVEL-PROGRESS-002
+          - SHIELD-RESET-001
+
+  output:
+    data: SecondLevelStatusRspDTO
+    rules:
+      - rule_id: DOM-SHOW-SECOND-LEVEL-STATUS-OUT-001
+        description: "LevelName：第二關。"
+        domain_rule_refs:
+          - LEVEL-POLICY-001
+          - LEVEL-PROGRESS-001
+          - LEVEL-PROGRESS-002
+          - SHIELD-RESET-001
+      - rule_id: DOM-SHOW-SECOND-LEVEL-STATUS-OUT-002
+        description: "CurrentLength：目前蛇長 3。"
+        domain_rule_refs:
+          - LEVEL-POLICY-001
+          - LEVEL-PROGRESS-001
+          - LEVEL-PROGRESS-002
+          - SHIELD-RESET-001
+      - rule_id: DOM-SHOW-SECOND-LEVEL-STATUS-OUT-003
+        description: "TargetLength：目標 20。"
+        domain_rule_refs:
+          - LEVEL-POLICY-001
+          - LEVEL-PROGRESS-001
+          - LEVEL-PROGRESS-002
+          - SHIELD-RESET-001
+      - rule_id: DOM-SHOW-SECOND-LEVEL-STATUS-OUT-004
+        description: "ProgressPercent：進度 15。"
+        domain_rule_refs:
+          - LEVEL-POLICY-001
+          - LEVEL-PROGRESS-001
+          - LEVEL-PROGRESS-002
+          - SHIELD-RESET-001
+      - rule_id: DOM-SHOW-SECOND-LEVEL-STATUS-OUT-005
+        description: "ShieldRemainingCharges：保命次數 0。"
+        domain_rule_refs:
+          - LEVEL-POLICY-001
+          - LEVEL-PROGRESS-001
+          - LEVEL-PROGRESS-002
+          - SHIELD-RESET-001
+
+  preconditions:
+    - rule_id: DOM-SHOW-SECOND-LEVEL-STATUS-PRE-001
+      description: "game.phase == Ready 且 level.number == 2"
+      domain_rule_refs:
+        - LEVEL-POLICY-001
+        - LEVEL-PROGRESS-001
+        - LEVEL-PROGRESS-002
+        - SHIELD-RESET-001
+
+  invariants:
+    - rule_id: DOM-SHOW-SECOND-LEVEL-STATUS-INV-001
+      description: "查詢只讀；LevelName 為第二關，CurrentLength 3、TargetLength 20、ProgressPercent 15、ShieldRemainingCharges 0。"
+      domain_rule_refs:
+        - LEVEL-POLICY-001
+        - LEVEL-PROGRESS-001
+        - LEVEL-PROGRESS-002
+        - SHIELD-RESET-001
+
+  process:
+    - order: 1
+      action: "驗證可見條件：game.phase == Ready 且 level.number == 2。"
+    - order: 2
+      action: "讀取並映射目前 Domain／Read Model 事實。"
+    - order: 3
+      action: "建立 SecondLevelStatusRspDTO，不得觸發任何業務行為。"
+
+  postconditions:
+    - rule_id: DOM-SHOW-SECOND-LEVEL-STATUS-POST-001
+      description: "LevelName 為第二關，CurrentLength 3、TargetLength 20、ProgressPercent 15、ShieldRemainingCharges 0；完成後來源狀態完全不變。"
+      domain_rule_refs:
+        - LEVEL-POLICY-001
+        - LEVEL-PROGRESS-001
+        - LEVEL-PROGRESS-002
+        - SHIELD-RESET-001
+
+  contract_violations:
+    - rule_id: DOM-SHOW-SECOND-LEVEL-STATUS-ERR-001
+      condition: "不符合 game.phase == Ready 且 level.number == 2"
+      domain_code: INVALID_GAME_PHASE
+      state_guarantee: "Data 為 null，不回傳部分資料，來源狀態保持不變。"
+      domain_rule_refs:
+        - LEVEL-POLICY-001
+        - LEVEL-PROGRESS-001
+        - LEVEL-PROGRESS-002
+        - SHIELD-RESET-001
+
+  not_applicable: []
+

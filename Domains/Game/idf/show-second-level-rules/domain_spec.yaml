@@ -1,0 +1,113 @@
+use_case: show-second-level-rules
+bounded_context: snake-game
+aggregate: game
+frame_type: IDF
+
+domain_refs:
+  - domain: Game
+    path: ../../domain_spec.yaml
+    aggregate: Game
+  - domain: Level
+    path: ../../../Level/domain_spec.yaml
+    aggregate: Level
+  - domain: Food
+    path: ../../../Food/domain_spec.yaml
+    aggregate: Food
+  - domain: Shield
+    path: ../../../Shield/domain_spec.yaml
+    aggregate: Shield
+  - domain: Fire
+    path: ../../../Fire/domain_spec.yaml
+    aggregate: Fire
+
+traceability:
+  requirement: "frame.yaml#use_case.requirement"
+  frame_checks:
+    - IDF-SHOW-SECOND-LEVEL-RULES-001
+    - IDF-SHOW-SECOND-LEVEL-RULES-002
+    - IDF-SHOW-SECOND-LEVEL-RULES-003
+    - IDF-SHOW-SECOND-LEVEL-RULES-004
+
+contract:
+  input:
+    data: none
+    rules:
+      - rule_id: DOM-SHOW-SECOND-LEVEL-RULES-IN-001
+        description: "沒有外部業務資料；Query 讀取目前可見的 Domain／Read Model 事實。"
+        domain_rule_refs:
+          - LEVEL-POLICY-003
+          - FOOD-EFFECT-001
+          - FOOD-EFFECT-002
+          - SHIELD-COLLECT-001
+          - FIRE-EFFECT-002
+          - FIRE-EFFECT-003
+
+  output:
+    data: SecondLevelRulesRspDTO
+    rules:
+      - rule_id: DOM-SHOW-SECOND-LEVEL-RULES-OUT-001
+        description: "RuleHints：四項有固定 code、text 與順序的規則提示。"
+        domain_rule_refs:
+          - LEVEL-POLICY-003
+          - FOOD-EFFECT-001
+          - FOOD-EFFECT-002
+          - SHIELD-COLLECT-001
+          - FIRE-EFFECT-002
+          - FIRE-EFFECT-003
+
+  preconditions:
+    - rule_id: DOM-SHOW-SECOND-LEVEL-RULES-PRE-001
+      description: "game.phase == Ready 且 level.number == 2"
+      domain_rule_refs:
+        - LEVEL-POLICY-003
+        - FOOD-EFFECT-001
+        - FOOD-EFFECT-002
+        - SHIELD-COLLECT-001
+        - FIRE-EFFECT-002
+        - FIRE-EFFECT-003
+
+  invariants:
+    - rule_id: DOM-SHOW-SECOND-LEVEL-RULES-INV-001
+      description: "查詢只讀；依序顯示普通食物 +1、特殊食物 +2、護盾 +1 次保命、火焰 −2 格。"
+      domain_rule_refs:
+        - LEVEL-POLICY-003
+        - FOOD-EFFECT-001
+        - FOOD-EFFECT-002
+        - SHIELD-COLLECT-001
+        - FIRE-EFFECT-002
+        - FIRE-EFFECT-003
+
+  process:
+    - order: 1
+      action: "驗證可見條件：game.phase == Ready 且 level.number == 2。"
+    - order: 2
+      action: "讀取並映射目前 Domain／Read Model 事實。"
+    - order: 3
+      action: "建立 SecondLevelRulesRspDTO，不得觸發任何業務行為。"
+
+  postconditions:
+    - rule_id: DOM-SHOW-SECOND-LEVEL-RULES-POST-001
+      description: "依序顯示普通食物 +1、特殊食物 +2、護盾 +1 次保命、火焰 −2 格；完成後來源狀態完全不變。"
+      domain_rule_refs:
+        - LEVEL-POLICY-003
+        - FOOD-EFFECT-001
+        - FOOD-EFFECT-002
+        - SHIELD-COLLECT-001
+        - FIRE-EFFECT-002
+        - FIRE-EFFECT-003
+
+  contract_violations:
+    - rule_id: DOM-SHOW-SECOND-LEVEL-RULES-ERR-001
+      condition: "不符合 game.phase == Ready 且 level.number == 2"
+      domain_code: INVALID_GAME_PHASE
+      state_guarantee: "Data 為 null，不回傳部分資料，來源狀態保持不變。"
+      domain_rule_refs:
+        - LEVEL-POLICY-003
+        - FOOD-EFFECT-001
+        - FOOD-EFFECT-002
+        - SHIELD-COLLECT-001
+        - FIRE-EFFECT-002
+        - FIRE-EFFECT-003
+
+  not_applicable: []
+

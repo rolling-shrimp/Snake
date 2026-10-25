@@ -1,0 +1,80 @@
+use_case: show-game-completed-result
+bounded_context: snake-game
+aggregate: game
+frame_type: IDF
+
+spec_refs:
+  requirement: "frame.yaml#use_case.requirement"
+  domain: domain_spec.yaml
+  technical: technical_spec.yaml
+
+scenarios:
+  - id: SCN-SHOW-GAME-COMPLETED-RESULT-001
+    title: "成功顯示：第三關達標後，顯示整輪闖關成功、100% 進度與「重玩」按鈕。"
+    description: "顯示闖關成功、第三關實際通關蛇長、100% 進度與重玩按鈕"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - IDF-SHOW-GAME-COMPLETED-RESULT-001
+        - IDF-SHOW-GAME-COMPLETED-RESULT-002
+        - IDF-SHOW-GAME-COMPLETED-RESULT-003
+        - IDF-SHOW-GAME-COMPLETED-RESULT-004
+      domain_rules:
+        - DOM-SHOW-GAME-COMPLETED-RESULT-PRE-001
+        - DOM-SHOW-GAME-COMPLETED-RESULT-INV-001
+        - DOM-SHOW-GAME-COMPLETED-RESULT-POST-001
+      technical_contracts:
+        - ShowGameCompletedResultResult.Data
+        - TECH-SHOW-GAME-COMPLETED-RESULT-STATE-001
+    given:
+      - fact: "game.phase == Completed 且第三關結果為 Passed"
+    when:
+      action: execute_query
+      input:
+        type: ShowGameCompletedResultQuery
+        fields: {}
+    then:
+      output:
+        type: ShowGameCompletedResultResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
+          data_expectation: "顯示闖關成功、第三關實際通關蛇長、100% 進度與重玩按鈕"
+      excludes:
+        - "Game Over"
+        - "不存在的第四關"
+        - "被截斷為 50 的蛇長"
+      domain_state:
+        unchanged: true
+
+  - id: SCN-SHOW-GAME-COMPLETED-RESULT-002
+    title: "失敗：目前沒有可顯示的整輪完成結果。"
+    description: "不符合可見條件時拒絕查詢，不得洩漏部分資料。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - IDF-SHOW-GAME-COMPLETED-RESULT-003
+        - IDF-SHOW-GAME-COMPLETED-RESULT-004
+      domain_rules:
+        - DOM-SHOW-GAME-COMPLETED-RESULT-ERR-001
+      technical_contracts:
+        - TECH-SHOW-GAME-COMPLETED-RESULT-ERR-001
+    given:
+      - fact: "不符合 game.phase == Completed 且第三關結果為 Passed"
+    when:
+      action: execute_query
+      input:
+        type: ShowGameCompletedResultQuery
+        fields: {}
+    then:
+      output:
+        type: ShowGameCompletedResultResult
+        fields:
+          is_success: false
+          failure_code: RESULT_NOT_AVAILABLE
+          failure_message: "目前沒有可顯示的整輪完成結果。"
+          data: null
+      domain_state:
+        unchanged: true
+

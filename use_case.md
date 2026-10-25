@@ -1,6 +1,6 @@
 # 貪吃蛇遊戲 Use Case
 
-本文件定義遊戲規則、玩家流程與可見結果，依打地鼠專案的 Use Case 格式撰寫。畫面排版、圖案與各關預覽見 [ui_spec.md](ui_spec.md)；操作的輸入、回傳與狀態保證由 [design_by_contract.md](design_by_contract.md) 定義；測試案例與驗收由 [test_spec.md](test_spec.md) 定義。
+本文件定義遊戲規則、玩家流程與可見結果，依打地鼠專案的 Use Case 格式撰寫。畫面狀態、必要／禁止元素、轉換與既有契約關聯，以 [`Domains/Game/presentation/`](Domains/Game/presentation/presentation_catalog.yaml) 的 YAML 為機器可驗證來源；畫面排版、圖案與各關預覽見 [ui_spec.md](ui_spec.md)。操作的輸入、回傳與狀態保證由 [design_by_contract.md](design_by_contract.md) 定義；測試案例與驗收由 [test_spec.md](test_spec.md) 定義。
 
 ## 遊戲規則
 

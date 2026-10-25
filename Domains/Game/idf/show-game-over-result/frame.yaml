@@ -1,0 +1,31 @@
+bounded_context: snake-game
+aggregate: game
+
+use_case:
+  name: show-game-over-result
+  requirement: "玩家死亡且無法保命後，顯示 Game Over、失敗關卡、最後蛇長與「重玩」按鈕。"
+frame_type: IDF
+
+world_facts:
+  actor: display
+  required_state: "game.phase == GameOver 且最近結果為 Failed"
+  visibility_scope: "只顯示本輪失敗結果，不顯示通關成功或下一關待開始資訊"
+  side_effect_policy: none
+
+frame_concerns:
+  - concern_ref: IDF-CONCERN-001
+    check_id: IDF-SHOW-GAME-OVER-RESULT-001
+    description: "確保完整輸出 FailedLevel、FinalLength、DeathCause、ProgressPercent、IsReplayButtonVisible。"
+
+  - concern_ref: IDF-CONCERN-002
+    check_id: IDF-SHOW-GAME-OVER-RESULT-002
+    description: "確保 顯示 Game Over、失敗關卡、最後蛇長、death cause、最低 0% 的進度與重玩按鈕，且所有值來自目前 Domain 事實。"
+
+  - concern_ref: IDF-CONCERN-003
+    check_id: IDF-SHOW-GAME-OVER-RESULT-003
+    description: "確保 只顯示本輪失敗結果，不顯示通關成功或下一關待開始資訊；排除 Passed 成績卡、下一關開始按鈕、仍在遊玩中的狀態。"
+
+  - concern_ref: IDF-CONCERN-004
+    check_id: IDF-SHOW-GAME-OVER-RESULT-004
+    description: "確保查詢不改變任何 Domain、Read Model 版本或遊戲時間。"
+

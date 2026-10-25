@@ -106,6 +106,519 @@ acceptance_scenarios:
         title: "正常忽略重複 trigger"
         description: "已處理的開始 trigger 再次送達時，不得重生草莓或重設移動時序。"
 
+  - domain: Game
+    bounded_context: snake-game
+    aggregate: game
+    frame_type: CBF
+    use_case: restart-game
+    source: "Domains/Game/cbf/restart-game/acceptance.yaml"
+    scenarios:
+      - scenario_id: SCN-RESTART-GAME-001
+        title: "成功：玩家在遊戲失敗或第三關完成後點擊「重玩」按鈕。"
+        description: "命令被接受一次並交接 reset-game-for-replay 一次；原輪次資料由後續 RIF 完整重設。"
+      - scenario_id: SCN-RESTART-GAME-002
+        title: "正常忽略：Game 尚未進入 GameOver 或 Completed，或同一終局狀態的重玩命令已接受。"
+        description: "正常忽略，不重設任何 Domain，也不交接重玩 RIF。"
+
+  - domain: Game
+    bounded_context: snake-game
+    aggregate: game
+    frame_type: CBF
+    use_case: start-second-level
+    source: "Domains/Game/cbf/start-second-level/acceptance.yaml"
+    scenarios:
+      - scenario_id: SCN-START-SECOND-LEVEL-001
+        title: "成功：玩家在第二關待開始畫面點擊「開始」按鈕。"
+        description: "命令被接受一次並交接 activate-second-level-play 一次；CBF 不直接建立 Playing 狀態。"
+      - scenario_id: SCN-START-SECOND-LEVEL-002
+        title: "正常忽略：目前不是第二關 Ready，或同一 Ready 狀態的開始命令已接受。"
+        description: "正常忽略，不交接 RIF，所有 Domain 狀態保持不變。"
+
+  - domain: Game
+    bounded_context: snake-game
+    aggregate: game
+    frame_type: CBF
+    use_case: start-third-level
+    source: "Domains/Game/cbf/start-third-level/acceptance.yaml"
+    scenarios:
+      - scenario_id: SCN-START-THIRD-LEVEL-001
+        title: "成功：玩家在第三關待開始畫面點擊「開始」按鈕。"
+        description: "命令被接受一次並交接 activate-third-level-play 一次；CBF 不直接產生物件或啟動門週期。"
+      - scenario_id: SCN-START-THIRD-LEVEL-002
+        title: "正常忽略：目前不是第三關 Ready，或同一 Ready 狀態的開始命令已接受。"
+        description: "正常忽略，不交接 RIF，所有 Domain 狀態保持不變。"
+
+  - domain: Game
+    bounded_context: snake-game
+    aggregate: game
+    frame_type: IDF
+    use_case: show-game-completed-result
+    source: "Domains/Game/idf/show-game-completed-result/acceptance.yaml"
+    scenarios:
+      - scenario_id: SCN-SHOW-GAME-COMPLETED-RESULT-001
+        title: "成功顯示：第三關達標後，顯示整輪闖關成功、100% 進度與「重玩」按鈕。"
+        description: "顯示闖關成功、第三關實際通關蛇長、100% 進度與重玩按鈕"
+      - scenario_id: SCN-SHOW-GAME-COMPLETED-RESULT-002
+        title: "失敗：目前沒有可顯示的整輪完成結果。"
+        description: "不符合可見條件時拒絕查詢，不得洩漏部分資料。"
+
+  - domain: Game
+    bounded_context: snake-game
+    aggregate: game
+    frame_type: IDF
+    use_case: show-game-over-result
+    source: "Domains/Game/idf/show-game-over-result/acceptance.yaml"
+    scenarios:
+      - scenario_id: SCN-SHOW-GAME-OVER-RESULT-001
+        title: "成功顯示：玩家死亡且無法保命後，顯示 Game Over、失敗關卡、最後蛇長與「重玩」按鈕。"
+        description: "顯示 Game Over、失敗關卡、最後蛇長、death cause、最低 0% 的進度與重玩按鈕"
+      - scenario_id: SCN-SHOW-GAME-OVER-RESULT-002
+        title: "失敗：目前沒有可顯示的失敗結果。"
+        description: "不符合可見條件時拒絕查詢，不得洩漏部分資料。"
+
+  - domain: Game
+    bounded_context: snake-game
+    aggregate: game
+    frame_type: IDF
+    use_case: show-level-passed-result
+    source: "Domains/Game/idf/show-level-passed-result/acceptance.yaml"
+    scenarios:
+      - scenario_id: SCN-SHOW-LEVEL-PASSED-RESULT-001
+        title: "成功顯示：第一或第二關通過後，顯示過關標語與記錄實際通關蛇長的成績卡。"
+        description: "顯示完成關卡、過關標語、實際通關蛇長與成績卡；開始下一關後隱藏"
+      - scenario_id: SCN-SHOW-LEVEL-PASSED-RESULT-002
+        title: "失敗：目前沒有可顯示的關卡通過結果。"
+        description: "不符合可見條件時拒絕查詢，不得洩漏部分資料。"
+
+  - domain: Game
+    bounded_context: snake-game
+    aggregate: game
+    frame_type: IDF
+    use_case: show-second-level-ready-board
+    source: "Domains/Game/idf/show-second-level-ready-board/acceptance.yaml"
+    scenarios:
+      - scenario_id: SCN-SHOW-SECOND-LEVEL-READY-BOARD-001
+        title: "成功顯示：第二關待開始時，顯示 10×10 棋盤、安全起點上的 3 格蛇與「開始」按鈕。"
+        description: "棋盤為 10×10，三個蛇身格合法且唯一，開始按鈕可見，棋盤物件數為 0"
+      - scenario_id: SCN-SHOW-SECOND-LEVEL-READY-BOARD-002
+        title: "失敗：目前不是第二關待開始階段。"
+        description: "不符合可見條件時拒絕查詢，不得洩漏部分資料。"
+
+  - domain: Game
+    bounded_context: snake-game
+    aggregate: game
+    frame_type: IDF
+    use_case: show-second-level-rules
+    source: "Domains/Game/idf/show-second-level-rules/acceptance.yaml"
+    scenarios:
+      - scenario_id: SCN-SHOW-SECOND-LEVEL-RULES-001
+        title: "成功顯示：第二關待開始時，顯示普通食物、特殊食物、護盾與火焰的規則提示。"
+        description: "依序顯示普通食物 +1、特殊食物 +2、護盾 +1 次保命、火焰 −2 格"
+      - scenario_id: SCN-SHOW-SECOND-LEVEL-RULES-002
+        title: "失敗：目前不是第二關待開始階段。"
+        description: "不符合可見條件時拒絕查詢，不得洩漏部分資料。"
+
+  - domain: Game
+    bounded_context: snake-game
+    aggregate: game
+    frame_type: IDF
+    use_case: show-second-level-status
+    source: "Domains/Game/idf/show-second-level-status/acceptance.yaml"
+    scenarios:
+      - scenario_id: SCN-SHOW-SECOND-LEVEL-STATUS-001
+        title: "成功顯示：第二關待開始時，顯示第二關、蛇長 3/20、進度 15% 與護盾剩餘 0 次。"
+        description: "LevelName 為第二關，CurrentLength 3、TargetLength 20、ProgressPercent 15、ShieldRemainingCharges 0"
+      - scenario_id: SCN-SHOW-SECOND-LEVEL-STATUS-002
+        title: "失敗：目前不是第二關待開始階段。"
+        description: "不符合可見條件時拒絕查詢，不得洩漏部分資料。"
+
+  - domain: Game
+    bounded_context: snake-game
+    aggregate: game
+    frame_type: IDF
+    use_case: show-third-level-door-status
+    source: "Domains/Game/idf/show-third-level-door-status/acceptance.yaml"
+    scenarios:
+      - scenario_id: SCN-SHOW-THIRD-LEVEL-DOOR-STATUS-001
+        title: "成功顯示：第三關待開始與遊玩期間，顯示每扇門的目前開關、提醒或延後關閉狀態。"
+        description: "每扇門輸出位置與 Open、ClosingWarning、CloseDeferred 或 Closed；提醒與實際通行政策一致"
+      - scenario_id: SCN-SHOW-THIRD-LEVEL-DOOR-STATUS-002
+        title: "失敗：目前沒有可顯示的第三關門狀態。"
+        description: "不符合可見條件時拒絕查詢，不得洩漏部分資料。"
+
+  - domain: Game
+    bounded_context: snake-game
+    aggregate: game
+    frame_type: IDF
+    use_case: show-third-level-ready-board
+    source: "Domains/Game/idf/show-third-level-ready-board/acceptance.yaml"
+    scenarios:
+      - scenario_id: SCN-SHOW-THIRD-LEVEL-READY-BOARD-001
+        title: "成功顯示：第三關待開始時，顯示 10×10 迷宮、牆壁、門與安全起點上的 3 格蛇。"
+        description: "棋盤 10×10，牆與門格合法，保留可容納 50 格蛇的連續路線，三格蛇安全，開始按鈕可見"
+      - scenario_id: SCN-SHOW-THIRD-LEVEL-READY-BOARD-002
+        title: "失敗：目前不是第三關待開始階段。"
+        description: "不符合可見條件時拒絕查詢，不得洩漏部分資料。"
+
+  - domain: Game
+    bounded_context: snake-game
+    aggregate: game
+    frame_type: IDF
+    use_case: show-third-level-rules
+    source: "Domains/Game/idf/show-third-level-rules/acceptance.yaml"
+    scenarios:
+      - scenario_id: SCN-SHOW-THIRD-LEVEL-RULES-001
+        title: "成功顯示：第三關待開始時，顯示五種物件效果與不能穿牆的規則提示。"
+        description: "依序顯示普通食物 +1、特殊食物 +2、護盾 +1、火焰 −2、炸彈致命、不能穿牆"
+      - scenario_id: SCN-SHOW-THIRD-LEVEL-RULES-002
+        title: "失敗：目前不是第三關待開始階段。"
+        description: "不符合可見條件時拒絕查詢，不得洩漏部分資料。"
+
+  - domain: Game
+    bounded_context: snake-game
+    aggregate: game
+    frame_type: IDF
+    use_case: show-third-level-status
+    source: "Domains/Game/idf/show-third-level-status/acceptance.yaml"
+    scenarios:
+      - scenario_id: SCN-SHOW-THIRD-LEVEL-STATUS-001
+        title: "成功顯示：第三關待開始時，顯示第三關、蛇長 3/50、進度 6% 與護盾剩餘 0 次。"
+        description: "LevelName 為第三關，CurrentLength 3、TargetLength 50、ProgressPercent 6、ShieldRemainingCharges 0"
+      - scenario_id: SCN-SHOW-THIRD-LEVEL-STATUS-002
+        title: "失敗：目前不是第三關待開始階段。"
+        description: "不符合可見條件時拒絕查詢，不得洩漏部分資料。"
+
+  - domain: Game
+    bounded_context: snake-game
+    aggregate: game
+    frame_type: RBF
+    use_case: advance-snake-step
+    source: "Domains/Game/rbf/advance-snake-step/acceptance.yaml"
+    scenarios:
+      - scenario_id: SCN-ADVANCE-SNAKE-STEP-001
+        title: "第一、二關跨越邊界"
+        description: "蛇依 Wrap 政策從相對邊界出現，且只移動一格。"
+      - scenario_id: SCN-ADVANCE-SNAKE-STEP-002
+        title: "第三關邊界阻擋"
+        description: "不提交新蛇身位置並產生 WallCollision 事實。"
+      - scenario_id: SCN-ADVANCE-SNAKE-STEP-003
+        title: "尚未到期或不在遊玩中"
+        description: "正常忽略，不移動蛇、不推進遊戲時間結果。"
+
+  - domain: Game
+    bounded_context: snake-game
+    aggregate: game
+    frame_type: RBF
+    use_case: evaluate-level-completion
+    source: "Domains/Game/rbf/evaluate-level-completion/acceptance.yaml"
+    scenarios:
+      - scenario_id: SCN-EVALUATE-LEVEL-COMPLETION-001
+        title: "第一或第二關達到 20"
+        description: "立即產生一次 LevelPassed，保留實際通關蛇長 20。"
+      - scenario_id: SCN-EVALUATE-LEVEL-COMPLETION-002
+        title: "第三關超過 50"
+        description: "立即產生一次 LevelPassed，實際蛇長保持 51。"
+      - scenario_id: SCN-EVALUATE-LEVEL-COMPLETION-003
+        title: "尚未達標"
+        description: "正常完成判定並保持 Playing，不產生 LevelPassed。"
+
+  - domain: Game
+    bounded_context: snake-game
+    aggregate: game
+    frame_type: RBF
+    use_case: handle-bomb-contact
+    source: "Domains/Game/rbf/handle-bomb-contact/acceptance.yaml"
+    scenarios:
+      - scenario_id: SCN-HANDLE-BOMB-CONTACT-001
+        title: "第三關碰到炸彈"
+        description: "炸彈消失並產生一次 BombCollision；本 Use Case 不直接結束遊戲。"
+      - scenario_id: SCN-HANDLE-BOMB-CONTACT-002
+        title: "非第三關或炸彈已失效"
+        description: "正常忽略，不產生死亡事件。"
+
+  - domain: Game
+    bounded_context: snake-game
+    aggregate: game
+    frame_type: RBF
+    use_case: handle-closed-door-collision
+    source: "Domains/Game/rbf/handle-closed-door-collision/acceptance.yaml"
+    scenarios:
+      - scenario_id: SCN-HANDLE-CLOSED-DOOR-COLLISION-001
+        title: "撞到關閉的門"
+        description: "不移動蛇並產生一次 ClosedDoorCollision。"
+      - scenario_id: SCN-HANDLE-CLOSED-DOOR-COLLISION-002
+        title: "門仍可通行"
+        description: "允許移動通過，不產生 ClosedDoorCollision。"
+
+  - domain: Game
+    bounded_context: snake-game
+    aggregate: game
+    frame_type: RBF
+    use_case: handle-fire-contact
+    source: "Domains/Game/rbf/handle-fire-contact/acceptance.yaml"
+    scenarios:
+      - scenario_id: SCN-HANDLE-FIRE-CONTACT-001
+        title: "非致死火焰"
+        description: "火焰消失、蛇長成為 3、護盾次數不變，並在減長後更新進度。"
+      - scenario_id: SCN-HANDLE-FIRE-CONTACT-002
+        title: "致死火焰"
+        description: "產生 FatalFire 與受擊前長度；是否提交長度 0 由 Shield 保命結果決定。"
+      - scenario_id: SCN-HANDLE-FIRE-CONTACT-003
+        title: "第一關或非 active 火焰"
+        description: "正常忽略，不改變蛇長、護盾或物件。"
+
+  - domain: Game
+    bounded_context: snake-game
+    aggregate: game
+    frame_type: RBF
+    use_case: handle-ordinary-food-contact
+    source: "Domains/Game/rbf/handle-ordinary-food-contact/acceptance.yaml"
+    scenarios:
+      - scenario_id: SCN-HANDLE-ORDINARY-FOOD-CONTACT-001
+        title: "成功吃到普通食物"
+        description: "該食物消失，蛇長精確增加 1，後續通關判定與補充流程各觸發一次。"
+      - scenario_id: SCN-HANDLE-ORDINARY-FOOD-CONTACT-002
+        title: "不是蛇頭接觸或食物已失效"
+        description: "正常忽略，不改變蛇長且不重複消耗食物。"
+
+  - domain: Game
+    bounded_context: snake-game
+    aggregate: game
+    frame_type: RBF
+    use_case: handle-self-collision
+    source: "Domains/Game/rbf/handle-self-collision/acceptance.yaml"
+    scenarios:
+      - scenario_id: SCN-HANDLE-SELF-COLLISION-001
+        title: "撞到自己的身體"
+        description: "不提交重疊位置並產生一次 SelfCollision。"
+      - scenario_id: SCN-HANDLE-SELF-COLLISION-002
+        title: "位置沒有與蛇身重疊"
+        description: "正常忽略，不產生死亡事件。"
+
+  - domain: Game
+    bounded_context: snake-game
+    aggregate: game
+    frame_type: RBF
+    use_case: handle-shield-contact
+    source: "Domains/Game/rbf/handle-shield-contact/acceptance.yaml"
+    scenarios:
+      - scenario_id: SCN-HANDLE-SHIELD-CONTACT-001
+        title: "取得護盾"
+        description: "ShieldItem 消失，remaining_charges 增加 1，spawned_count 不被重設。"
+      - scenario_id: SCN-HANDLE-SHIELD-CONTACT-002
+        title: "接觸已失效護盾"
+        description: "正常忽略，不重複增加保命次數。"
+
+  - domain: Game
+    bounded_context: snake-game
+    aggregate: game
+    frame_type: RBF
+    use_case: handle-special-food-contact
+    source: "Domains/Game/rbf/handle-special-food-contact/acceptance.yaml"
+    scenarios:
+      - scenario_id: SCN-HANDLE-SPECIAL-FOOD-CONTACT-001
+        title: "成功吃到特殊食物"
+        description: "食物消失且蛇長精確增加 2；增加後才進行通關判定。"
+      - scenario_id: SCN-HANDLE-SPECIAL-FOOD-CONTACT-002
+        title: "49 格跨越第三關目標"
+        description: "實際蛇長成為 51，通關判定使用 51，不截斷為 50。"
+      - scenario_id: SCN-HANDLE-SPECIAL-FOOD-CONTACT-003
+        title: "第一關或非 active 特殊食物"
+        description: "正常忽略，不改變蛇長或物件。"
+
+  - domain: Game
+    bounded_context: snake-game
+    aggregate: game
+    frame_type: RBF
+    use_case: handle-wall-collision
+    source: "Domains/Game/rbf/handle-wall-collision/acceptance.yaml"
+    scenarios:
+      - scenario_id: SCN-HANDLE-WALL-COLLISION-001
+        title: "第三關撞牆"
+        description: "不移動蛇並產生一次 WallCollision。"
+      - scenario_id: SCN-HANDLE-WALL-COLLISION-002
+        title: "第一、二關越界"
+        description: "本 Use Case 不處理，交由 Wrap 邊界政策移動，不產生 WallCollision。"
+
+  - domain: Game
+    bounded_context: snake-game
+    aggregate: game
+    frame_type: RBF
+    use_case: update-third-level-door-state
+    source: "Domains/Game/rbf/update-third-level-door-state/acceptance.yaml"
+    scenarios:
+      - scenario_id: SCN-UPDATE-THIRD-LEVEL-DOOR-STATE-001
+        title: "關閉前提醒"
+        description: "門進入 ClosingWarning，仍可通行。"
+      - scenario_id: SCN-UPDATE-THIRD-LEVEL-DOOR-STATE-002
+        title: "正常關閉"
+        description: "門切換為 Closed。"
+      - scenario_id: SCN-UPDATE-THIRD-LEVEL-DOOR-STATE-003
+        title: "蛇占用門格時延後"
+        description: "門進入 CloseDeferred 且保持可通行；整條蛇離開後才關閉。"
+      - scenario_id: SCN-UPDATE-THIRD-LEVEL-DOOR-STATE-004
+        title: "不是第三關 Playing"
+        description: "停止門週期並保持門狀態不變。"
+
+  - domain: Game
+    bounded_context: snake-game
+    aggregate: game
+    frame_type: RIF
+    use_case: activate-second-level-play
+    source: "Domains/Game/rif/activate-second-level-play/acceptance.yaml"
+    scenarios:
+      - scenario_id: SCN-ACTIVATE-SECOND-LEVEL-PLAY-001
+        title: "成功啟動第二關"
+        description: "依指定順序產生四種合法物件，蛇長保持 3、護盾次數 0，最後公開 Playing 並開始 250 毫秒移動。"
+      - scenario_id: SCN-ACTIVATE-SECOND-LEVEL-PLAY-002
+        title: "錯誤來源事件"
+        description: "正常忽略，不隱藏畫面、不產生物件、不啟動移動。"
+      - scenario_id: SCN-ACTIVATE-SECOND-LEVEL-PLAY-003
+        title: "重複事件"
+        description: "正常忽略，不重生物件或重設移動時序。"
+
+  - domain: Game
+    bounded_context: snake-game
+    aggregate: game
+    frame_type: RIF
+    use_case: activate-third-level-play
+    source: "Domains/Game/rif/activate-third-level-play/acceptance.yaml"
+    scenarios:
+      - scenario_id: SCN-ACTIVATE-THIRD-LEVEL-PLAY-001
+        title: "成功啟動第三關"
+        description: "五種物件各一個且位置合法；蛇長保持 3，最後公開 Playing 並啟動移動與門週期。"
+      - scenario_id: SCN-ACTIVATE-THIRD-LEVEL-PLAY-002
+        title: "錯誤來源事件"
+        description: "正常忽略，不產生物件、不啟動移動或門週期。"
+      - scenario_id: SCN-ACTIVATE-THIRD-LEVEL-PLAY-003
+        title: "重複事件"
+        description: "正常忽略，不重生物件或重設任何計時。"
+
+  - domain: Game
+    bounded_context: snake-game
+    aggregate: game
+    frame_type: RIF
+    use_case: end-current-level-play
+    source: "Domains/Game/rif/end-current-level-play/acceptance.yaml"
+    scenarios:
+      - scenario_id: SCN-END-CURRENT-LEVEL-PLAY-001
+        title: "第一或第二關通過"
+        description: "先停止活動並記錄實際通關蛇長，再交接 prepare-next-level 一次。"
+      - scenario_id: SCN-END-CURRENT-LEVEL-PLAY-002
+        title: "第三關通過"
+        description: "停止活動、保留實際蛇長並記錄 Passed，Game 切換 Completed。"
+      - scenario_id: SCN-END-CURRENT-LEVEL-PLAY-003
+        title: "死亡且無法保命"
+        description: "停止活動、記錄 Failed 與 death_cause；FatalFire 最終長度最低為 0，Game 切換 GameOver。"
+      - scenario_id: SCN-END-CURRENT-LEVEL-PLAY-004
+        title: "重複終局事件"
+        description: "正常忽略，不重複記錄結果或再次轉移階段。"
+
+  - domain: Game
+    bounded_context: snake-game
+    aggregate: game
+    frame_type: RIF
+    use_case: prepare-next-level
+    source: "Domains/Game/rif/prepare-next-level/acceptance.yaml"
+    scenarios:
+      - scenario_id: SCN-PREPARE-NEXT-LEVEL-001
+        title: "第一關後準備第二關"
+        description: "保留第一關成績；第二關 Ready、蛇長 3、進度 15%、護盾 0，棋盤尚無遊玩物件。"
+      - scenario_id: SCN-PREPARE-NEXT-LEVEL-002
+        title: "第二關後準備第三關"
+        description: "保留第二關成績；第三關迷宮 Ready、蛇長 3、進度 6%、護盾 0，門已可顯示但週期未啟動。"
+      - scenario_id: SCN-PREPARE-NEXT-LEVEL-003
+        title: "第三關或非 Passed"
+        description: "正常忽略，不建立不存在的下一關。"
+
+  - domain: Game
+    bounded_context: snake-game
+    aggregate: game
+    frame_type: RIF
+    use_case: replenish-triggered-object
+    source: "Domains/Game/rif/replenish-triggered-object/acceptance.yaml"
+    scenarios:
+      - scenario_id: SCN-REPLENISH-TRIGGERED-OBJECT-001
+        title: "補充食物或危險物件"
+        description: "建立新的 ItemId，於合法未占用格補同類物件，同類 active 物件仍最多一個。"
+      - scenario_id: SCN-REPLENISH-TRIGGERED-OBJECT-002
+        title: "依序補第二個護盾"
+        description: "在合法空格建立第二個護盾；第二個被吃掉後不再補發。"
+      - scenario_id: SCN-REPLENISH-TRIGGERED-OBJECT-003
+        title: "暫無合法空格"
+        description: "不重疊產生物件，記錄 pending，等待之後出現合法空格。"
+      - scenario_id: SCN-REPLENISH-TRIGGERED-OBJECT-004
+        title: "關卡已結束"
+        description: "正常忽略並清除不應保留的 pending，不補充任何物件。"
+
+  - domain: Game
+    bounded_context: snake-game
+    aggregate: game
+    frame_type: RIF
+    use_case: rescue-with-shield
+    source: "Domains/Game/rif/rescue-with-shield/acceptance.yaml"
+    scenarios:
+      - scenario_id: SCN-RESCUE-WITH-SHIELD-001
+        title: "使用護盾保命"
+        description: "remaining_charges 成為 0，蛇以受擊前完整長度回到安全起點，衝突物件移位，Game 保持 Playing。"
+      - scenario_id: SCN-RESCUE-WITH-SHIELD-002
+        title: "火焰致死時恢復長度"
+        description: "不提交長度 0，蛇以長度 2 回到安全起點，護盾消耗一次。"
+      - scenario_id: SCN-RESCUE-WITH-SHIELD-003
+        title: "沒有可用護盾"
+        description: "不執行保命，交接 end-current-level-play 的失敗流程一次。"
+
+  - domain: Game
+    bounded_context: snake-game
+    aggregate: game
+    frame_type: RIF
+    use_case: reset-game-for-replay
+    source: "Domains/Game/rif/reset-game-for-replay/acceptance.yaml"
+    scenarios:
+      - scenario_id: SCN-RESET-GAME-FOR-REPLAY-001
+        title: "失敗後重玩"
+        description: "清除舊輪次，第一關蛇長 3、進度 15%、草莓已產生、移動已開始，Game 直接為 Playing。"
+      - scenario_id: SCN-RESET-GAME-FOR-REPLAY-002
+        title: "完成後重玩"
+        description: "清除通關結果並以相同第一關 Playing 狀態開始新輪次。"
+      - scenario_id: SCN-RESET-GAME-FOR-REPLAY-003
+        title: "重複或非終局事件"
+        description: "正常忽略，不清除或重設目前輪次。"
+
+  - domain: Game
+    bounded_context: snake-game
+    aggregate: game
+    frame_type: SWF
+    use_case: set-snake-direction
+    source: "Domains/Game/swf/set-snake-direction/acceptance.yaml"
+    scenarios:
+      - scenario_id: SCN-SET-SNAKE-DIRECTION-001
+        title: "成功：玩家使用方向鍵要求蛇改變下一次前進方向。"
+        description: "Snake.next_direction 原子更新為 Up，蛇的位置與長度在本次操作中不變。"
+      - scenario_id: SCN-SET-SNAKE-DIRECTION-002
+        title: "正常忽略：Game 不在 Playing，或玩家輸入與目前方向直接相反的 Left。"
+        description: "正常忽略，方向、位置、長度與其他 Domain 狀態全部不變。"
+
+  - domain: Game
+    bounded_context: snake-game
+    aggregate: game
+    frame_type: TF
+    use_case: update-level-status-read-model
+    source: "Domains/Game/tf/update-level-status-read-model/acceptance.yaml"
+    scenarios:
+      - scenario_id: SCN-UPDATE-LEVEL-STATUS-READ-MODEL-001
+        title: "第一、二關狀態投影"
+        description: "蛇長 3、目標 20 應顯示 3/20 與 15%。"
+      - scenario_id: SCN-UPDATE-LEVEL-STATUS-READ-MODEL-002
+        title: "第三關狀態投影"
+        description: "第三關蛇長 3、目標 50 應顯示 3/50 與 6%。"
+      - scenario_id: SCN-UPDATE-LEVEL-STATUS-READ-MODEL-003
+        title: "進度上下限與實際蛇長"
+        description: "超過目標保留實際蛇長並顯示 100%；FatalFire 結果最低顯示 0%。"
+      - scenario_id: SCN-UPDATE-LEVEL-STATUS-READ-MODEL-004
+        title: "正常忽略重複或舊事件"
+        description: "重複事件不得覆寫 Read Model 或改變 Domain。"
+
 pattern_gates:
   - pattern_node:
       id: entities

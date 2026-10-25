@@ -1,0 +1,112 @@
+use_case: handle-fire-contact
+bounded_context: snake-game
+aggregate: game
+frame_type: RBF
+
+domain_refs:
+  - domain: Game
+    path: ../../domain_spec.yaml
+    aggregate: Game
+  - domain: Fire
+    path: ../../../Fire/domain_spec.yaml
+    aggregate: Fire
+  - domain: Snake
+    path: ../../../Snake/domain_spec.yaml
+    aggregate: Snake
+  - domain: Shield
+    path: ../../../Shield/domain_spec.yaml
+    aggregate: Shield
+  - domain: Level
+    path: ../../../Level/domain_spec.yaml
+    aggregate: Level
+
+traceability:
+  requirement: "frame.yaml#use_case.requirement"
+  frame_checks:
+    - RBF-HANDLE-FIRE-CONTACT-001
+    - RBF-HANDLE-FIRE-CONTACT-002
+    - RBF-HANDLE-FIRE-CONTACT-003
+    - RBF-HANDLE-FIRE-CONTACT-004
+
+contract:
+  input:
+    data: HandleFireContactCommand
+    fields:
+      - name: FireItemId
+        type: string
+        required: true
+    rules:
+      - rule_id: DOM-HANDLE-FIRE-CONTACT-IN-001
+        description: "Input 表示一次已觀察到的條件事實：snake head contacts active FireItem。"
+        domain_rule_refs:
+          - FIRE-EFFECT-001
+          - FIRE-EFFECT-002
+          - FIRE-EFFECT-003
+          - FIRE-EFFECT-004
+          - FIRE-EFFECT-005
+          - SHIELD-RESCUE-005
+
+  output:
+    data: HandleFireContactResult
+    rules:
+      - rule_id: DOM-HANDLE-FIRE-CONTACT-OUT-001
+        description: "Output 表示必要行為是否完成；不適用條件以成功 no-op 表示。"
+        domain_rule_refs: []
+
+  preconditions:
+    - rule_id: DOM-HANDLE-FIRE-CONTACT-PRE-001
+      description: "game.phase == Playing、level.number 為 2 或 3，且接觸 active FireItem"
+      domain_rule_refs:
+        - FIRE-EFFECT-001
+        - FIRE-EFFECT-002
+        - FIRE-EFFECT-003
+        - FIRE-EFFECT-004
+        - FIRE-EFFECT-005
+        - SHIELD-RESCUE-005
+
+  invariants:
+    - rule_id: DOM-HANDLE-FIRE-CONTACT-INV-001
+      description: "同一條件事實最多處理一次；移除火焰；非致死時提交減長，致死時產生 FatalFire 並等待 Shield 決策。"
+      domain_rule_refs:
+        - FIRE-EFFECT-001
+        - FIRE-EFFECT-002
+        - FIRE-EFFECT-003
+        - FIRE-EFFECT-004
+        - FIRE-EFFECT-005
+        - SHIELD-RESCUE-005
+
+  process:
+    - order: 1
+      action: "確認觸發事實與 game.phase == Playing、level.number 為 2 或 3，且接觸 active FireItem。"
+    - order: 2
+      action: "移除火焰；非致死時提交減長，致死時產生 FatalFire 並等待 Shield 決策"
+    - order: 3
+      action: "發布後續流程需要的結果事實，但不越權執行其他 Use Case。"
+
+  postconditions:
+    - rule_id: DOM-HANDLE-FIRE-CONTACT-POST-001
+      description: "移除火焰；非致死時提交減長，致死時產生 FatalFire 並等待 Shield 決策"
+      domain_rule_refs:
+        - FIRE-EFFECT-001
+        - FIRE-EFFECT-002
+        - FIRE-EFFECT-003
+        - FIRE-EFFECT-004
+        - FIRE-EFFECT-005
+        - SHIELD-RESCUE-005
+
+  contract_violations: []
+
+  not_applicable:
+    - rule_id: DOM-HANDLE-FIRE-CONTACT-NOOP-001
+      condition: "第一關，或接觸的 FireItem 已失效。"
+      behavior: ignore
+      error: none
+      state_guarantee: "正常忽略，不改變蛇長、護盾或物件。"
+      domain_rule_refs:
+        - FIRE-EFFECT-001
+        - FIRE-EFFECT-002
+        - FIRE-EFFECT-003
+        - FIRE-EFFECT-004
+        - FIRE-EFFECT-005
+        - SHIELD-RESCUE-005
+

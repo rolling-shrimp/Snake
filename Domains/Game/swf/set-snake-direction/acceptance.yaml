@@ -1,0 +1,77 @@
+use_case: set-snake-direction
+bounded_context: snake-game
+aggregate: game
+frame_type: SWF
+
+spec_refs:
+  requirement: "frame.yaml#use_case.requirement"
+  domain: domain_spec.yaml
+  technical: technical_spec.yaml
+
+scenarios:
+  - id: SCN-SET-SNAKE-DIRECTION-001
+    title: "成功：玩家使用方向鍵要求蛇改變下一次前進方向。"
+    description: "Snake.next_direction 原子更新為 Up，蛇的位置與長度在本次操作中不變。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - SWF-SET-SNAKE-DIRECTION-001
+        - SWF-SET-SNAKE-DIRECTION-002
+        - SWF-SET-SNAKE-DIRECTION-003
+        - SWF-SET-SNAKE-DIRECTION-004
+      domain_rules:
+        - DOM-SET-SNAKE-DIRECTION-IN-001
+        - DOM-SET-SNAKE-DIRECTION-PRE-001
+        - DOM-SET-SNAKE-DIRECTION-INV-001
+        - DOM-SET-SNAKE-DIRECTION-POST-001
+      technical_contracts:
+        - SetSnakeDirectionResult.IsSuccess
+        - TECH-SET-SNAKE-DIRECTION-STATE-001
+    given:
+      - fact: "Game 正在 Playing，蛇向 Right 前進，玩家輸入 Up。"
+    when:
+      action: set_snake_direction
+      input:
+        type: SetSnakeDirectionCommand
+        fields:
+          direction: VALID_DIRECTION
+    then:
+      output:
+        type: SetSnakeDirectionResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
+      domain_effect: "Snake.next_direction 原子更新為 Up，蛇的位置與長度在本次操作中不變。"
+
+  - id: SCN-SET-SNAKE-DIRECTION-002
+    title: "正常忽略：Game 不在 Playing，或玩家輸入與目前方向直接相反的 Left。"
+    description: "正常忽略，方向、位置、長度與其他 Domain 狀態全部不變。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - SWF-SET-SNAKE-DIRECTION-002
+        - SWF-SET-SNAKE-DIRECTION-004
+      domain_rules:
+        - DOM-SET-SNAKE-DIRECTION-PRE-001
+        - DOM-SET-SNAKE-DIRECTION-NOOP-001
+      technical_contracts:
+        - SetSnakeDirectionResult.IsSuccess
+        - TECH-SET-SNAKE-DIRECTION-NOOP-001
+    given:
+      - fact: "Game 不在 Playing，或玩家輸入與目前方向直接相反的 Left。"
+    when:
+      action: set_snake_direction
+      input:
+        type: SetSnakeDirectionCommand
+        fields: {}
+    then:
+      output:
+        type: SetSnakeDirectionResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
+      domain_state:
+        unchanged: true
+

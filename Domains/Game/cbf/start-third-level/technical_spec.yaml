@@ -1,0 +1,60 @@
+use_case: start-third-level
+bounded_context: snake-game
+aggregate: game
+frame_type: CBF
+
+spec_refs:
+  domain: domain_spec.yaml
+
+input:
+  type: StartThirdLevelCommand
+  source: "第三關待開始畫面的「開始」按鈕。"
+  fields:
+    []
+
+output:
+  type: StartThirdLevelResult
+  fields:
+    - name: IsSuccess
+      csharp_type: bool
+      required: true
+    - name: FailureCode
+      csharp_type: "string?"
+      required: true
+    - name: FailureMessage
+      csharp_type: "string?"
+      required: true
+  domain_output: "只交接一次 activate-third-level-play，不建立部分 Playing 狀態"
+
+types:
+  - name: StartThirdLevelCommand
+    fields:
+      []
+  - name: StartThirdLevelResult
+    fields:
+      - name: IsSuccess
+        csharp_type: bool
+      - name: FailureCode
+        csharp_type: "string?"
+      - name: FailureMessage
+        csharp_type: "string?"
+
+domain_to_technical_mapping:
+  - domain_rules: [DOM-START-THIRD-LEVEL-IN-001, DOM-START-THIRD-LEVEL-PRE-001]
+    target: StartThirdLevelCommand
+    description: "將外部觸發映射為 StartThirdLevelCommand，並在執行效果前驗證前置條件。"
+  - domain_rules: [DOM-START-THIRD-LEVEL-INV-001, DOM-START-THIRD-LEVEL-POST-001]
+    target: StartThirdLevelResult
+    description: "只交接一次 activate-third-level-play，不建立部分 Playing 狀態"
+
+state_mappings:
+  - mapping_id: TECH-START-THIRD-LEVEL-STATE-001
+    description: "命令被接受一次並交接 activate-third-level-play 一次；CBF 不直接產生物件或啟動門週期。"
+
+error_mappings: []
+
+no_op_mappings:
+  - mapping_id: TECH-START-THIRD-LEVEL-NOOP-001
+    condition: "目前不是第三關 Ready，或同一 Ready 狀態的開始命令已接受。"
+    behavior: "正常忽略，不交接 RIF，所有 Domain 狀態保持不變。"
+

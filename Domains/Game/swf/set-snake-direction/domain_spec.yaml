@@ -1,0 +1,99 @@
+use_case: set-snake-direction
+bounded_context: snake-game
+aggregate: game
+frame_type: SWF
+
+domain_refs:
+  - domain: Game
+    path: ../../domain_spec.yaml
+    aggregate: Game
+  - domain: Snake
+    path: ../../../Snake/domain_spec.yaml
+    aggregate: Snake
+
+traceability:
+  requirement: "frame.yaml#use_case.requirement"
+  frame_checks:
+    - SWF-SET-SNAKE-DIRECTION-001
+    - SWF-SET-SNAKE-DIRECTION-002
+    - SWF-SET-SNAKE-DIRECTION-003
+    - SWF-SET-SNAKE-DIRECTION-004
+
+contract:
+  input:
+    data: SetSnakeDirectionCommand
+    fields:
+      - name: Direction
+        type: Direction
+        required: true
+    rules:
+      - rule_id: DOM-SET-SNAKE-DIRECTION-IN-001
+        description: "Input 來自WinForms 方向鍵事件。，只能代表一次 set-snake-direction 要求。"
+        domain_field_refs: []
+        domain_rule_refs:
+          - GAME-INV-002
+          - SNAKE-DIRECTION-001
+          - SNAKE-DIRECTION-002
+          - SNAKE-DIRECTION-003
+
+  output:
+    data: SetSnakeDirectionResult
+    rules:
+      - rule_id: DOM-SET-SNAKE-DIRECTION-OUT-001
+        description: "Output 表示 set-snake-direction 是否完成；預期的不適用條件以成功 no-op 表示。"
+        domain_field_refs: []
+        domain_rule_refs: []
+
+  preconditions:
+    - rule_id: DOM-SET-SNAKE-DIRECTION-PRE-001
+      description: "game.phase == Playing，方向是 Up、Down、Left、Right，且不是目前方向的相反方向"
+      domain_field_refs: []
+      domain_rule_refs:
+        - GAME-INV-002
+        - SNAKE-DIRECTION-001
+        - SNAKE-DIRECTION-002
+        - SNAKE-DIRECTION-003
+
+  invariants:
+    - rule_id: DOM-SET-SNAKE-DIRECTION-INV-001
+      description: "只更新 Snake.next_direction；非法或直接反向輸入保持原方向"
+      domain_field_refs: []
+      domain_rule_refs:
+        - GAME-INV-002
+        - SNAKE-DIRECTION-001
+        - SNAKE-DIRECTION-002
+        - SNAKE-DIRECTION-003
+
+  process:
+    - order: 1
+      action: "辨識並驗證 方向鍵 key down。"
+    - order: 2
+      action: "確認 game.phase == Playing，方向是 Up、Down、Left、Right，且不是目前方向的相反方向。"
+    - order: 3
+      action: "只更新 Snake.next_direction；非法或直接反向輸入保持原方向"
+
+  postconditions:
+    - rule_id: DOM-SET-SNAKE-DIRECTION-POST-001
+      description: "Snake.next_direction 原子更新為 Up，蛇的位置與長度在本次操作中不變。"
+      domain_field_refs: []
+      domain_rule_refs:
+        - GAME-INV-002
+        - SNAKE-DIRECTION-001
+        - SNAKE-DIRECTION-002
+        - SNAKE-DIRECTION-003
+
+  contract_violations: []
+
+  not_applicable:
+    - rule_id: DOM-SET-SNAKE-DIRECTION-NOOP-001
+      condition: "Game 不在 Playing，或玩家輸入與目前方向直接相反的 Left。"
+      behavior: ignore
+      error: none
+      state_guarantee: "正常忽略，方向、位置、長度與其他 Domain 狀態全部不變。"
+      domain_field_refs: []
+      domain_rule_refs:
+        - GAME-INV-002
+        - SNAKE-DIRECTION-001
+        - SNAKE-DIRECTION-002
+        - SNAKE-DIRECTION-003
+

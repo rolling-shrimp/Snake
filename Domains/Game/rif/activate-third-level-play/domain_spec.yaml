@@ -1,0 +1,127 @@
+use_case: activate-third-level-play
+bounded_context: snake-game
+aggregate: game
+frame_type: RIF
+
+domain_refs:
+  - domain: Game
+    path: ../../domain_spec.yaml
+    aggregate: Game
+  - domain: Level
+    path: ../../../Level/domain_spec.yaml
+    aggregate: Level
+  - domain: Snake
+    path: ../../../Snake/domain_spec.yaml
+    aggregate: Snake
+  - domain: Board
+    path: ../../../Board/domain_spec.yaml
+    aggregate: Board
+  - domain: Food
+    path: ../../../Food/domain_spec.yaml
+    aggregate: Food
+  - domain: Shield
+    path: ../../../Shield/domain_spec.yaml
+    aggregate: Shield
+  - domain: Fire
+    path: ../../../Fire/domain_spec.yaml
+    aggregate: Fire
+  - domain: Bomb
+    path: ../../../Bomb/domain_spec.yaml
+    aggregate: Bomb
+  - domain: DoorAndMaze
+    path: ../../../DoorAndMaze/domain_spec.yaml
+    aggregate: DoorAndMaze
+
+traceability:
+  requirement: "frame.yaml#use_case.requirement"
+  frame_checks:
+    - RIF-ACTIVATE-THIRD-LEVEL-PLAY-001
+    - RIF-ACTIVATE-THIRD-LEVEL-PLAY-002
+    - RIF-ACTIVATE-THIRD-LEVEL-PLAY-003
+    - RIF-ACTIVATE-THIRD-LEVEL-PLAY-004
+
+contract:
+  input:
+    data: ActivateThirdLevelPlayCommand
+    fields:
+      []
+    rules:
+      - rule_id: DOM-ACTIVATE-THIRD-LEVEL-PLAY-IN-001
+        description: "Input 只能由未處理的 StartThirdLevelAccepted domain event 產生。"
+        domain_rule_refs:
+          - GAME-REL-002
+          - LEVEL-POLICY-003
+          - FOOD-SPAWN-001
+          - SHIELD-SPAWN-001
+          - FIRE-SPAWN-001
+          - BOMB-SPAWN-001
+          - DOOR-MAZE-CYCLE-001
+
+  output:
+    data: ActivateThirdLevelPlayResult
+    rules:
+      - rule_id: DOM-ACTIVATE-THIRD-LEVEL-PLAY-OUT-001
+        description: "Output 表示反應是否完整結束；錯誤來源或重複事件以成功 no-op 表示。"
+        domain_rule_refs: []
+
+  preconditions:
+    - rule_id: DOM-ACTIVATE-THIRD-LEVEL-PLAY-PRE-001
+      description: "game.phase == Ready、level.number == 3，且事件尚未處理"
+      domain_rule_refs:
+        - GAME-REL-002
+        - LEVEL-POLICY-003
+        - FOOD-SPAWN-001
+        - SHIELD-SPAWN-001
+        - FIRE-SPAWN-001
+        - BOMB-SPAWN-001
+        - DOOR-MAZE-CYCLE-001
+
+  invariants:
+    - rule_id: DOM-ACTIVATE-THIRD-LEVEL-PLAY-INV-001
+      description: "相同 trigger 最多造成一次效果；依序隱藏開始畫面結果、產生普通食物／特殊食物／第一個護盾／火焰／炸彈、切換 Playing，啟動 250 毫秒移動與門週期。"
+      domain_rule_refs:
+        - GAME-REL-002
+        - LEVEL-POLICY-003
+        - FOOD-SPAWN-001
+        - SHIELD-SPAWN-001
+        - FIRE-SPAWN-001
+        - BOMB-SPAWN-001
+        - DOOR-MAZE-CYCLE-001
+
+  process:
+    - order: 1
+      action: "驗證事件來源、必要狀態與去重識別。"
+    - order: 2
+      action: "依序隱藏開始畫面結果、產生普通食物／特殊食物／第一個護盾／火焰／炸彈、切換 Playing，啟動 250 毫秒移動與門週期"
+    - order: 3
+      action: "全部動作成功後才標記事件已處理並公開最終狀態。"
+
+  postconditions:
+    - rule_id: DOM-ACTIVATE-THIRD-LEVEL-PLAY-POST-001
+      description: "依序隱藏開始畫面結果、產生普通食物／特殊食物／第一個護盾／火焰／炸彈、切換 Playing，啟動 250 毫秒移動與門週期"
+      domain_rule_refs:
+        - GAME-REL-002
+        - LEVEL-POLICY-003
+        - FOOD-SPAWN-001
+        - SHIELD-SPAWN-001
+        - FIRE-SPAWN-001
+        - BOMB-SPAWN-001
+        - DOOR-MAZE-CYCLE-001
+
+  contract_violations: []
+
+  not_applicable:
+    - rule_id: DOM-ACTIVATE-THIRD-LEVEL-PLAY-NOOP-001
+      condition: "事件不是由 start-third-level 成功接受所產生。"
+      behavior: ignore
+      error: none
+      state_guarantee: "正常忽略，不產生物件、不啟動移動或門週期。"
+      domain_rule_refs:
+        - GAME-REL-002
+        - LEVEL-POLICY-003
+        - FOOD-SPAWN-001
+        - SHIELD-SPAWN-001
+        - FIRE-SPAWN-001
+        - BOMB-SPAWN-001
+        - DOOR-MAZE-CYCLE-001
+

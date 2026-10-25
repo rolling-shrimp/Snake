@@ -1,0 +1,131 @@
+use_case: rescue-with-shield
+bounded_context: snake-game
+aggregate: game
+frame_type: RIF
+
+domain_refs:
+  - domain: Game
+    path: ../../domain_spec.yaml
+    aggregate: Game
+  - domain: Snake
+    path: ../../../Snake/domain_spec.yaml
+    aggregate: Snake
+  - domain: Board
+    path: ../../../Board/domain_spec.yaml
+    aggregate: Board
+  - domain: Shield
+    path: ../../../Shield/domain_spec.yaml
+    aggregate: Shield
+  - domain: Fire
+    path: ../../../Fire/domain_spec.yaml
+    aggregate: Fire
+  - domain: Bomb
+    path: ../../../Bomb/domain_spec.yaml
+    aggregate: Bomb
+  - domain: DoorAndMaze
+    path: ../../../DoorAndMaze/domain_spec.yaml
+    aggregate: DoorAndMaze
+
+traceability:
+  requirement: "frame.yaml#use_case.requirement"
+  frame_checks:
+    - RIF-RESCUE-WITH-SHIELD-001
+    - RIF-RESCUE-WITH-SHIELD-002
+    - RIF-RESCUE-WITH-SHIELD-003
+    - RIF-RESCUE-WITH-SHIELD-004
+
+contract:
+  input:
+    data: RescueWithShieldCommand
+    fields:
+      - name: DeathCause
+        type: "DeathCause"
+        required: true
+      - name: PreHitLength
+        type: "int"
+        required: true
+    rules:
+      - rule_id: DOM-RESCUE-WITH-SHIELD-IN-001
+        description: "Input 只能由未處理的 protectable death event emitted 產生。"
+        domain_rule_refs:
+          - GAME-REL-005
+          - SHIELD-RESCUE-001
+          - SHIELD-RESCUE-002
+          - SHIELD-RESCUE-003
+          - SHIELD-RESCUE-004
+          - SHIELD-RESCUE-005
+          - SHIELD-RESCUE-006
+          - SNAKE-RESET-002
+
+  output:
+    data: RescueWithShieldResult
+    rules:
+      - rule_id: DOM-RESCUE-WITH-SHIELD-OUT-001
+        description: "Output 表示反應是否完整結束；錯誤來源或重複事件以成功 no-op 表示。"
+        domain_rule_refs: []
+
+  preconditions:
+    - rule_id: DOM-RESCUE-WITH-SHIELD-PRE-001
+      description: "game.phase == Playing，死亡原因可保護，且 shield.remaining_charges > 0"
+      domain_rule_refs:
+        - GAME-REL-005
+        - SHIELD-RESCUE-001
+        - SHIELD-RESCUE-002
+        - SHIELD-RESCUE-003
+        - SHIELD-RESCUE-004
+        - SHIELD-RESCUE-005
+        - SHIELD-RESCUE-006
+        - SNAKE-RESET-002
+
+  invariants:
+    - rule_id: DOM-RESCUE-WITH-SHIELD-INV-001
+      description: "相同 trigger 最多造成一次效果；消耗一次護盾、保留受擊前蛇長、將完整蛇身放回安全起點、搬移衝突物件並維持 Playing。"
+      domain_rule_refs:
+        - GAME-REL-005
+        - SHIELD-RESCUE-001
+        - SHIELD-RESCUE-002
+        - SHIELD-RESCUE-003
+        - SHIELD-RESCUE-004
+        - SHIELD-RESCUE-005
+        - SHIELD-RESCUE-006
+        - SNAKE-RESET-002
+
+  process:
+    - order: 1
+      action: "驗證事件來源、必要狀態與去重識別。"
+    - order: 2
+      action: "消耗一次護盾、保留受擊前蛇長、將完整蛇身放回安全起點、搬移衝突物件並維持 Playing"
+    - order: 3
+      action: "全部動作成功後才標記事件已處理並公開最終狀態。"
+
+  postconditions:
+    - rule_id: DOM-RESCUE-WITH-SHIELD-POST-001
+      description: "消耗一次護盾、保留受擊前蛇長、將完整蛇身放回安全起點、搬移衝突物件並維持 Playing"
+      domain_rule_refs:
+        - GAME-REL-005
+        - SHIELD-RESCUE-001
+        - SHIELD-RESCUE-002
+        - SHIELD-RESCUE-003
+        - SHIELD-RESCUE-004
+        - SHIELD-RESCUE-005
+        - SHIELD-RESCUE-006
+        - SNAKE-RESET-002
+
+  contract_violations: []
+
+  not_applicable:
+    - rule_id: DOM-RESCUE-WITH-SHIELD-NOOP-001
+      condition: "死亡事件發生但 remaining_charges 為 0。"
+      behavior: ignore
+      error: none
+      state_guarantee: "不執行保命，交接 end-current-level-play 的失敗流程一次。"
+      domain_rule_refs:
+        - GAME-REL-005
+        - SHIELD-RESCUE-001
+        - SHIELD-RESCUE-002
+        - SHIELD-RESCUE-003
+        - SHIELD-RESCUE-004
+        - SHIELD-RESCUE-005
+        - SHIELD-RESCUE-006
+        - SNAKE-RESET-002
+

@@ -1,0 +1,80 @@
+use_case: show-game-over-result
+bounded_context: snake-game
+aggregate: game
+frame_type: IDF
+
+spec_refs:
+  requirement: "frame.yaml#use_case.requirement"
+  domain: domain_spec.yaml
+  technical: technical_spec.yaml
+
+scenarios:
+  - id: SCN-SHOW-GAME-OVER-RESULT-001
+    title: "成功顯示：玩家死亡且無法保命後，顯示 Game Over、失敗關卡、最後蛇長與「重玩」按鈕。"
+    description: "顯示 Game Over、失敗關卡、最後蛇長、death cause、最低 0% 的進度與重玩按鈕"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - IDF-SHOW-GAME-OVER-RESULT-001
+        - IDF-SHOW-GAME-OVER-RESULT-002
+        - IDF-SHOW-GAME-OVER-RESULT-003
+        - IDF-SHOW-GAME-OVER-RESULT-004
+      domain_rules:
+        - DOM-SHOW-GAME-OVER-RESULT-PRE-001
+        - DOM-SHOW-GAME-OVER-RESULT-INV-001
+        - DOM-SHOW-GAME-OVER-RESULT-POST-001
+      technical_contracts:
+        - ShowGameOverResultResult.Data
+        - TECH-SHOW-GAME-OVER-RESULT-STATE-001
+    given:
+      - fact: "game.phase == GameOver 且最近結果為 Failed"
+    when:
+      action: execute_query
+      input:
+        type: ShowGameOverResultQuery
+        fields: {}
+    then:
+      output:
+        type: ShowGameOverResultResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
+          data_expectation: "顯示 Game Over、失敗關卡、最後蛇長、death cause、最低 0% 的進度與重玩按鈕"
+      excludes:
+        - "Passed 成績卡"
+        - "下一關開始按鈕"
+        - "仍在遊玩中的狀態"
+      domain_state:
+        unchanged: true
+
+  - id: SCN-SHOW-GAME-OVER-RESULT-002
+    title: "失敗：目前沒有可顯示的失敗結果。"
+    description: "不符合可見條件時拒絕查詢，不得洩漏部分資料。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - IDF-SHOW-GAME-OVER-RESULT-003
+        - IDF-SHOW-GAME-OVER-RESULT-004
+      domain_rules:
+        - DOM-SHOW-GAME-OVER-RESULT-ERR-001
+      technical_contracts:
+        - TECH-SHOW-GAME-OVER-RESULT-ERR-001
+    given:
+      - fact: "不符合 game.phase == GameOver 且最近結果為 Failed"
+    when:
+      action: execute_query
+      input:
+        type: ShowGameOverResultQuery
+        fields: {}
+    then:
+      output:
+        type: ShowGameOverResultResult
+        fields:
+          is_success: false
+          failure_code: RESULT_NOT_AVAILABLE
+          failure_message: "目前沒有可顯示的失敗結果。"
+          data: null
+      domain_state:
+        unchanged: true
+

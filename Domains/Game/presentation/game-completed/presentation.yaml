@@ -1,0 +1,48 @@
+schema_version: 1
+screen:
+  screen_id: game-completed
+  bounded_context: snake-game
+  aggregate: game
+  phase: completed
+  level: third
+  board_mode: frozen
+grain:
+  input: use_case_results_and_read_models
+  output: rendered_screen
+  contract_owner: WinForms
+presentation_relations:
+  - relation_id: PRES-GAME-COMPLETED-RESULT
+    target_use_case: show-game-completed-result
+    ownership: reference_only
+    target_specs:
+      frame: ../../idf/show-game-completed-result/frame.yaml
+      domain: ../../idf/show-game-completed-result/domain_spec.yaml
+      technical: ../../idf/show-game-completed-result/technical_spec.yaml
+    frame_check_refs: [IDF-SHOW-GAME-COMPLETED-RESULT-001]
+    domain_rule_refs: [DOM-SHOW-GAME-COMPLETED-RESULT-IN-001]
+    technical_contract_refs: [TECH-SHOW-GAME-COMPLETED-RESULT-STATE-001]
+  - relation_id: PRES-GAME-COMPLETED-REPLAY
+    target_use_case: reset-game-for-replay
+    ownership: reference_only
+    target_specs:
+      frame: ../../rif/reset-game-for-replay/frame.yaml
+      domain: ../../rif/reset-game-for-replay/domain_spec.yaml
+      technical: ../../rif/reset-game-for-replay/technical_spec.yaml
+    frame_check_refs: [RIF-RESET-GAME-FOR-REPLAY-001]
+    domain_rule_refs: [DOM-RESET-GAME-FOR-REPLAY-IN-001]
+    technical_contract_refs: [TECH-RESET-GAME-FOR-REPLAY-STATE-001]
+visibility:
+  required:
+    - frozen-third-level-final-board
+    - completed-message
+    - final-snake-length
+    - progress-100-percent
+    - replay-button
+  forbidden:
+    - moving-snake
+    - start-button
+    - game-over-message
+transitions:
+  - trigger: replay
+    relation_ref: PRES-GAME-COMPLETED-REPLAY
+    target_screen: first-level-playing

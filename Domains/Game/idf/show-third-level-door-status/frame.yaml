@@ -1,0 +1,31 @@
+bounded_context: snake-game
+aggregate: game
+
+use_case:
+  name: show-third-level-door-status
+  requirement: "第三關待開始與遊玩期間，顯示每扇門的目前開關、提醒或延後關閉狀態。"
+frame_type: IDF
+
+world_facts:
+  actor: display
+  required_state: "level.number == 3 且 game.phase 為 Ready 或 Playing"
+  visibility_scope: "只顯示目前有效門狀態，不預測或偽造下一個狀態"
+  side_effect_policy: none
+
+frame_concerns:
+  - concern_ref: IDF-CONCERN-001
+    check_id: IDF-SHOW-THIRD-LEVEL-DOOR-STATUS-001
+    description: "確保完整輸出 Doors、IsCycleActive。"
+
+  - concern_ref: IDF-CONCERN-002
+    check_id: IDF-SHOW-THIRD-LEVEL-DOOR-STATUS-002
+    description: "確保 每扇門輸出位置與 Open、ClosingWarning、CloseDeferred 或 Closed；提醒與實際通行政策一致，且所有值來自目前 Domain 事實。"
+
+  - concern_ref: IDF-CONCERN-003
+    check_id: IDF-SHOW-THIRD-LEVEL-DOOR-STATUS-003
+    description: "確保 只顯示目前有效門狀態，不預測或偽造下一個狀態；排除 非第三關門資料、尚未到達的預測狀態。"
+
+  - concern_ref: IDF-CONCERN-004
+    check_id: IDF-SHOW-THIRD-LEVEL-DOOR-STATUS-004
+    description: "確保查詢不改變任何 Domain、Read Model 版本或遊戲時間。"
+

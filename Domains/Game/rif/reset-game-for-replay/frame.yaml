@@ -1,0 +1,32 @@
+bounded_context: snake-game
+aggregate: game
+
+use_case:
+  name: reset-game-for-replay
+  requirement: "重玩命令被接受後，清除整輪資料並直接重新啟動第一關。"
+frame_type: RIF
+
+world_facts:
+  actor: domain_event
+  trigger: "RestartGameAccepted domain event"
+  required_state: "game.phase == GameOver 或 Completed，且重玩事件尚未處理"
+  reaction: "清除結果與所有關卡狀態，重設第一關蛇與棋盤，立即產生普通食物並以 Playing 開始，不再顯示開始按鈕"
+  delivery_policy: at_most_once_effect
+
+frame_concerns:
+  - concern_ref: RIF-CONCERN-001
+    check_id: RIF-RESET-GAME-FOR-REPLAY-001
+    description: "確保只回應未處理的 RestartGameAccepted domain event，錯誤來源與重複事件不得反應。"
+
+  - concern_ref: RIF-CONCERN-002
+    check_id: RIF-RESET-GAME-FOR-REPLAY-002
+    description: "確保 清除結果與所有關卡狀態，重設第一關蛇與棋盤，立即產生普通食物並以 Playing 開始，不再顯示開始按鈕 的必要後續行為全部完成。"
+
+  - concern_ref: RIF-CONCERN-003
+    check_id: RIF-RESET-GAME-FOR-REPLAY-003
+    description: "確保跨 Domain 動作依需求順序執行，不公開中間狀態。"
+
+  - concern_ref: RIF-CONCERN-004
+    check_id: RIF-RESET-GAME-FOR-REPLAY-004
+    description: "確保反應完成後 Game、Level、Snake、Board、Food、Shield、Fire、Bomb、DoorAndMaze、GameResult 的不變式與欄位完整。"
+

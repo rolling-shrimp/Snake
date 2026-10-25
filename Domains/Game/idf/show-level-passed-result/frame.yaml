@@ -1,0 +1,31 @@
+bounded_context: snake-game
+aggregate: game
+
+use_case:
+  name: show-level-passed-result
+  requirement: "第一或第二關通過後，顯示過關標語與記錄實際通關蛇長的成績卡。"
+frame_type: IDF
+
+world_facts:
+  actor: display
+  required_state: "最近結果是第一或第二關 Passed，且下一關處於 Ready"
+  visibility_scope: "只顯示剛完成關卡的通過結果，不顯示未完成或失敗關卡資料"
+  side_effect_policy: none
+
+frame_concerns:
+  - concern_ref: IDF-CONCERN-001
+    check_id: IDF-SHOW-LEVEL-PASSED-RESULT-001
+    description: "確保完整輸出 CompletedLevel、FinalLength、BannerText、IsScoreCardVisible。"
+
+  - concern_ref: IDF-CONCERN-002
+    check_id: IDF-SHOW-LEVEL-PASSED-RESULT-002
+    description: "確保 顯示完成關卡、過關標語、實際通關蛇長與成績卡；開始下一關後隱藏，且所有值來自目前 Domain 事實。"
+
+  - concern_ref: IDF-CONCERN-003
+    check_id: IDF-SHOW-LEVEL-PASSED-RESULT-003
+    description: "確保 只顯示剛完成關卡的通過結果，不顯示未完成或失敗關卡資料；排除 失敗結果、第三關整輪完成結果、下一關遊玩中的舊成績卡。"
+
+  - concern_ref: IDF-CONCERN-004
+    check_id: IDF-SHOW-LEVEL-PASSED-RESULT-004
+    description: "確保查詢不改變任何 Domain、Read Model 版本或遊戲時間。"
+

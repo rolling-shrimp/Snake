@@ -1,7 +1,16 @@
 ﻿# 貪吃蛇專案指引
 
-- 遊戲規則、玩家流程與可見結果以 [use_case.md](use_case.md) 為準；畫面排版、圖案與已確認的預覽以 [ui_spec.md](ui_spec.md) 為準。
-- 新計畫的 use case 輸入、輸出與狀態保證以 [design_by_contract.md](design_by_contract.md) 為準；測試案例與驗收以 [test_spec.md](test_spec.md) 為準。
-- 新增或修改 C# 程式時，遵守 [technical_spec.md](technical_spec.md) 的 C# 技術規則與 [structure_spec.md](structure_spec.md) 的專案結構規則。
-- 本機 PowerShell 設為 `AllSigned`；啟動命令僅對該次 PowerShell 程序使用 `Bypass`，不修改系統執行原則。
-- 使用 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File 'C:\Users\wbcwb\Scripts\Start-WhackAMoleCodex.ps1' -Game Snake` 開啟 codex-clean 工作階段。
+## 規格來源
+
+- 遊戲規則、玩家流程與可見結果以 `use_case.md` 為準。
+- 畫面狀態、必要／禁止元素、狀態轉換與既有 Domain 契約關聯，以 `Domains/Game/presentation/` 的 YAML 為唯一機器可驗證來源。
+- `ui_spec.md` 是 presentation YAML 的人工閱讀索引；`assets/` 的 HTML 與 PNG 是待開始畫面的視覺驗收資料，不得反向定義新需求。
+- 修改 UI 需求時，先更新 `Domains/Game/presentation/`，再同步 `ui_spec.md` 與必要的預覽資產；不得在 Aggregate 的 `domain_relations` 增加反向 presentation 關聯。
+
+## 受保護的規格目錄
+
+- `Domains/**` 與 `Pattern Network/**` 是專案規格的唯讀來源；此規則遞迴適用於既有及未來新增的所有子目錄與檔案。
+- 未取得使用者針對當次變更的明確同意前，不得在受保護目錄內建立、修改、刪除、移動、重新命名、格式化或由工具產生任何檔案。讀取、搜尋、比對與驗證不受此限制。
+- 如果工作需要修改受保護內容，必須立即暫停整個執行流程，列出確切檔案路徑、修改原因、預計內容及對程式與規格的影響，並等待使用者明確同意；等待期間不得繼續實作、測試或進行其他變更。
+- 使用者的同意僅適用於當次列出的檔案與修改內容，不得沿用至其他檔案或後續工作。一般性的 `Implement`、`Implement the plan`、先前核准或其他目錄的修改授權，都不構成修改受保護目錄的同意；範圍擴大時必須重新詢問。
+- 如果程式碼或其他文件與受保護規格衝突，不得自行同步、修正或重寫受保護規格；應回報衝突並停止執行，等待使用者決定。

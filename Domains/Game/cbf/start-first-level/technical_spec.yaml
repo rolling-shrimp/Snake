@@ -7,7 +7,7 @@ spec_refs:
   domain: domain_spec.yaml
 
 input:
-  type: none
+  type: StartFirstLevelCommand
   source: "第一關待開始畫面的「開始」按鈕 click trigger。"
   fields: []
   trigger:
@@ -18,11 +18,31 @@ input:
     required_phase: GamePhase.Ready
 
 output:
-  type: void
-  fields: []
-  result_representation: "是否在同一程序內交接 activate-first-level-play。"
+  type: StartFirstLevelResult
+  fields:
+    - name: IsSuccess
+      csharp_type: bool
+      required: true
+    - name: FailureCode
+      csharp_type: "string?"
+      required: true
+    - name: FailureMessage
+      csharp_type: "string?"
+      required: true
+  domain_output: void
+  result_representation: "Result 表示命令處理是否完成；Domain 結果仍由是否在同一程序內交接 activate-first-level-play 表示。"
 
-types: []
+types:
+  - name: StartFirstLevelCommand
+    fields: []
+  - name: StartFirstLevelResult
+    fields:
+      - name: IsSuccess
+        csharp_type: bool
+      - name: FailureCode
+        csharp_type: "string?"
+      - name: FailureMessage
+        csharp_type: "string?"
 
 domain_to_technical_mapping:
   - domain_rules:

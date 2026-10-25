@@ -1,0 +1,107 @@
+use_case: show-level-passed-result
+bounded_context: snake-game
+aggregate: game
+frame_type: IDF
+
+domain_refs:
+  - domain: Game
+    path: ../../domain_spec.yaml
+    aggregate: Game
+  - domain: Level
+    path: ../../../Level/domain_spec.yaml
+    aggregate: Level
+  - domain: GameResult
+    path: ../../../GameResult/domain_spec.yaml
+    aggregate: GameResult
+
+traceability:
+  requirement: "frame.yaml#use_case.requirement"
+  frame_checks:
+    - IDF-SHOW-LEVEL-PASSED-RESULT-001
+    - IDF-SHOW-LEVEL-PASSED-RESULT-002
+    - IDF-SHOW-LEVEL-PASSED-RESULT-003
+    - IDF-SHOW-LEVEL-PASSED-RESULT-004
+
+contract:
+  input:
+    data: none
+    rules:
+      - rule_id: DOM-SHOW-LEVEL-PASSED-RESULT-IN-001
+        description: "沒有外部業務資料；Query 讀取目前可見的 Domain／Read Model 事實。"
+        domain_rule_refs:
+          - GAME-REL-006
+          - RESULT-RECORD-001
+          - RESULT-RECORD-002
+
+  output:
+    data: LevelPassedResultRspDTO
+    rules:
+      - rule_id: DOM-SHOW-LEVEL-PASSED-RESULT-OUT-001
+        description: "CompletedLevel：完成的第一或第二關編號。"
+        domain_rule_refs:
+          - GAME-REL-006
+          - RESULT-RECORD-001
+          - RESULT-RECORD-002
+      - rule_id: DOM-SHOW-LEVEL-PASSED-RESULT-OUT-002
+        description: "FinalLength：通關時實際蛇長，不截斷超過目標的值。"
+        domain_rule_refs:
+          - GAME-REL-006
+          - RESULT-RECORD-001
+          - RESULT-RECORD-002
+      - rule_id: DOM-SHOW-LEVEL-PASSED-RESULT-OUT-003
+        description: "BannerText：關卡通過標語。"
+        domain_rule_refs:
+          - GAME-REL-006
+          - RESULT-RECORD-001
+          - RESULT-RECORD-002
+      - rule_id: DOM-SHOW-LEVEL-PASSED-RESULT-OUT-004
+        description: "IsScoreCardVisible：成績卡是否可見。"
+        domain_rule_refs:
+          - GAME-REL-006
+          - RESULT-RECORD-001
+          - RESULT-RECORD-002
+
+  preconditions:
+    - rule_id: DOM-SHOW-LEVEL-PASSED-RESULT-PRE-001
+      description: "最近結果是第一或第二關 Passed，且下一關處於 Ready"
+      domain_rule_refs:
+        - GAME-REL-006
+        - RESULT-RECORD-001
+        - RESULT-RECORD-002
+
+  invariants:
+    - rule_id: DOM-SHOW-LEVEL-PASSED-RESULT-INV-001
+      description: "查詢只讀；顯示完成關卡、過關標語、實際通關蛇長與成績卡；開始下一關後隱藏。"
+      domain_rule_refs:
+        - GAME-REL-006
+        - RESULT-RECORD-001
+        - RESULT-RECORD-002
+
+  process:
+    - order: 1
+      action: "驗證可見條件：最近結果是第一或第二關 Passed，且下一關處於 Ready。"
+    - order: 2
+      action: "讀取並映射目前 Domain／Read Model 事實。"
+    - order: 3
+      action: "建立 LevelPassedResultRspDTO，不得觸發任何業務行為。"
+
+  postconditions:
+    - rule_id: DOM-SHOW-LEVEL-PASSED-RESULT-POST-001
+      description: "顯示完成關卡、過關標語、實際通關蛇長與成績卡；開始下一關後隱藏；完成後來源狀態完全不變。"
+      domain_rule_refs:
+        - GAME-REL-006
+        - RESULT-RECORD-001
+        - RESULT-RECORD-002
+
+  contract_violations:
+    - rule_id: DOM-SHOW-LEVEL-PASSED-RESULT-ERR-001
+      condition: "不符合 最近結果是第一或第二關 Passed，且下一關處於 Ready"
+      domain_code: RESULT_NOT_AVAILABLE
+      state_guarantee: "Data 為 null，不回傳部分資料，來源狀態保持不變。"
+      domain_rule_refs:
+        - GAME-REL-006
+        - RESULT-RECORD-001
+        - RESULT-RECORD-002
+
+  not_applicable: []
+

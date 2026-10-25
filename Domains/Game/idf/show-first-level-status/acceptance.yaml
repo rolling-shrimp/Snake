@@ -30,6 +30,10 @@ scenarios:
         - DOM-FIRST-LEVEL-STATUS-POST-001
         - DOM-FIRST-LEVEL-STATUS-POST-002
       technical_contracts:
+        - ShowFirstLevelStatusResult.IsSuccess
+        - ShowFirstLevelStatusResult.FailureCode
+        - ShowFirstLevelStatusResult.FailureMessage
+        - ShowFirstLevelStatusResult.Data
         - FirstLevelStatusRspDTO.LevelName
         - FirstLevelStatusRspDTO.CurrentLength
         - FirstLevelStatusRspDTO.TargetLength
@@ -43,15 +47,21 @@ scenarios:
           target_length: 20
     when:
       action: execute_use_case
-      input: null
+      input:
+        type: ShowFirstLevelStatusQuery
+        fields: {}
     then:
       output:
-        type: FirstLevelStatusRspDTO
+        type: ShowFirstLevelStatusResult
         fields:
-          level_name: "第一關"
-          current_length: 3
-          target_length: 20
-          progress_percent: 15
+          is_success: true
+          failure_code: null
+          failure_message: null
+          data:
+            level_name: "第一關"
+            current_length: 3
+            target_length: 20
+            progress_percent: 15
         excludes:
           - shield_count
           - second_level_status
@@ -71,6 +81,10 @@ scenarios:
         - DOM-FIRST-LEVEL-STATUS-PRE-001
         - DOM-FIRST-LEVEL-STATUS-ERR-001
       technical_contracts:
+        - ShowFirstLevelStatusResult.IsSuccess
+        - ShowFirstLevelStatusResult.FailureCode
+        - ShowFirstLevelStatusResult.FailureMessage
+        - ShowFirstLevelStatusResult.Data
         - TECH-FIRST-LEVEL-STATUS-ERR-001
     given:
       - state: first_level_playing
@@ -78,10 +92,16 @@ scenarios:
           level: 1
     when:
       action: execute_use_case
-      input: null
+      input:
+        type: ShowFirstLevelStatusQuery
+        fields: {}
     then:
-      error:
-        domain_code: INVALID_GAME_PHASE
-        technical_type: InvalidOperationException
+      output:
+        type: ShowFirstLevelStatusResult
+        fields:
+          is_success: false
+          failure_code: INVALID_GAME_PHASE
+          failure_message: "目前不是第一關待開始階段。"
+          data: null
       domain_state:
         unchanged: true

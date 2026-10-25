@@ -1,0 +1,138 @@
+use_case: replenish-triggered-object
+bounded_context: snake-game
+aggregate: game
+frame_type: RIF
+
+spec_refs:
+  requirement: "frame.yaml#use_case.requirement"
+  domain: domain_spec.yaml
+  technical: technical_spec.yaml
+
+scenarios:
+  - id: SCN-REPLENISH-TRIGGERED-OBJECT-001
+    title: "補充食物或危險物件"
+    description: "建立新的 ItemId，於合法未占用格補同類物件，同類 active 物件仍最多一個。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - RIF-REPLENISH-TRIGGERED-OBJECT-001
+        - RIF-REPLENISH-TRIGGERED-OBJECT-002
+        - RIF-REPLENISH-TRIGGERED-OBJECT-003
+        - RIF-REPLENISH-TRIGGERED-OBJECT-004
+      domain_rules:
+        - DOM-REPLENISH-TRIGGERED-OBJECT-PRE-001
+        - DOM-REPLENISH-TRIGGERED-OBJECT-POST-001
+      technical_contracts:
+        - ReplenishTriggeredObjectResult.IsSuccess
+        - TECH-REPLENISH-TRIGGERED-OBJECT-STATE-001
+    given:
+      - fact: "物件已觸發、玩家仍在本關 Playing，且存在合法空格。"
+    when:
+      action: replenish_triggered_object
+      input:
+        type: ReplenishTriggeredObjectCommand
+        fields: {}
+    then:
+      output:
+        type: ReplenishTriggeredObjectResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
+      reaction_effect: "建立新的 ItemId，於合法未占用格補同類物件，同類 active 物件仍最多一個。"
+
+  - id: SCN-REPLENISH-TRIGGERED-OBJECT-002
+    title: "依序補第二個護盾"
+    description: "在合法空格建立第二個護盾；第二個被吃掉後不再補發。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - RIF-REPLENISH-TRIGGERED-OBJECT-001
+        - RIF-REPLENISH-TRIGGERED-OBJECT-002
+        - RIF-REPLENISH-TRIGGERED-OBJECT-003
+        - RIF-REPLENISH-TRIGGERED-OBJECT-004
+      domain_rules:
+        - DOM-REPLENISH-TRIGGERED-OBJECT-PRE-001
+        - DOM-REPLENISH-TRIGGERED-OBJECT-POST-001
+      technical_contracts:
+        - ReplenishTriggeredObjectResult.IsSuccess
+        - TECH-REPLENISH-TRIGGERED-OBJECT-STATE-001
+    given:
+      - fact: "本關第一個護盾被吃掉，spawned_count 為 1。"
+    when:
+      action: replenish_triggered_object
+      input:
+        type: ReplenishTriggeredObjectCommand
+        fields: {}
+    then:
+      output:
+        type: ReplenishTriggeredObjectResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
+      reaction_effect: "在合法空格建立第二個護盾；第二個被吃掉後不再補發。"
+
+  - id: SCN-REPLENISH-TRIGGERED-OBJECT-003
+    title: "暫無合法空格"
+    description: "不重疊產生物件，記錄 pending，等待之後出現合法空格。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - RIF-REPLENISH-TRIGGERED-OBJECT-001
+        - RIF-REPLENISH-TRIGGERED-OBJECT-002
+        - RIF-REPLENISH-TRIGGERED-OBJECT-003
+        - RIF-REPLENISH-TRIGGERED-OBJECT-004
+      domain_rules:
+        - DOM-REPLENISH-TRIGGERED-OBJECT-PRE-001
+        - DOM-REPLENISH-TRIGGERED-OBJECT-POST-001
+      technical_contracts:
+        - ReplenishTriggeredObjectResult.IsSuccess
+        - TECH-REPLENISH-TRIGGERED-OBJECT-STATE-001
+    given:
+      - fact: "效果已完成但 legal_spawn_cells 為空。"
+    when:
+      action: replenish_triggered_object
+      input:
+        type: ReplenishTriggeredObjectCommand
+        fields: {}
+    then:
+      output:
+        type: ReplenishTriggeredObjectResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
+      reaction_effect: "不重疊產生物件，記錄 pending，等待之後出現合法空格。"
+
+  - id: SCN-REPLENISH-TRIGGERED-OBJECT-004
+    title: "關卡已結束"
+    description: "正常忽略並清除不應保留的 pending，不補充任何物件。"
+    traces:
+      requirement: "frame.yaml#use_case.requirement"
+      frame_checks:
+        - RIF-REPLENISH-TRIGGERED-OBJECT-001
+        - RIF-REPLENISH-TRIGGERED-OBJECT-004
+      domain_rules:
+        - DOM-REPLENISH-TRIGGERED-OBJECT-NOOP-001
+        - DOM-REPLENISH-TRIGGERED-OBJECT-INV-001
+      technical_contracts:
+        - ReplenishTriggeredObjectResult.IsSuccess
+        - TECH-REPLENISH-TRIGGERED-OBJECT-NOOP-001
+    given:
+      - fact: "Game 已不是 Playing。"
+    when:
+      action: replenish_triggered_object
+      input:
+        type: ReplenishTriggeredObjectCommand
+        fields: {}
+    then:
+      output:
+        type: ReplenishTriggeredObjectResult
+        fields:
+          is_success: true
+          failure_code: null
+          failure_message: null
+      domain_state:
+        unchanged: true
+

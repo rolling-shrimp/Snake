@@ -1,0 +1,131 @@
+use_case: replenish-triggered-object
+bounded_context: snake-game
+aggregate: game
+frame_type: RIF
+
+domain_refs:
+  - domain: Game
+    path: ../../domain_spec.yaml
+    aggregate: Game
+  - domain: Level
+    path: ../../../Level/domain_spec.yaml
+    aggregate: Level
+  - domain: Board
+    path: ../../../Board/domain_spec.yaml
+    aggregate: Board
+  - domain: Food
+    path: ../../../Food/domain_spec.yaml
+    aggregate: Food
+  - domain: Shield
+    path: ../../../Shield/domain_spec.yaml
+    aggregate: Shield
+  - domain: Fire
+    path: ../../../Fire/domain_spec.yaml
+    aggregate: Fire
+  - domain: Bomb
+    path: ../../../Bomb/domain_spec.yaml
+    aggregate: Bomb
+
+traceability:
+  requirement: "frame.yaml#use_case.requirement"
+  frame_checks:
+    - RIF-REPLENISH-TRIGGERED-OBJECT-001
+    - RIF-REPLENISH-TRIGGERED-OBJECT-002
+    - RIF-REPLENISH-TRIGGERED-OBJECT-003
+    - RIF-REPLENISH-TRIGGERED-OBJECT-004
+
+contract:
+  input:
+    data: ReplenishTriggeredObjectCommand
+    fields:
+      - name: ObjectType
+        type: "GameObjectType"
+        required: true
+      - name: PreviousItemId
+        type: "string"
+        required: true
+    rules:
+      - rule_id: DOM-REPLENISH-TRIGGERED-OBJECT-IN-001
+        description: "Input 只能由未處理的 object effect resolution completed 產生。"
+        domain_rule_refs:
+          - GAME-REL-004
+          - BOARD-PLACE-001
+          - BOARD-PLACE-002
+          - FOOD-SPAWN-004
+          - FOOD-SPAWN-005
+          - SHIELD-SPAWN-002
+          - FIRE-SPAWN-003
+          - BOMB-SPAWN-003
+
+  output:
+    data: ReplenishTriggeredObjectResult
+    rules:
+      - rule_id: DOM-REPLENISH-TRIGGERED-OBJECT-OUT-001
+        description: "Output 表示反應是否完整結束；錯誤來源或重複事件以成功 no-op 表示。"
+        domain_rule_refs: []
+
+  preconditions:
+    - rule_id: DOM-REPLENISH-TRIGGERED-OBJECT-PRE-001
+      description: "game.phase == Playing、目前關卡允許該物件，且效果與 Shield／通關／死亡判定都已完成"
+      domain_rule_refs:
+        - GAME-REL-004
+        - BOARD-PLACE-001
+        - BOARD-PLACE-002
+        - FOOD-SPAWN-004
+        - FOOD-SPAWN-005
+        - SHIELD-SPAWN-002
+        - FIRE-SPAWN-003
+        - BOMB-SPAWN-003
+
+  invariants:
+    - rule_id: DOM-REPLENISH-TRIGGERED-OBJECT-INV-001
+      description: "相同 trigger 最多造成一次效果；在合法未占用格補同類物件；無合法格時記錄 pending；關卡已結束時停止補充。"
+      domain_rule_refs:
+        - GAME-REL-004
+        - BOARD-PLACE-001
+        - BOARD-PLACE-002
+        - FOOD-SPAWN-004
+        - FOOD-SPAWN-005
+        - SHIELD-SPAWN-002
+        - FIRE-SPAWN-003
+        - BOMB-SPAWN-003
+
+  process:
+    - order: 1
+      action: "驗證事件來源、必要狀態與去重識別。"
+    - order: 2
+      action: "在合法未占用格補同類物件；無合法格時記錄 pending；關卡已結束時停止補充"
+    - order: 3
+      action: "全部動作成功後才標記事件已處理並公開最終狀態。"
+
+  postconditions:
+    - rule_id: DOM-REPLENISH-TRIGGERED-OBJECT-POST-001
+      description: "在合法未占用格補同類物件；無合法格時記錄 pending；關卡已結束時停止補充"
+      domain_rule_refs:
+        - GAME-REL-004
+        - BOARD-PLACE-001
+        - BOARD-PLACE-002
+        - FOOD-SPAWN-004
+        - FOOD-SPAWN-005
+        - SHIELD-SPAWN-002
+        - FIRE-SPAWN-003
+        - BOMB-SPAWN-003
+
+  contract_violations: []
+
+  not_applicable:
+    - rule_id: DOM-REPLENISH-TRIGGERED-OBJECT-NOOP-001
+      condition: "Game 已不是 Playing。"
+      behavior: ignore
+      error: none
+      state_guarantee: "正常忽略並清除不應保留的 pending，不補充任何物件。"
+      domain_rule_refs:
+        - GAME-REL-004
+        - BOARD-PLACE-001
+        - BOARD-PLACE-002
+        - FOOD-SPAWN-004
+        - FOOD-SPAWN-005
+        - SHIELD-SPAWN-002
+        - FIRE-SPAWN-003
+        - BOMB-SPAWN-003
+

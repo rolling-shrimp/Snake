@@ -6,10 +6,10 @@
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <RootNamespace>Snake</RootNamespace>
+    <RootNamespace>Snake.WinForms</RootNamespace>
+    <AssemblyName>Snake.WinForms</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
-    <Content Include="..\assets\new ui\*.svg" Link="assets\new ui\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <InternalsVisibleTo Include="Snake.Tests" />
+    <ProjectReference Include="..\Snake.UseCases\Snake.UseCases.csproj" />
   </ItemGroup>
 </Project>

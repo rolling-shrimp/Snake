@@ -1,0 +1,70 @@
+use_case: rescue-with-shield
+bounded_context: snake-game
+aggregate: game
+frame_type: RIF
+
+spec_refs:
+  domain: domain_spec.yaml
+
+input:
+  type: RescueWithShieldCommand
+  source: "protectable death event emitted"
+  fields:
+    - name: DeathCause
+      csharp_type: "DeathCause"
+      required: true
+    - name: PreHitLength
+      csharp_type: "int"
+      required: true
+
+output:
+  type: RescueWithShieldResult
+  fields:
+    - name: IsSuccess
+      csharp_type: bool
+      required: true
+    - name: FailureCode
+      csharp_type: "string?"
+      required: true
+    - name: FailureMessage
+      csharp_type: "string?"
+      required: true
+  domain_output: "消耗一次護盾、保留受擊前蛇長、將完整蛇身放回安全起點、搬移衝突物件並維持 Playing"
+
+types:
+  - name: RescueWithShieldCommand
+    fields:
+      - name: DeathCause
+        csharp_type: "DeathCause"
+        required: true
+      - name: PreHitLength
+        csharp_type: "int"
+        required: true
+  - name: RescueWithShieldResult
+    fields:
+      - name: IsSuccess
+        csharp_type: bool
+      - name: FailureCode
+        csharp_type: "string?"
+      - name: FailureMessage
+        csharp_type: "string?"
+
+domain_to_technical_mapping:
+  - domain_rules: [DOM-RESCUE-WITH-SHIELD-IN-001, DOM-RESCUE-WITH-SHIELD-PRE-001]
+    target: RescueWithShieldCommand
+    description: "Domain Event 經 Reactor 去重後轉成一次內部 Command。"
+  - domain_rules: [DOM-RESCUE-WITH-SHIELD-INV-001, DOM-RESCUE-WITH-SHIELD-POST-001]
+    target: RescueWithShieldResult
+    description: "消耗一次護盾、保留受擊前蛇長、將完整蛇身放回安全起點、搬移衝突物件並維持 Playing"
+
+state_mappings:
+  - mapping_id: TECH-RESCUE-WITH-SHIELD-STATE-001
+    description: "消耗一次護盾、保留受擊前蛇長、將完整蛇身放回安全起點、搬移衝突物件並維持 Playing"
+
+error_mappings: []
+
+no_op_mappings:
+  - mapping_id: TECH-RESCUE-WITH-SHIELD-NOOP-001
+    condition: "死亡事件發生但 remaining_charges 為 0。"
+    behavior: "不執行保命，交接 end-current-level-play 的失敗流程一次。"
+

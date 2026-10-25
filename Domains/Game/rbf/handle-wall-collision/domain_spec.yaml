@@ -1,0 +1,94 @@
+use_case: handle-wall-collision
+bounded_context: snake-game
+aggregate: game
+frame_type: RBF
+
+domain_refs:
+  - domain: Game
+    path: ../../domain_spec.yaml
+    aggregate: Game
+  - domain: Board
+    path: ../../../Board/domain_spec.yaml
+    aggregate: Board
+  - domain: DoorAndMaze
+    path: ../../../DoorAndMaze/domain_spec.yaml
+    aggregate: DoorAndMaze
+  - domain: Shield
+    path: ../../../Shield/domain_spec.yaml
+    aggregate: Shield
+
+traceability:
+  requirement: "frame.yaml#use_case.requirement"
+  frame_checks:
+    - RBF-HANDLE-WALL-COLLISION-001
+    - RBF-HANDLE-WALL-COLLISION-002
+    - RBF-HANDLE-WALL-COLLISION-003
+    - RBF-HANDLE-WALL-COLLISION-004
+
+contract:
+  input:
+    data: HandleWallCollisionCommand
+    fields:
+      - name: CollisionPosition
+        type: GridPositionDTO
+        required: true
+    rules:
+      - rule_id: DOM-HANDLE-WALL-COLLISION-IN-001
+        description: "Input 表示一次已觀察到的條件事實：next snake head cell is a wall cell。"
+        domain_rule_refs:
+          - BOARD-BOUNDARY-002
+          - DOOR-MAZE-COLLISION-001
+          - GAME-REL-005
+
+  output:
+    data: HandleWallCollisionResult
+    rules:
+      - rule_id: DOM-HANDLE-WALL-COLLISION-OUT-001
+        description: "Output 表示必要行為是否完成；不適用條件以成功 no-op 表示。"
+        domain_rule_refs: []
+
+  preconditions:
+    - rule_id: DOM-HANDLE-WALL-COLLISION-PRE-001
+      description: "game.phase == Playing、level.number == 3，且目標格為外牆或內牆"
+      domain_rule_refs:
+        - BOARD-BOUNDARY-002
+        - DOOR-MAZE-COLLISION-001
+        - GAME-REL-005
+
+  invariants:
+    - rule_id: DOM-HANDLE-WALL-COLLISION-INV-001
+      description: "同一條件事實最多處理一次；不提交蛇身位置並產生一次 WallCollision，等待 Shield 決策。"
+      domain_rule_refs:
+        - BOARD-BOUNDARY-002
+        - DOOR-MAZE-COLLISION-001
+        - GAME-REL-005
+
+  process:
+    - order: 1
+      action: "確認觸發事實與 game.phase == Playing、level.number == 3，且目標格為外牆或內牆。"
+    - order: 2
+      action: "不提交蛇身位置並產生一次 WallCollision，等待 Shield 決策"
+    - order: 3
+      action: "發布後續流程需要的結果事實，但不越權執行其他 Use Case。"
+
+  postconditions:
+    - rule_id: DOM-HANDLE-WALL-COLLISION-POST-001
+      description: "不提交蛇身位置並產生一次 WallCollision，等待 Shield 決策"
+      domain_rule_refs:
+        - BOARD-BOUNDARY-002
+        - DOOR-MAZE-COLLISION-001
+        - GAME-REL-005
+
+  contract_violations: []
+
+  not_applicable:
+    - rule_id: DOM-HANDLE-WALL-COLLISION-NOOP-001
+      condition: "第一或第二關蛇頭跨越棋盤邊界。"
+      behavior: ignore
+      error: none
+      state_guarantee: "本 Use Case 不處理，交由 Wrap 邊界政策移動，不產生 WallCollision。"
+      domain_rule_refs:
+        - BOARD-BOUNDARY-002
+        - DOOR-MAZE-COLLISION-001
+        - GAME-REL-005
+
