@@ -13,7 +13,7 @@ public class GateApplication
             }
 
             string command = arguments[0];
-            Dictionary<string, string> options = ParseOptions(arguments.Skip(1).ToArray());
+            Dictionary<string, List<string>> options = ParseOptions(arguments.Skip(1).ToArray());
             GateRunResult result;
             if (command == "validate-network")
             {
@@ -34,9 +34,44 @@ public class GateApplication
             {
                 string networkPath = GetRequiredOption(options, "--network");
                 string solutionPath = GetRequiredOption(options, "--solution");
-                options.TryGetValue("--node", out string? nodeFilter);
+                string? nodeFilter = GetOptionalOption(options, "--node");
                 CodeGateRunner runner = new CodeGateRunner();
                 result = runner.CheckCode(networkPath, solutionPath, nodeFilter);
+            }
+            else if (command == "validate-specs")
+            {
+                string domainsPath = GetRequiredOption(options, "--domains");
+                List<string> entryPaths = options.TryGetValue("--entry", out List<string>? entries)
+                    ? entries
+                    : new List<string>();
+                SpecificationValidator validator = new SpecificationValidator();
+                SpecificationValidationResult validation = validator.Validate(domainsPath, entryPaths);
+                result = new GateRunResult(validation.Issues, validation.HasConfigurationError);
+            }
+            else if (command == "validate-migration")
+            {
+                string domainsPath = GetRequiredOption(options, "--domains");
+                string networkPath = GetRequiredOption(options, "--network");
+                MigrationMapValidator validator = new MigrationMapValidator();
+                MigrationMapValidationResult validation = validator.Validate(domainsPath, networkPath);
+                result = new GateRunResult(validation.Issues, validation.HasConfigurationError);
+            }
+            else if (command == "verify-project")
+            {
+                string networkPath = GetRequiredOption(options, "--network");
+                string domainsPath = GetRequiredOption(options, "--domains");
+                string misfitPath = GetRequiredOption(options, "--misfit");
+                string solutionPath = GetRequiredOption(options, "--solution");
+                string projectRoot = GetRequiredOption(options, "--project-root");
+                string outputDirectory = GetRequiredOption(options, "--output-dir");
+                ProjectVerificationRunner runner = new ProjectVerificationRunner();
+                result = runner.Verify(
+                    networkPath,
+                    domainsPath,
+                    misfitPath,
+                    solutionPath,
+                    projectRoot,
+                    outputDirectory);
             }
             else
             {
@@ -46,7 +81,8 @@ public class GateApplication
 
             GateReportWriter reportWriter = new GateReportWriter();
             reportWriter.WriteText(result, output);
-            if (options.TryGetValue("--json-output", out string? jsonOutputPath))
+            string? jsonOutputPath = GetOptionalOption(options, "--json-output");
+            if (!string.IsNullOrWhiteSpace(jsonOutputPath))
             {
                 WriteJsonReport(jsonOutputPath, reportWriter.CreateJson(result));
             }
@@ -71,9 +107,9 @@ public class GateApplication
         }
     }
 
-    private Dictionary<string, string> ParseOptions(string[] arguments)
+    private Dictionary<string, List<string>> ParseOptions(string[] arguments)
     {
-        Dictionary<string, string> options = new Dictionary<string, string>(StringComparer.Ordinal);
+        Dictionary<string, List<string>> options = new Dictionary<string, List<string>>(StringComparer.Ordinal);
         HashSet<string> supportedOptions = new HashSet<string>(StringComparer.Ordinal)
         {
             "--network",
@@ -81,7 +117,10 @@ public class GateApplication
             "--node",
             "--domains",
             "--project-root",
-            "--json-output"
+            "--json-output",
+            "--entry",
+            "--misfit",
+            "--output-dir"
         };
         int index = 0;
         while (index < arguments.Length)
@@ -97,10 +136,17 @@ public class GateApplication
                 throw new ArgumentException($"選項 {option} 缺少值。");
             }
 
-            if (!options.TryAdd(option, arguments[index + 1]))
+            if (!options.TryGetValue(option, out List<string>? values))
+            {
+                values = new List<string>();
+                options.Add(option, values);
+            }
+            else if (option != "--entry")
             {
                 throw new ArgumentException($"選項 {option} 不得重複。");
             }
+
+            values.Add(arguments[index + 1]);
 
             index += 2;
         }
@@ -108,14 +154,25 @@ public class GateApplication
         return options;
     }
 
-    private string GetRequiredOption(Dictionary<string, string> options, string option)
+    private string GetRequiredOption(Dictionary<string, List<string>> options, string option)
     {
-        if (!options.TryGetValue(option, out string? value) || string.IsNullOrWhiteSpace(value))
+        string? value = GetOptionalOption(options, option);
+        if (string.IsNullOrWhiteSpace(value))
         {
             throw new ArgumentException($"缺少必要選項：{option}");
         }
 
         return value;
+    }
+
+    private string? GetOptionalOption(Dictionary<string, List<string>> options, string option)
+    {
+        if (options.TryGetValue(option, out List<string>? values) && values.Count == 1)
+        {
+            return values[0];
+        }
+
+        return null;
     }
 
     private void WriteJsonReport(string jsonOutputPath, string json)
@@ -143,5 +200,8 @@ public class GateApplication
         error.WriteLine("  validate-network --network <path> [--json-output <file>]");
         error.WriteLine("  validate-presentations --domains <path> --project-root <path> [--json-output <file>]");
         error.WriteLine("  check-code --network <path> --solution <solution> [--node <id>] [--json-output <file>]");
+        error.WriteLine("  validate-specs --domains <path> [--entry <file> ...] [--json-output <file>]");
+        error.WriteLine("  validate-migration --domains <path> --network <path> [--json-output <file>]");
+        error.WriteLine("  verify-project --network <path> --domains <path> --misfit <file> --solution <solution> --project-root <path> --output-dir <path> [--json-output <file>]");
     }
 }

@@ -1,0 +1,72 @@
+schema_version: 3
+spec_kind: workflow_contract
+id: V3-WF-GAME-GET-CURRENT-SCREEN
+workflow: GetCurrentScreen
+frame_ref: V3-FRAME-GAME-GET-CURRENT-SCREEN
+input:
+  grain: one_empty_current_screen_query
+  owner: ui_query_adapter
+  rules:
+    - "一次 Query 只要求目前已提交狀態的一份完整畫面。"
+output:
+  grain: one_complete_immutable_screen_result
+  owner: application_workflow
+  guarantees:
+    - "Screen 完整對應同一個已提交快照。"
+    - "RuntimeDirective 永遠為 Unchanged。"
+domain_refs:
+  - V3-AGG-BOARD-BOARD
+  - V3-AGG-BOMB-BOMB
+  - V3-AGG-DOORMAZE-DOORMAZE
+  - V3-AGG-FIRE-FIRE
+  - V3-AGG-FOOD-FOOD
+  - V3-AGG-GAME-GAME
+  - V3-AGG-GAMERESULT-GAMERESULT
+  - V3-AGG-LEVEL-LEVEL
+  - V3-AGG-SHIELD-SHIELD
+  - V3-AGG-SNAKE-SNAKE
+preconditions:
+  - id: V3-WF-SCREEN-PRE-CONSISTENT-SNAPSHOT
+    rule: "所有 Aggregate 必須能載入同一個已提交版本的遊戲快照。"
+decisions:
+  - id: V3-WF-SCREEN-DECISION-READY
+    rule: "Ready 依 Level 1、2、3 分別選擇 FirstLevelReady、SecondLevelReady、ThirdLevelReady。"
+  - id: V3-WF-SCREEN-DECISION-PLAYING
+    rule: "Playing 依 Level 1、2、3 分別選擇 FirstLevelPlaying、SecondLevelPlaying、ThirdLevelPlaying。"
+  - id: V3-WF-SCREEN-DECISION-TERMINAL
+    rule: "GameOver 選擇 GameOver；Completed 選擇 GameCompleted。"
+steps:
+  - order: 1
+    id: V3-WF-SCREEN-STEP-LOAD
+    action: "以唯讀方式載入同一版本的完整已提交遊戲快照。"
+  - order: 2
+    id: V3-WF-SCREEN-STEP-VALIDATE
+    action: "驗證快照的 Aggregate invariant、Level 與 Game phase 組合一致。"
+  - order: 3
+    id: V3-WF-SCREEN-STEP-SELECT
+    action: "只依 Game phase 與目前 Level 選擇唯一 GameScreenKind。"
+  - order: 4
+    id: V3-WF-SCREEN-STEP-PROJECT
+    action: "從同一快照建立完整且不可變的 GameScreenOutput，回傳 RuntimeDirective.Unchanged。"
+stop_conditions:
+  - "無法取得一致快照或 phase／level 組合無法對應唯一畫面時，回傳失敗且不得製造部分 Screen。"
+commit_policy:
+  unit: none_read_only
+  atomicity: one_consistent_committed_snapshot
+  visibility: one_complete_result
+  rules:
+    - "不得呼叫任何 Aggregate mutation behavior 或狀態儲存操作。"
+postconditions:
+  - id: V3-WF-SCREEN-POST-COMPLETE
+    rule: "成功時恰好回傳一份完整 GameScreenOutput。"
+  - id: V3-WF-SCREEN-POST-NO-MUTATION
+    rule: "查詢前後所有 Domain 狀態、版本與時間值完全相同。"
+  - id: V3-WF-SCREEN-POST-RUNTIME
+    rule: "成功與失敗的 RuntimeDirective 都是 Unchanged。"
+failures:
+  - code: InconsistentSnapshot
+    condition: "無法載入同一版本的完整 Aggregate 快照。"
+    state_guarantee: no_state_changed
+  - code: UnsupportedScreenState
+    condition: "Game phase 與 Level 組合無法對應唯一 GameScreenKind。"
+    state_guarantee: no_state_changed_and_no_partial_screen

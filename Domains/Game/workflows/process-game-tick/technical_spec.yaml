@@ -1,0 +1,132 @@
+schema_version: 3
+spec_kind: technical_contract
+id: V3-TECH-GAME-PROCESS-TICK
+operation: ProcessGameTick
+workflow_ref: V3-WF-GAME-PROCESS-TICK
+technical_ref: V3-TECH-GAME-GET-CURRENT-SCREEN
+input:
+  model: ProcessGameTickCommand
+  fields:
+    - name: AccumulatedElapsedMilliseconds
+      type: long
+      required: true
+      constraints:
+        - non_negative
+        - monotonic_within_current_level
+  grain: one_clock_observation_for_one_game_session
+output:
+  model: ProcessGameTickResult
+  fields:
+    - name: IsSuccess
+      type: bool
+      required: true
+    - name: Outcome
+      type: ProcessGameTickOutcome
+      required: true
+    - name: FailureCode
+      type: string
+      required: false
+    - name: FailureMessage
+      type: string
+      required: false
+    - name: Screen
+      type: GameScreenOutput
+      required: true
+      type_contract: V3-TECH-GAME-GET-CURRENT-SCREEN
+    - name: RuntimeDirective
+      type: RuntimeDirective
+      required: true
+      type_contract: V3-TECH-GAME-GET-CURRENT-SCREEN
+    - name: ProcessedEvents
+      type: List<GameTickEventDTO>
+      required: true
+  grain: one_complete_tick_result
+types:
+  - name: ProcessGameTickOutcome
+    kind: enum
+    values:
+      - NotPlaying
+      - NoDueEvents
+      - EventsProcessed
+      - LevelReady
+      - ShieldRescued
+      - GameOver
+      - GameCompleted
+      - Failed
+  - name: GameTickEventType
+    kind: enum
+    values:
+      - DoorClosingWarning
+      - DoorToggle
+      - DoorCloseDeferred
+      - DoorClosedAfterDeparture
+      - SnakeMoved
+      - ObjectContact
+      - ShieldRescued
+      - LevelPassed
+      - GameOver
+      - GameCompleted
+      - ObjectReplenished
+  - name: GameTickEventDTO
+    fields:
+      - name: DueElapsedMilliseconds
+        type: long
+        required: true
+      - name: Sequence
+        type: int
+        required: true
+      - name: EventType
+        type: GameTickEventType
+        required: true
+      - name: Outcome
+        type: string
+        required: true
+ports:
+  - role: game_snapshot_store
+    responsibility: "載入同一版本的完整遊戲快照，並以 compare-and-swap 或等價機制一次提交完整 Tick。"
+    operations:
+      - load_current_snapshot
+      - commit_complete_snapshot
+  - role: spawn_position_selector
+    responsibility: "從 Board 已驗證的候選格中選擇一格；沒有候選時回傳無結果，不製造預設座標。"
+  - role: game_screen_output_factory
+    responsibility: "只從最終工作快照建立完整 GameScreenOutput，不回傳 Entity 或可變集合。"
+error_mappings:
+  - failure_code: InvalidElapsedTime
+    is_success: false
+    runtime_directive: Unchanged
+  - failure_code: InconsistentSnapshot
+    is_success: false
+    runtime_directive: Unchanged
+  - failure_code: SnakeTopologyUnavailable
+    is_success: false
+    runtime_directive: Unchanged
+  - failure_code: AtomicCommitFailed
+    is_success: false
+    runtime_directive: Unchanged
+domain_mappings:
+  - domain_refs:
+      - V3-GAME-BEHAVIOR-VALIDATE-TICK-TIME
+      - V3-DOORMAZE-BEHAVIOR-GET-DUE-EVENTS
+    target: ProcessGameTickCommand.AccumulatedElapsedMilliseconds
+  - domain_refs:
+      - V3-SNAKE-BEHAVIOR-PLAN-MOVEMENT
+      - V3-SNAKE-BEHAVIOR-COMMIT-MOVEMENT
+    target: GameTickEventDTO.SnakeMoved
+  - domain_refs:
+      - V3-FOOD-BEHAVIOR-COMMIT-CONSUMPTION
+      - V3-FIRE-BEHAVIOR-COMMIT-EFFECT
+      - V3-BOMB-BEHAVIOR-COMMIT-CONTACT
+      - V3-SHIELD-BEHAVIOR-COMMIT-COLLECTION
+    target: GameTickEventDTO.ObjectContact
+  - domain_refs:
+      - V3-LEVEL-BEHAVIOR-CALCULATE-PROGRESS
+      - V3-GAMERESULT-BEHAVIOR-RECORD-PASSED
+      - V3-GAMERESULT-BEHAVIOR-RECORD-FAILED
+    target: GameScreenOutput
+implementation_binding:
+  owner_role: application_workflow
+  logical_operation: ProcessGameTick
+  class_count_constraint: none
+  method_name_constraint: none
+  ui_boundary: "一個 Timer event 只能呼叫這個完整 operation 一次，之後機械式套用 RuntimeDirective 並提交 Screen。"

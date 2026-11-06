@@ -1,35 +1,43 @@
-domain:
-  name: Snake
-  bounded_context: snake-game
-  aggregate_root: Snake
-  purpose: "擁有蛇身、方向、移動與長度變化規則。"
-
-aggregate:
-  name: Snake
-  fields:
-    - name: snake_id
-      path: snake.snake_id
-      type: SnakeId
-      required: true
-    - name: body_cells
-      path: snake.body_cells
-      type: "OrderedList<Board.GridPosition>"
-      required: true
-    - name: current_direction
-      path: snake.current_direction
-      type: Direction
-      required: true
-    - name: queued_direction
-      path: snake.queued_direction
-      type: Direction
-      required: false
-
+schema_version: 3
+spec_kind: aggregate_contract
+id: V3-AGG-SNAKE-SNAKE
+aggregate: Snake
+state:
+  - name: snake_id
+    type: SnakeId
+    required: true
+  - name: body_cells
+    type: List<GridPosition>
+    required: true
+    ordering: head_to_tail
+  - name: current_direction
+    type: Direction
+    required: true
+  - name: queued_direction
+    type: Direction
+    required: false
 value_objects:
-  SnakeId:
-    opaque: true
-    description: "Snake Aggregate 的領域專屬識別型別。"
-
-  LengthChangeResult:
+  - name: SnakeId
+    kind: opaque_identity
+  - name: SnakeMovementPlan
+    fields:
+      - name: next_head
+        type: GridPosition
+        required: true
+      - name: growth_delta
+        type: integer
+        required: true
+        allowed_values: [0, 1, 2]
+      - name: tail_will_leave
+        type: boolean
+        required: true
+      - name: self_collision_cells
+        type: List<GridPosition>
+        required: true
+      - name: resulting_body_cells
+        type: List<GridPosition>
+        required: true
+  - name: LengthChangeResult
     fields:
       - name: previous_length
         type: integer
@@ -43,147 +51,80 @@ value_objects:
       - name: is_depleted
         type: boolean
         required: true
-
 enums:
-  Direction:
-    values:
-      - Up
-      - Down
-      - Left
-      - Right
-
-configuration:
-  initial_length: 3
-  initial_direction: Right
-  movement_interval_milliseconds: 250
-  level_time_limit: none
-
-derived_values:
-  - name: length
-    path: snake.length
-    formula: "count(snake.body_cells)"
-    constraints:
-      - "最低為 0。"
-  - name: movement_interval_milliseconds
-    path: snake.movement_interval_milliseconds
-    formula: "configuration.movement_interval_milliseconds"
-  - name: level_time_limit
-    path: snake.level_time_limit
-    formula: "configuration.level_time_limit"
-
-domain_relations:
-  - relation_id: SNAKE-REL-001
-    target_domain: Game
-    target_spec: ../Game/domain_spec.yaml
-    cardinality: one
+  - name: Direction
+    values: [Up, Down, Left, Right]
+relations:
+  - target_ref: V3-AGG-BOARD-BOARD
     ownership: reference_only
-  - relation_id: SNAKE-REL-002
-    target_domain: Board
-    target_spec: ../Board/domain_spec.yaml
-    cardinality: one
+  - target_ref: V3-AGG-LEVEL-LEVEL
     ownership: reference_only
-  - relation_id: SNAKE-REL-003
-    target_domain: Level
-    target_spec: ../Level/domain_spec.yaml
-    cardinality: one
-    ownership: reference_only
-  - relation_id: SNAKE-REL-004
-    target_domain: Shield
-    target_spec: ../Shield/domain_spec.yaml
-    cardinality: one
-    ownership: reference_only
-
-rules:
-  invariants:
-    - rule_id: SNAKE-INV-001
-      description: "蛇長等於 body_cells 數量，且不得小於 0。"
-      field_refs:
-        - snake.body_cells
-        - snake.length
-    - rule_id: SNAKE-INV-002
-      description: "保存的每個蛇身格位都必須是 Board 認可的合法座標。"
-      field_refs:
-        - snake.body_cells
-
-  direction:
-    - rule_id: SNAKE-DIRECTION-001
-      description: "蛇只接受上、下、左、右四種方向。"
-      field_refs:
-        - snake.queued_direction
-    - rule_id: SNAKE-DIRECTION-002
-      description: "不得接受與目前方向直接相反的下一方向。"
-      when: "輸入方向與 current_direction 直接相反。"
-      then: "拒絕更新 queued_direction。"
-      otherwise: "將輸入保存為 queued_direction。"
-      field_refs:
-        - snake.current_direction
-        - snake.queued_direction
-    - rule_id: SNAKE-DIRECTION-003
-      description: "每關開始時方向為 Right。"
-      field_refs:
-        - snake.current_direction
-
-  movement:
-    - rule_id: SNAKE-MOVE-001
-      description: "Game 處於 Playing 時，蛇每 250 毫秒前進一格。"
-      when: "Game 允許移動且移動間隔到期。"
-      then: "依 queued_direction 或 current_direction 計算下一格，交由 Board 套用邊界政策。"
-      field_refs:
-        - snake.current_direction
-        - snake.queued_direction
-    - rule_id: SNAKE-MOVE-002
-      description: "所有關卡都沒有時間限制。"
-      field_refs:
-        - snake.snake_id
-    - rule_id: SNAKE-MOVE-003
-      description: "Board 回傳合法位置後才可更新 body_cells。"
-      when: "Board 完成下一格判定。"
-      then: "合法位置才寫入蛇身；碰撞結果交由 Game 協調死亡或護盾。"
-      field_refs:
-        - snake.body_cells
-    - rule_id: SNAKE-MOVE-004
-      description: "蛇頭下一格與既有蛇身重疊時產生 SelfCollision。"
-      when: "下一個蛇頭格位存在於目前 body_cells。"
-      then: "回報 SelfCollision，不提交重疊蛇身。"
-      field_refs:
-        - snake.body_cells
-
-  length_change:
-    - rule_id: SNAKE-LENGTH-001
-      description: "正的 length delta 使蛇身增加對應格數。"
-      when: "收到大於 0 的 length delta。"
-      then: "增加對應蛇身格數並回傳未耗盡的 LengthChangeResult。"
-      field_refs:
-        - snake.body_cells
-        - snake.length
-    - rule_id: SNAKE-LENGTH-002
-      description: "負的 length delta 先計算候選長度；有效長度最低為 0。"
-      when: "收到小於 0 的 length delta。"
-      then: "回傳 previous_length、requested_delta、max(0, candidate) 與 is_depleted。"
-      field_refs:
-        - snake.body_cells
-        - snake.length
-    - rule_id: SNAKE-LENGTH-003
-      description: "候選長度仍至少為 1 時，套用縮短後蛇身。"
-      when: "LengthChangeResult.is_depleted == false。"
-      then: "將 body_cells 縮短至 effective_length。"
-      field_refs:
-        - snake.body_cells
-        - snake.length
-
-  reset:
-    - rule_id: SNAKE-RESET-001
-      description: "進入新關卡或重玩時，蛇回到 Board 提供的安全起點，長度為 3、方向為 Right。"
-      when: "Game 要求新關卡初始化或重玩初始化。"
-      then: "使用安全起點重建 body_cells 並重設方向。"
-      field_refs:
-        - snake.body_cells
-        - snake.current_direction
-        - snake.queued_direction
-    - rule_id: SNAKE-RESET-002
-      description: "護盾保命時保留受擊前完整蛇長並重新安置；致死減長不得提交。"
-      when: "Shield 接受死亡事件並要求保命重設。"
-      then: "以受擊前 body_cells 長度建立安全起點蛇身。"
-      field_refs:
-        - snake.body_cells
-        - snake.length
+invariants:
+  - id: V3-SNAKE-INV-BODY-LENGTH
+    rule: "蛇長必須等於 body_cells 數量；非終局有效蛇身至少包含一格。"
+  - id: V3-SNAKE-INV-BODY-ORDER
+    rule: "body_cells 必須由蛇頭到蛇尾排列，順序不得反轉或省略中間格。"
+  - id: V3-SNAKE-INV-BODY-UNIQUE
+    rule: "body_cells 中每個 GridPosition 必須唯一。"
+  - id: V3-SNAKE-INV-BODY-CONTIGUOUS
+    rule: "每對相鄰 body_cells 必須依目前 Level 的 Board adjacency policy 連續。"
+  - id: V3-SNAKE-INV-DIRECTION
+    rule: "方向只能是 Up、Down、Left、Right，且下一方向不得與目前方向直接相反。"
+  - id: V3-SNAKE-INV-ALL-MUTATIONS
+    rule: "移動、成長、縮短、護盾重設與關卡重設後都必須重新滿足身體順序、唯一及連續不變式。"
+behaviors:
+  - id: V3-SNAKE-BEHAVIOR-QUEUE-DIRECTION
+    name: QueueDirection
+    input:
+      grain: one_direction
+    output:
+      grain: one_accepted_or_ignored_result
+    rules:
+      - "只有四個 Direction enum 值可進入此行為。"
+      - "直接反向時成功忽略且不改變 queued_direction。"
+  - id: V3-SNAKE-BEHAVIOR-PLAN-MOVEMENT
+    name: PlanMovement
+    input:
+      grain: one_resolved_next_head_and_growth_delta
+      fields: [next_head, growth_delta, board_policy, blocked_cells]
+    output:
+      grain: one_snake_movement_plan_or_failure
+    rules:
+      - "必須先知道下一格物件效果所決定的 growth_delta，再計算尾巴是否離開。"
+      - "growth_delta 為 0 時 tail_will_leave 為 true，自撞集合排除本次會離開的舊尾格。"
+      - "growth_delta 為 1 或 2 時舊尾格保留，自撞集合包含完整既有蛇身。"
+      - "growth_delta 為 0 時 resulting_body_cells 為新頭加上移除舊尾後的身體。"
+      - "growth_delta 為 1 時 resulting_body_cells 為新頭加上完整舊蛇身。"
+      - "growth_delta 為 2 時先保留舊尾，再依 Board 提供的直後、左側、右側候選順序附加第一個合法尾端格。"
+      - "growth_delta 為 2 且三個尾端候選都不合法時回傳失敗，不得產生不連續或重疊蛇身。"
+      - "計畫只計算結果，不得在成功提交前修改 Snake 狀態。"
+  - id: V3-SNAKE-BEHAVIOR-COMMIT-MOVEMENT
+    name: CommitMovement
+    input:
+      grain: one_validated_snake_movement_plan
+    output:
+      grain: one_committed_snake_state
+    rules:
+      - "只有通過碰撞、物件效果與 Workflow 原子提交條件的計畫可以提交。"
+      - "提交後 body_cells 必須等於 plan.resulting_body_cells 並滿足全部不變式。"
+      - "提交使用 queued_direction ?? current_direction 作為本次 effective_direction。"
+      - "提交後 current_direction 必須等於 effective_direction，queued_direction 必須清空。"
+  - id: V3-SNAKE-BEHAVIOR-CHANGE-LENGTH
+    name: ChangeLength
+    input:
+      grain: one_negative_length_delta
+    output:
+      grain: one_length_change_result
+    rules:
+      - "負值先計算 max(0, previous_length + requested_delta)。"
+      - "結果至少為 1 時從尾端縮短；結果為 0 時只回報 depleted，是否提交由死亡與護盾分支決定。"
+  - id: V3-SNAKE-BEHAVIOR-RESET-SAFELY
+    name: ResetSafely
+    input:
+      grain: one_head_to_tail_safe_body
+    output:
+      grain: one_reset_snake_state
+    rules:
+      - "新關卡或重玩使用長度 3、方向 Right。"
+      - "護盾保命使用受擊前完整長度，不提交致死減長。"
+      - "安全身體必須由 Board 提供並滿足全部 Snake 不變式。"

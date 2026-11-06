@@ -4,51 +4,56 @@ public class Game
 {
     private GameId _gameId;
     private GamePhase _phase;
+    private long _lastProcessedElapsedMilliseconds;
 
     public Game(GameId gameId)
     {
         _gameId = gameId ?? throw new ArgumentNullException(nameof(gameId));
         _phase = GamePhase.Ready;
+        _lastProcessedElapsedMilliseconds = 0;
     }
 
     public GameId GameId => _gameId;
     public GamePhase Phase => _phase;
     public bool CanStart => _phase == GamePhase.Ready;
     public bool MovementActive => _phase == GamePhase.Playing;
+    public long LastProcessedElapsedMilliseconds => _lastProcessedElapsedMilliseconds;
 
-    public StartFirstLevelAcceptedDomainEvent? AcceptFirstLevelStart()
+    internal Game Copy()
     {
-        if (!CanStart)
-        {
-            return null;
-        }
-
-        return new StartFirstLevelAcceptedDomainEvent();
+        Game copy = new Game(_gameId);
+        copy._phase = _phase;
+        copy._lastProcessedElapsedMilliseconds = _lastProcessedElapsedMilliseconds;
+        return copy;
     }
 
-    public void ActivateFirstLevel()
+    public bool StartLevel()
     {
         if (_phase != GamePhase.Ready)
         {
-            return;
+            return false;
         }
 
         _phase = GamePhase.Playing;
+        _lastProcessedElapsedMilliseconds = 0;
+        return true;
     }
 
-    public void ActivateLevel()
+    public void CommitTickTime(long accumulatedElapsedMilliseconds)
     {
-        if (_phase != GamePhase.Ready)
+        if (accumulatedElapsedMilliseconds < 0
+            || accumulatedElapsedMilliseconds < _lastProcessedElapsedMilliseconds)
         {
-            return;
+            throw new ArgumentOutOfRangeException(nameof(accumulatedElapsedMilliseconds));
         }
 
-        _phase = GamePhase.Playing;
+        _lastProcessedElapsedMilliseconds = accumulatedElapsedMilliseconds;
     }
 
     public void PrepareNextLevel()
     {
         _phase = GamePhase.Ready;
+        _lastProcessedElapsedMilliseconds = 0;
     }
 
     public void Complete()
@@ -72,6 +77,7 @@ public class Game
         if (_phase == GamePhase.GameOver || _phase == GamePhase.Completed)
         {
             _phase = GamePhase.Playing;
+            _lastProcessedElapsedMilliseconds = 0;
         }
     }
 }

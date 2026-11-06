@@ -53,7 +53,7 @@ public class SemanticGateInspector
         }
         catch (Exception exception)
         {
-            issues.Add(new GateIssue("PN-SEMANTIC-ANALYSIS", useCaseNode.Id, useCasesProjectDirectory, null, $"Use Case 語意分析失敗：{exception.Message}", "error"));
+            issues.Add(new GateIssue("V3-PN-SEMANTIC-ANALYSIS", useCaseNode.Id, useCasesProjectDirectory, null, $"Use Case 語意分析失敗：{exception.Message}", "error"));
         }
 
         return issues;
@@ -183,6 +183,6 @@ public class SemanticGateInspector
     private void AddIssue(List<GateIssue> issues, string node, SyntaxNode syntaxNode, string message)
     {
         FileLinePositionSpan lineSpan = syntaxNode.GetLocation().GetLineSpan();
-        issues.Add(new GateIssue("PN-UC-PRO-005", node, lineSpan.Path, lineSpan.StartLinePosition.Line + 1, message.TrimEnd(), "error"));
+        issues.Add(new GateIssue("V3-PN-UC-PRO-005", node, lineSpan.Path, lineSpan.StartLinePosition.Line + 1, message.TrimEnd(), "error"));
     }
 }

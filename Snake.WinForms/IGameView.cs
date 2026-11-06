@@ -1,5 +1,7 @@
 namespace Snake.WinForms;
 
+using Snake.UseCases;
+
 public interface IGameView
 {
     event EventHandler? StartRequested;
@@ -7,6 +9,7 @@ public interface IGameView
     event EventHandler<DirectionRequestedEventArgs>? DirectionRequested;
     event EventHandler<GameTickEventArgs>? TickRequested;
 
-    void Render(GameViewModel viewModel);
+    void ApplyRuntimeDirective(RuntimeDirective runtimeDirective);
+    void RenderGameScreen(GameScreenOutput screen);
     void ShowFailure(string message);
 }

@@ -1,4 +1,5 @@
 using System.Drawing;
+using Snake.Entities;
 using Snake.UseCases;
 using Snake.WinForms;
 
@@ -15,7 +16,10 @@ public class GameFormRenderingTests
         {
             using GameForm form = new GameForm();
             SnakeGameSession session = new SnakeGameSession();
-            GamePresenter presenter = new GamePresenter(form, session);
+            SnakeGameApplicationService service = new SnakeGameApplicationService(
+                session,
+                new FirstLegalSpawnPositionSelector());
+            GamePresenter presenter = new GamePresenter(form, service);
             presenter.Initialize();
 
             using Bitmap bitmap = Render(form);
@@ -29,13 +33,12 @@ public class GameFormRenderingTests
             Assert.DoesNotContain("重玩", visibleText);
             Assert.True(CountPixels(bitmap, Color.FromArgb(63, 126, 104)) > 100);
             Assert.True(CountPixels(bitmap, Color.FromArgb(255, 249, 223)) > 100);
-            SaveCaptureWhenRequested(bitmap, "snake-ui-first-ready.png");
 
             Button startButton = FindControls<Button>(form)
                 .Single(button => button.Visible && button.Text == "開始");
             startButton.PerformClick();
 
-            Assert.Equal(GameplayPhase.Playing, session.ReadGameplay().Phase);
+            Assert.Equal(GamePhase.Playing, session.Load().Snapshot.Game.Phase);
             Assert.DoesNotContain(
                 FindControls<Button>(form),
                 button => button.Visible && button.Text == "開始");
@@ -49,67 +52,20 @@ public class GameFormRenderingTests
         _staTestRunner.Run(() =>
         {
             using GameForm form = new GameForm();
-            GameViewModel viewModel = new GameViewModel(
-                "third-level-playing",
-                new GameBoardViewModel(
-                    true,
-                    10,
-                    10,
-                    new List<GridCellViewModel>
-                    {
-                        new GridCellViewModel(3, 1),
-                        new GridCellViewModel(2, 1),
-                        new GridCellViewModel(1, 1)
-                    },
-                    new List<GridCellViewModel>
-                    {
-                        new GridCellViewModel(0, 0),
-                        new GridCellViewModel(5, 4)
-                    },
-                    new List<DoorViewModel>
-                    {
-                        new DoorViewModel(
-                            Guid.NewGuid(),
-                            new GridCellViewModel(5, 5),
-                            "ClosingWarning")
-                    },
-                    new List<BoardObjectViewModel>
-                    {
-                        CreateObject(GameObjectType.Strawberry, 2, 3),
-                        CreateObject(GameObjectType.SpecialFood, 3, 3),
-                        CreateObject(GameObjectType.Shield, 4, 3),
-                        CreateObject(GameObjectType.Fire, 5, 3),
-                        CreateObject(GameObjectType.Bomb, 6, 3)
-                    }),
-                new GameStatusViewModel("第三關", 3, 50, 6, 0),
-                new List<RuleHintViewModel>
-                {
-                    new RuleHintViewModel("ORDINARY_FOOD_GROWTH", "普通食物 +1 格"),
-                    new RuleHintViewModel("SPECIAL_FOOD_GROWTH", "特殊食物 +2 格"),
-                    new RuleHintViewModel("SHIELD_RESCUE", "護盾 +1"),
-                    new RuleHintViewModel("FIRE_SHRINK", "火焰 −2 格"),
-                    new RuleHintViewModel("BOMB_FATAL", "炸彈致命"),
-                    new RuleHintViewModel("WALL_BLOCKED", "不能穿牆")
-                },
-                false,
-                false,
-                true,
-                250,
-                null);
-            form.Render(viewModel);
+            GameScreenOutput screen = CreateThirdLevelPlayingScreen();
+            form.RenderGameScreen(screen);
 
             using Bitmap bitmap = Render(form);
             string visibleText = string.Join("|", GetVisibleText(form));
 
             Assert.Contains("第三關", visibleText);
             Assert.Contains("0 次", visibleText);
-            Assert.Contains("炸彈致命", visibleText);
+            Assert.Contains("炸彈會觸發死亡事件", visibleText);
             Assert.Contains("門目前：即將關閉", visibleText);
             Assert.DoesNotContain("開始", visibleText);
             Assert.DoesNotContain("重玩", visibleText);
             Assert.True(CountPixels(bitmap, Color.FromArgb(113, 139, 158)) > 100);
             Assert.True(CountPixels(bitmap, Color.FromArgb(255, 231, 98)) > 100);
-            SaveCaptureWhenRequested(bitmap, "snake-ui-third-playing.png");
             return true;
         });
     }
@@ -120,28 +76,7 @@ public class GameFormRenderingTests
         _staTestRunner.Run(() =>
         {
             using GameForm form = new GameForm();
-            form.Render(new GameViewModel(
-                "game-over",
-                new GameBoardViewModel(
-                    false,
-                    10,
-                    10,
-                    new List<GridCellViewModel>(),
-                    new List<GridCellViewModel>(),
-                    new List<DoorViewModel>(),
-                    new List<BoardObjectViewModel>()),
-                new GameStatusViewModel("第二關", 5, 20, 25, null),
-                new List<RuleHintViewModel>(),
-                false,
-                true,
-                false,
-                0,
-                new GameResultCardViewModel(
-                    "Game Over",
-                    "遊戲結束",
-                    2,
-                    5,
-                    "碰到炸彈")));
+            form.RenderGameScreen(CreateGameOverScreen());
 
             using Bitmap bitmap = Render(form);
             List<string> visibleText = GetVisibleText(form);
@@ -151,17 +86,160 @@ public class GameFormRenderingTests
             Assert.Contains("重玩", visibleText);
             Assert.DoesNotContain("開始", visibleText);
             Assert.False(boardControl.Visible);
-            SaveCaptureWhenRequested(bitmap, "snake-ui-game-over.png");
             return true;
         });
     }
 
-    private BoardObjectViewModel CreateObject(GameObjectType type, int x, int y)
+    [Fact]
+    public void RepeatedRender_PreservesStableControlIdentity()
     {
-        return new BoardObjectViewModel(
-            type,
+        _staTestRunner.Run(() =>
+        {
+            using GameForm form = new GameForm();
+            GameScreenOutput screen = CreateThirdLevelPlayingScreen();
+            form.RenderGameScreen(screen);
+            GameBoardControl boardBefore = FindControls<GameBoardControl>(form).Single();
+            List<Label> ruleLabelsBefore = FindControls<Label>(form)
+                .Where(label => label.Visible && label.Text.Contains("食物", StringComparison.Ordinal))
+                .ToList();
+
+            form.RenderGameScreen(screen);
+
+            Assert.Same(boardBefore, FindControls<GameBoardControl>(form).Single());
+            List<Label> ruleLabelsAfter = FindControls<Label>(form)
+                .Where(label => label.Visible && label.Text.Contains("食物", StringComparison.Ordinal))
+                .ToList();
+            Assert.Equal(ruleLabelsBefore.Count, ruleLabelsAfter.Count);
+            for (int index = 0; index < ruleLabelsBefore.Count; index++)
+            {
+                Assert.Same(ruleLabelsBefore[index], ruleLabelsAfter[index]);
+            }
+
+            return true;
+        });
+    }
+
+    [Theory]
+    [InlineData(Keys.Up, Snake.UseCases.Direction.Up)]
+    [InlineData(Keys.Down, Snake.UseCases.Direction.Down)]
+    [InlineData(Keys.Left, Snake.UseCases.Direction.Left)]
+    [InlineData(Keys.Right, Snake.UseCases.Direction.Right)]
+    public void DirectionKeyMessage_WithFocusedButton_DispatchesExactlyOneDirectionRequest(
+        Keys key,
+        Snake.UseCases.Direction expectedDirection)
+    {
+        _staTestRunner.Run(() =>
+        {
+            using GameForm form = new GameForm();
+            SnakeGameSession session = new SnakeGameSession();
+            SnakeGameApplicationService service = new SnakeGameApplicationService(
+                session,
+                new FirstLegalSpawnPositionSelector());
+            GamePresenter presenter = new GamePresenter(form, service);
+            presenter.Initialize();
+            List<Snake.UseCases.Direction> requestedDirections = new List<Snake.UseCases.Direction>();
+            form.DirectionRequested += (_, eventArgs) => requestedDirections.Add(eventArgs.Direction);
+            form.Show();
+            Application.DoEvents();
+            Button startButton = FindControls<Button>(form)
+                .Single(button => button.Visible && button.Text == "開始");
+            Assert.True(startButton.Focus());
+            Message message = Message.Create(
+                startButton.Handle,
+                0x0100,
+                new IntPtr((int)key),
+                IntPtr.Zero);
+
+            bool handled = startButton.PreProcessMessage(ref message);
+
+            Assert.True(handled);
+            Assert.Equal(new List<Snake.UseCases.Direction> { expectedDirection }, requestedDirections);
+            return true;
+        });
+    }
+
+    private GameScreenOutput CreateThirdLevelPlayingScreen()
+    {
+        return new GameScreenOutput(
+            GameScreenKind.ThirdLevelPlaying,
+            CreateBoardCells(),
+            new List<GridPositionDTO>
+            {
+                new GridPositionDTO(3, 1),
+                new GridPositionDTO(2, 1),
+                new GridPositionDTO(1, 1)
+            },
+            new List<BoardObjectOutput>
+            {
+                CreateObject(BoardObjectKind.OrdinaryFood, 2, 3),
+                CreateObject(BoardObjectKind.SpecialFood, 3, 3),
+                CreateObject(BoardObjectKind.Shield, 4, 3),
+                CreateObject(BoardObjectKind.Fire, 5, 3),
+                CreateObject(BoardObjectKind.Bomb, 6, 3)
+            },
+            new List<GridPositionDTO>
+            {
+                new GridPositionDTO(0, 0),
+                new GridPositionDTO(5, 4)
+            },
+            new List<DoorOutput>
+            {
+                new DoorOutput(
+                    Guid.NewGuid().ToString(),
+                    new GridPositionDTO(5, 5),
+                    DoorVisualState.ClosingWarning)
+            },
+            new LevelStatusOutput(3, 3, 50, 6, 0),
+            new List<string>
+            {
+                "普通食物 +1 格",
+                "特殊食物 +2 格",
+                "護盾增加 1 次保命",
+                "火焰 -2 格",
+                "炸彈會觸發死亡事件",
+                "第三關不能穿牆"
+            },
+            null,
+            new List<GameAction> { GameAction.ChangeDirection });
+    }
+
+    private GameScreenOutput CreateGameOverScreen()
+    {
+        return new GameScreenOutput(
+            GameScreenKind.GameOver,
+            CreateBoardCells(),
+            new List<GridPositionDTO>(),
+            new List<BoardObjectOutput>(),
+            new List<GridPositionDTO>(),
+            new List<DoorOutput>(),
+            new LevelStatusOutput(2, 5, 20, 25, 0),
+            new List<string>(),
+            new ResultCardOutput("Failed", 2, 5, Snake.Entities.DeathCause.Bomb.ToString()),
+            new List<GameAction> { GameAction.Restart });
+    }
+
+    private List<BoardCellOutput> CreateBoardCells()
+    {
+        List<BoardCellOutput> cells = new List<BoardCellOutput>();
+        for (int y = 0; y < 10; y++)
+        {
+            for (int x = 0; x < 10; x++)
+            {
+                cells.Add(new BoardCellOutput(
+                    new GridPositionDTO(x, y),
+                    BoardCellKind.Empty));
+            }
+        }
+
+        return cells;
+    }
+
+    private BoardObjectOutput CreateObject(BoardObjectKind kind, int x, int y)
+    {
+        return new BoardObjectOutput(
             Guid.NewGuid().ToString(),
-            new GridCellViewModel(x, y));
+            kind,
+            new GridPositionDTO(x, y));
     }
 
     private Bitmap Render(GameForm form)
@@ -220,18 +298,5 @@ public class GameFormRenderingTests
         }
 
         return count;
-    }
-
-    private void SaveCaptureWhenRequested(Bitmap bitmap, string fileName)
-    {
-        if (!string.Equals(
-            Environment.GetEnvironmentVariable("SNAKE_CAPTURE_UI"),
-            "1",
-            StringComparison.Ordinal))
-        {
-            return;
-        }
-
-        bitmap.Save(Path.Combine(Path.GetTempPath(), fileName));
     }
 }

@@ -1,11 +1,11 @@
-schema_version: 1
+schema_version: 3
 
 pattern_node:
   id: winforms
   name: WinForms
 
 prohibitions:
-  - id: PN-UI-PRO-001
+  - id: V3-PN-UI-PRO-001
     title: "禁止直接參考 Entities"
     description: "WinForms 只能直接參考 UseCases，不得直接參考 Entities。"
     severity: error
@@ -13,7 +13,7 @@ prohibitions:
     remediation: "改由 Use Case 的 Command、Query 與 Result 傳遞資料。"
     exceptions: []
 
-  - id: PN-UI-PRO-002
+  - id: V3-PN-UI-PRO-002
     title: "禁止 Presenter 綁定控制項"
     description: "Presenter 不得繼承或保存 Form、Control、Button、Timer 等 WinForms 型別。"
     severity: error
@@ -21,7 +21,7 @@ prohibitions:
     remediation: "Presenter 依賴 View Interface，Form 負責控制項細節。"
     exceptions: []
 
-  - id: PN-UI-PRO-003
+  - id: V3-PN-UI-PRO-003
     title: "禁止 UI 業務判定"
     description: "Form、Presenter 與 ViewModel 不得計算蛇長、碰撞、得分、關卡或其他領域結果。"
     severity: error
@@ -29,7 +29,7 @@ prohibitions:
     remediation: "把判定放入 Entities，流程協調放入 UseCases。"
     exceptions: []
 
-  - id: PN-UI-PRO-004
+  - id: V3-PN-UI-PRO-004
     title: "禁止手寫 partial"
     description: "除框架產生檔外，手寫類別不得宣告 partial。"
     severity: error
@@ -39,3 +39,27 @@ prohibitions:
       - "*.Designer.cs"
       - "*.g.cs"
       - "*.g.i.cs"
+
+  - id: V3-PN-UI-PRO-005
+    title: "禁止 Presenter 編排多個業務步驟"
+    description: "同一 UI 事件不得由 Presenter 依 Session 狀態選擇並依序呼叫多個 Use Case 或 Domain step。"
+    severity: warning
+    enforcement: automated
+    remediation: "改呼叫一個完整 Application Workflow Method，並直接處理其 Result。"
+    exceptions: []
+
+  - id: V3-PN-UI-PRO-006
+    title: "禁止 Renderer 擁有 Timer 與部分畫面提交"
+    description: "Renderer 不得控制 Timer，也不得先清空畫面再逐項建立相同內容。"
+    severity: warning
+    enforcement: manual
+    remediation: "分離事件來源與 Renderer，使用完整 ViewModel 進行一次可見提交。"
+    exceptions: []
+
+  - id: V3-PN-UI-PRO-007
+    title: "禁止只以 KeyDown 或平行路徑派送導覽鍵輸入"
+    description: "已宣告的方向或導覽鍵不得只依賴 KeyDown，也不得同時由 ProcessCmdKey 與其他鍵盤事件重複派送。"
+    severity: error
+    enforcement: automated
+    remediation: "在 Form.ProcessCmdKey 建立唯一輸入轉換路徑；宣告鍵派送一次後回傳 true，其餘輸入交回 WinForms。"
+    exceptions: []

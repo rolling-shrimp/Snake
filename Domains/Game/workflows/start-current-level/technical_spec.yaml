@@ -1,0 +1,76 @@
+schema_version: 3
+spec_kind: technical_contract
+id: V3-TECH-GAME-START-CURRENT-LEVEL
+operation: StartCurrentLevel
+workflow_ref: V3-WF-GAME-START-CURRENT-LEVEL
+technical_ref: V3-TECH-GAME-GET-CURRENT-SCREEN
+input:
+  model: StartCurrentLevelCommand
+  fields: []
+  grain: one_command_for_current_game_session
+output:
+  model: StartCurrentLevelResult
+  fields:
+    - name: IsSuccess
+      type: bool
+      required: true
+    - name: Outcome
+      type: StartCurrentLevelOutcome
+      required: true
+    - name: FailureCode
+      type: string
+      required: false
+    - name: FailureMessage
+      type: string
+      required: false
+    - name: Screen
+      type: GameScreenOutput
+      required: false
+      type_contract: V3-TECH-GAME-GET-CURRENT-SCREEN
+    - name: RuntimeDirective
+      type: RuntimeDirective
+      required: true
+      type_contract: V3-TECH-GAME-GET-CURRENT-SCREEN
+  grain: one_complete_start_result
+types:
+  - name: StartCurrentLevelOutcome
+    kind: enum
+    values: [Started, NotReady, Failed]
+ports:
+  - role: game_snapshot_store
+    responsibility: "載入一致快照，並以 compare-and-swap 或等價機制一次提交完整關卡開始結果。"
+    operations: [load_current_snapshot, commit_complete_snapshot]
+  - role: spawn_position_selector
+    responsibility: "從 Board 已驗證的候選格選取一格；無候選時回傳無結果，不製造預設座標。"
+  - role: game_screen_output_factory
+    responsibility: "從最終已提交快照建立共用契約定義的完整 GameScreenOutput。"
+error_mappings:
+  - failure_code: InconsistentSnapshot
+    is_success: false
+    outcome: Failed
+    runtime_directive: Unchanged
+  - failure_code: InvalidReadyState
+    is_success: false
+    outcome: Failed
+    runtime_directive: Unchanged
+  - failure_code: InitialSpawnUnavailable
+    is_success: false
+    outcome: Failed
+    runtime_directive: Unchanged
+  - failure_code: AtomicCommitFailed
+    is_success: false
+    outcome: Failed
+    runtime_directive: Unchanged
+domain_mappings:
+  - domain_refs: [V3-GAME-BEHAVIOR-START-LEVEL, V3-LEVEL-BEHAVIOR-GET-POLICY]
+    target: StartCurrentLevelOutcome
+  - domain_refs: [V3-BOARD-BEHAVIOR-SELECT-SPAWN-CELL]
+    target: spawn_position_selector
+  - domain_refs: [V3-FOOD-BEHAVIOR-SPAWN, V3-SHIELD-BEHAVIOR-SPAWN, V3-FIRE-BEHAVIOR-SPAWN, V3-BOMB-BEHAVIOR-SPAWN]
+    target: StartCurrentLevelResult.Screen.Objects
+implementation_binding:
+  owner_role: application_workflow
+  logical_operation: StartCurrentLevel
+  class_count_constraint: none
+  method_name_constraint: none
+  ui_boundary: "一個 Start button event 只能呼叫這個完整 operation 一次，之後機械式套用 RuntimeDirective 並 render Screen 一次。"

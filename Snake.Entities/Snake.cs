@@ -13,9 +13,9 @@ public class Snake
     {
         _snakeId = snakeId ?? throw new ArgumentNullException(nameof(snakeId));
         ArgumentNullException.ThrowIfNull(safeStartCells);
-        if (safeStartCells.Count != 3 || safeStartCells.Distinct().Count() != 3)
+        if (safeStartCells.Count == 0 || safeStartCells.Distinct().Count() != safeStartCells.Count)
         {
-            throw new ArgumentException("第一關安全起點必須包含三個不重疊格位。", nameof(safeStartCells));
+            throw new ArgumentException("蛇身必須包含至少一個且不得重疊的格位。", nameof(safeStartCells));
         }
 
         _bodyCells = new List<GridPosition>(safeStartCells);
@@ -32,6 +32,14 @@ public class Snake
     public int MovementIntervalMilliseconds => MOVEMENT_INTERVAL_MILLISECONDS;
     public int? LevelTimeLimitMilliseconds => null;
     public bool IsSelfCollisionFatal => true;
+
+    internal Snake Copy()
+    {
+        Snake copy = new Snake(_snakeId, new List<GridPosition>(_bodyCells));
+        copy._currentDirection = _currentDirection;
+        copy._queuedDirection = _queuedDirection;
+        return copy;
+    }
 
     public bool QueueDirection(Direction direction)
     {
@@ -52,44 +60,23 @@ public class Snake
         return true;
     }
 
-    public void MoveTo(GridPosition nextHead)
-    {
-        ArgumentNullException.ThrowIfNull(nextHead);
-
-        _bodyCells.Insert(0, nextHead);
-        _bodyCells.RemoveAt(_bodyCells.Count - 1);
-        _currentDirection = NextDirection;
-        _queuedDirection = null;
-    }
-
-    public void Reset(List<GridPosition> safeCells)
+    public void ResetSafely(
+        List<GridPosition> safeCells,
+        Board board,
+        BoundaryPolicy boundaryPolicy)
     {
         ArgumentNullException.ThrowIfNull(safeCells);
-        if (safeCells.Distinct().Count() != safeCells.Count)
+        ArgumentNullException.ThrowIfNull(board);
+        if (safeCells.Count == 0
+            || safeCells.Distinct().Count() != safeCells.Count
+            || !board.IsContinuous(safeCells, boundaryPolicy))
         {
-            throw new ArgumentException("安全蛇身格位不得重疊。", nameof(safeCells));
+            throw new InvalidOperationException("安全蛇身未滿足順序、唯一與連續不變式。");
         }
 
         _bodyCells = new List<GridPosition>(safeCells);
         _currentDirection = Direction.Right;
         _queuedDirection = null;
-    }
-
-    public void Grow(List<GridPosition> addedTailCells)
-    {
-        ArgumentNullException.ThrowIfNull(addedTailCells);
-        if (addedTailCells.Count == 0)
-        {
-            return;
-        }
-
-        HashSet<GridPosition> occupiedCells = new HashSet<GridPosition>(_bodyCells);
-        if (addedTailCells.Any(cell => !occupiedCells.Add(cell)))
-        {
-            throw new ArgumentException("新增蛇身格位不得與目前蛇身或彼此重疊。", nameof(addedTailCells));
-        }
-
-        _bodyCells.AddRange(addedTailCells);
     }
 
     public LengthChangeResult CalculateLengthChange(int lengthDelta)
@@ -120,6 +107,85 @@ public class Snake
     public void Deplete()
     {
         _bodyCells.Clear();
+        _queuedDirection = null;
+    }
+
+    public SnakeMovementPlanResult PlanMovement(
+        GridPosition nextHead,
+        int growthDelta,
+        Board board,
+        BoundaryPolicy boundaryPolicy,
+        List<GridPosition> blockedCells)
+    {
+        ArgumentNullException.ThrowIfNull(nextHead);
+        ArgumentNullException.ThrowIfNull(board);
+        ArgumentNullException.ThrowIfNull(blockedCells);
+        if (growthDelta < 0 || growthDelta > 2)
+        {
+            throw new ArgumentOutOfRangeException(nameof(growthDelta));
+        }
+
+        List<GridPosition> selfCollisionCells = growthDelta == 0
+            ? _bodyCells.Take(_bodyCells.Count - 1).ToList()
+            : new List<GridPosition>(_bodyCells);
+        List<GridPosition> resultingBodyCells = new List<GridPosition>
+        {
+            nextHead
+        };
+        if (growthDelta == 0)
+        {
+            resultingBodyCells.AddRange(_bodyCells.Take(_bodyCells.Count - 1));
+        }
+        else
+        {
+            resultingBodyCells.AddRange(_bodyCells);
+        }
+
+        if (growthDelta == 2)
+        {
+            HashSet<GridPosition> unavailableCells = new HashSet<GridPosition>(resultingBodyCells);
+            unavailableCells.UnionWith(blockedCells);
+            GridPosition? tailExtension = board
+                .GetTailExtensionCandidates(_bodyCells, boundaryPolicy)
+                .FirstOrDefault(candidate => !unavailableCells.Contains(candidate));
+            if (tailExtension is null)
+            {
+                return new SnakeMovementPlanResult(
+                    false,
+                    null,
+                    "SnakeTopologyUnavailable",
+                    "特殊食物沒有合法的尾端延伸格位。");
+            }
+
+            resultingBodyCells.Add(tailExtension);
+        }
+
+        SnakeMovementPlan plan = new SnakeMovementPlan(
+            nextHead,
+            growthDelta,
+            growthDelta == 0,
+            selfCollisionCells,
+            resultingBodyCells);
+        return new SnakeMovementPlanResult(true, plan, null, null);
+    }
+
+    public void CommitMovement(
+        SnakeMovementPlan plan,
+        Board board,
+        BoundaryPolicy boundaryPolicy)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+        ArgumentNullException.ThrowIfNull(board);
+        List<GridPosition> resultingBodyCells = plan.ResultingBodyCells;
+        if (resultingBodyCells.Count == 0
+            || resultingBodyCells.Distinct().Count() != resultingBodyCells.Count
+            || !board.IsContinuous(resultingBodyCells, boundaryPolicy))
+        {
+            throw new InvalidOperationException("移動計畫未滿足蛇身順序、唯一與連續不變式。");
+        }
+
+        _bodyCells = resultingBodyCells;
+        _currentDirection = NextDirection;
         _queuedDirection = null;
     }
 

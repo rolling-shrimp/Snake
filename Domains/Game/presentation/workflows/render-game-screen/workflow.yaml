@@ -1,0 +1,51 @@
+schema_version: 3
+spec_kind: presentation_workflow
+id: V3-PRES-WF-GAME-RENDER-SCREEN
+workflow: RenderGameScreen
+technical_ref: V3-TECH-GAME-GET-CURRENT-SCREEN
+input:
+  model: GameScreenOutput
+  grain: one_complete_immutable_screen
+  owner: application_workflow_result
+  rules:
+    - "輸入必須已包含完整 Board、頭到尾 SnakeBody、物件、牆、門、LevelStatus、提示、ResultCard 與 AvailableActions。"
+    - "Renderer 不得再讀取 Entity、Session 或其他 Use Case 結果補齊資料。"
+output:
+  grain: one_atomic_rendered_screen
+  guarantees:
+    - "可見畫面完整對應單一 GameScreenOutput。"
+    - "同一畫面種類的穩定控制項身分不因重複 render 改變。"
+state_refs:
+  - V3-PRES-STATE-GAME-FIRST-LEVEL-READY
+  - V3-PRES-STATE-GAME-FIRST-LEVEL-PLAYING
+  - V3-PRES-STATE-GAME-SECOND-LEVEL-READY
+  - V3-PRES-STATE-GAME-SECOND-LEVEL-PLAYING
+  - V3-PRES-STATE-GAME-THIRD-LEVEL-READY
+  - V3-PRES-STATE-GAME-THIRD-LEVEL-PLAYING
+  - V3-PRES-STATE-GAME-GAME-OVER
+  - V3-PRES-STATE-GAME-GAME-COMPLETED
+render_policy:
+  state_selection: exactly_one_by_screen_kind
+  control_identity: preserve_semantic_control_identity
+  board_update: create_once_then_reuse
+  layout_update: apply_while_hidden_then_commit_once
+  visibility: apply_required_and_forbidden_atomically
+  idempotence: same_input_preserves_controls_and_visible_result
+runtime_policy:
+  ui_event_boundary: one_application_workflow_call_per_event
+  result_application_order:
+    - get_complete_result
+    - apply_runtime_directive
+    - render_game_screen_once
+  timer_ownership: event_source_only_renderer_forbidden
+  forbidden_dependencies:
+    - ApplicationService
+    - UseCase
+    - GameSession
+    - Entity
+  forbidden_behaviors:
+    - session_driven_orchestration
+    - follow_up_workflow_to_complete_result
+    - intermediate_state_rendering
+    - clear_and_rebuild_unchanged_controls
+acceptance_ref: V3-ACCEPT-GAME-RENDER-SCREEN

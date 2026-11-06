@@ -1,0 +1,82 @@
+schema_version: 3
+spec_kind: technical_contract
+id: V3-TECH-GAME-RESTART
+operation: RestartGame
+workflow_ref: V3-WF-GAME-RESTART
+technical_ref: V3-TECH-GAME-GET-CURRENT-SCREEN
+input:
+  model: RestartGameCommand
+  fields: []
+  grain: one_command_for_current_game_session
+output:
+  model: RestartGameResult
+  fields:
+    - name: IsSuccess
+      type: bool
+      required: true
+    - name: Outcome
+      type: RestartGameOutcome
+      required: true
+    - name: FailureCode
+      type: string
+      required: false
+    - name: FailureMessage
+      type: string
+      required: false
+    - name: Screen
+      type: GameScreenOutput
+      required: false
+      type_contract: V3-TECH-GAME-GET-CURRENT-SCREEN
+    - name: RuntimeDirective
+      type: RuntimeDirective
+      required: true
+      type_contract: V3-TECH-GAME-GET-CURRENT-SCREEN
+  grain: one_complete_restart_result
+types:
+  - name: RestartGameOutcome
+    kind: enum
+    values: [Restarted, NotTerminal, Failed]
+ports:
+  - role: game_snapshot_store
+    responsibility: "載入一致終局快照，並以 compare-and-swap 或等價機制一次提交完整新輪快照。"
+    operations: [load_current_snapshot, commit_complete_snapshot]
+  - role: spawn_position_selector
+    responsibility: "只從 Board 合法未占用格選擇 Ordinary Food 位置；無候選時回傳無結果。"
+  - role: game_screen_output_factory
+    responsibility: "從新輪最終快照建立共用契約定義的 FirstLevelPlaying Screen。"
+error_mappings:
+  - failure_code: InconsistentSnapshot
+    is_success: false
+    outcome: Failed
+    runtime_directive: Unchanged
+  - failure_code: SafeBodyUnavailable
+    is_success: false
+    outcome: Failed
+    runtime_directive: Unchanged
+  - failure_code: InitialFoodUnavailable
+    is_success: false
+    outcome: Failed
+    runtime_directive: Unchanged
+  - failure_code: AtomicCommitFailed
+    is_success: false
+    outcome: Failed
+    runtime_directive: Unchanged
+domain_mappings:
+  - domain_refs: [V3-GAME-BEHAVIOR-RESTART, V3-LEVEL-BEHAVIOR-RESET]
+    target: RestartGameOutcome
+  - domain_refs: [V3-BOARD-BEHAVIOR-FIND-SAFE-BODY, V3-SNAKE-BEHAVIOR-RESET-SAFELY]
+    target: RestartGameResult.Screen.SnakeBody
+  - domain_refs:
+      - V3-FOOD-BEHAVIOR-RESET
+      - V3-SHIELD-BEHAVIOR-RESET
+      - V3-FIRE-BEHAVIOR-RESET
+      - V3-BOMB-BEHAVIOR-RESET
+      - V3-DOORMAZE-BEHAVIOR-RESET
+      - V3-GAMERESULT-BEHAVIOR-RESET
+    target: complete_new_round_snapshot
+implementation_binding:
+  owner_role: application_workflow
+  logical_operation: RestartGame
+  class_count_constraint: none
+  method_name_constraint: none
+  ui_boundary: "一個 Restart button event 只能呼叫這個完整 operation 一次，之後套用 RuntimeDirective 並 render Screen 一次。"

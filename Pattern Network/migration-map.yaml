@@ -1,0 +1,134 @@
+schema_version: 3
+spec_kind: migration_map
+id: V3-MIGRATION-PATTERN-NETWORK-V1-V3
+migration: pattern-network-v1-to-v3
+entries:
+  - source_path: doctrine.yaml
+    disposition: replaced_by
+    target_id: V3-PN-DOCTRINE-ROOT
+    legacy_ids:
+      - PN-ARCH-001
+      - PN-ARCH-002
+      - PN-CS-CLASS-001
+      - PN-CS-CLASS-002
+      - PN-CS-CLASS-003
+      - PN-CS-CONST-001
+      - PN-CS-DI-001
+      - PN-CS-ENTRY-001
+      - PN-CS-FIELD-001
+      - PN-CS-FIELD-002
+      - PN-CS-FILE-001
+      - PN-CS-FLOW-001
+      - PN-CS-METHOD-001
+      - PN-CS-NAME-001
+      - PN-DOCTRINE-ROOT
+      - PN-NAME-001
+  - source_path: patterns/entities/doctrine.yaml
+    disposition: replaced_by
+    target_id: V3-PN-ENTITIES-DOCTRINE
+    legacy_ids:
+      - PN-ENT-001
+      - PN-ENT-002
+      - PN-ENT-003
+      - PN-ENT-004
+      - PN-ENTITIES-DOCTRINE
+  - source_path: patterns/entities/gate.yaml
+    disposition: replaced_by
+    target_id: V3-PN-ENTITIES-GATE
+    legacy_ids:
+      - PN-ENT-GATE-001
+      - PN-ENT-GATE-002
+      - PN-ENT-GATE-003
+      - PN-ENT-GATE-004
+      - PN-ENT-GATE-005
+      - PN-ENT-GATE-006
+      - PN-ENTITIES-GATE
+  - source_path: patterns/entities/prohibitions.yaml
+    disposition: split_into
+    target_ids:
+      - V3-PN-ENT-PRO-001
+      - V3-PN-ENT-PRO-002
+      - V3-PN-ENT-PRO-003
+      - V3-PN-ENT-PRO-004
+      - V3-PN-ENT-PRO-005
+      - V3-PN-ENT-PRO-006
+    legacy_ids:
+      - PN-ENT-PRO-001
+      - PN-ENT-PRO-002
+      - PN-ENT-PRO-003
+      - PN-ENT-PRO-004
+      - PN-ENT-PRO-005
+  - source_path: patterns/use-cases/doctrine.yaml
+    disposition: replaced_by
+    target_id: V3-PN-USECASES-DOCTRINE
+    legacy_ids:
+      - PN-UC-001
+      - PN-UC-002
+      - PN-UC-003
+      - PN-UC-004
+      - PN-UC-005
+      - PN-UC-006
+      - PN-USECASES-DOCTRINE
+  - source_path: patterns/use-cases/gate.yaml
+    disposition: replaced_by
+    target_id: V3-PN-USECASES-GATE
+    legacy_ids:
+      - PN-UC-GATE-001
+      - PN-UC-GATE-002
+      - PN-UC-GATE-003
+      - PN-UC-GATE-004
+      - PN-UC-GATE-005
+      - PN-UC-GATE-006
+      - PN-UC-GATE-007
+      - PN-USECASES-GATE
+  - source_path: patterns/use-cases/prohibitions.yaml
+    disposition: split_into
+    target_ids:
+      - V3-PN-UC-PRO-001
+      - V3-PN-UC-PRO-002
+      - V3-PN-UC-PRO-003
+      - V3-PN-UC-PRO-004
+      - V3-PN-UC-PRO-005
+      - V3-PN-UC-PRO-006
+    legacy_ids:
+      - PN-UC-PRO-001
+      - PN-UC-PRO-002
+      - PN-UC-PRO-003
+      - PN-UC-PRO-004
+      - PN-UC-PRO-005
+  - source_path: patterns/winforms/doctrine.yaml
+    disposition: replaced_by
+    target_id: V3-PN-WINFORMS-DOCTRINE
+    legacy_ids:
+      - PN-UI-001
+      - PN-UI-002
+      - PN-UI-003
+      - PN-UI-004
+      - PN-UI-005
+      - PN-UI-006
+      - PN-WINFORMS-DOCTRINE
+  - source_path: patterns/winforms/gate.yaml
+    disposition: replaced_by
+    target_id: V3-PN-WINFORMS-GATE
+    legacy_ids:
+      - PN-UI-GATE-001
+      - PN-UI-GATE-002
+      - PN-UI-GATE-003
+      - PN-UI-GATE-004
+      - PN-UI-GATE-005
+      - PN-UI-GATE-006
+      - PN-WINFORMS-GATE
+  - source_path: patterns/winforms/prohibitions.yaml
+    disposition: split_into
+    target_ids:
+      - V3-PN-UI-PRO-001
+      - V3-PN-UI-PRO-002
+      - V3-PN-UI-PRO-003
+      - V3-PN-UI-PRO-004
+      - V3-PN-UI-PRO-005
+      - V3-PN-UI-PRO-006
+    legacy_ids:
+      - PN-UI-PRO-001
+      - PN-UI-PRO-002
+      - PN-UI-PRO-003
+      - PN-UI-PRO-004

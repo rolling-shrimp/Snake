@@ -15,6 +15,13 @@ public class GameResult
     public List<LevelResult> LevelResults => new List<LevelResult>(_levelResults);
     public LevelResult? LatestResult => _levelResults.LastOrDefault();
 
+    internal GameResult Copy()
+    {
+        GameResult copy = new GameResult(_gameResultId);
+        copy._levelResults = new List<LevelResult>(_levelResults);
+        return copy;
+    }
+
     public bool Record(
         LevelResultId levelResultId,
         LevelNumber level,

@@ -18,7 +18,7 @@ public class CodeGateRunner
         string fullSolutionPath = Path.GetFullPath(solutionPath);
         if (!File.Exists(fullSolutionPath))
         {
-            issues.Add(new GateIssue("PN-SOLUTION-NOT-FOUND", "network", fullSolutionPath, null, $"找不到 solution：{fullSolutionPath}", "error"));
+            issues.Add(new GateIssue("V3-PN-SOLUTION-NOT-FOUND", "network", fullSolutionPath, null, $"找不到 solution：{fullSolutionPath}", "error"));
             return new GateRunResult(issues, true);
         }
 
@@ -28,7 +28,7 @@ public class CodeGateRunner
             selectedNodes = selectedNodes.Where(node => string.Equals(node.Id, nodeFilter, StringComparison.Ordinal)).ToList();
             if (selectedNodes.Count == 0)
             {
-                issues.Add(new GateIssue("PN-NODE-NOT-FOUND", nodeFilter, fullSolutionPath, null, $"Pattern Network 不存在節點：{nodeFilter}", "error"));
+                issues.Add(new GateIssue("V3-PN-NODE-NOT-FOUND", nodeFilter, fullSolutionPath, null, $"Pattern Network 不存在節點：{nodeFilter}", "error"));
                 return new GateRunResult(issues, true);
             }
         }
@@ -41,7 +41,7 @@ public class CodeGateRunner
         }
         catch (Exception exception)
         {
-            issues.Add(new GateIssue("PN-SOLUTION-READ", "network", fullSolutionPath, null, $"讀取 solution 失敗：{exception.Message}", "error"));
+            issues.Add(new GateIssue("V3-PN-SOLUTION-READ", "network", fullSolutionPath, null, $"讀取 solution 失敗：{exception.Message}", "error"));
             return new GateRunResult(issues, true);
         }
 
@@ -55,7 +55,7 @@ public class CodeGateRunner
             }
             catch (ArgumentException exception)
             {
-                issues.Add(new GateIssue("PN-NAME-001", patternNode.Id, fullSolutionPath, null, exception.Message, "error"));
+                issues.Add(new GateIssue("V3-PN-NAME-001", patternNode.Id, fullSolutionPath, null, exception.Message, "error"));
                 hasConfigurationError = true;
                 continue;
             }
@@ -64,7 +64,7 @@ public class CodeGateRunner
             string projectPath = Path.Combine(projectDirectory, $"{projectName}.csproj");
             if (!File.Exists(projectPath))
             {
-                issues.Add(new GateIssue("PN-TARGET-NOT-FOUND", patternNode.Id, projectPath, null, $"依命名公式推導的產品專案不存在：{projectName}", "error"));
+                issues.Add(new GateIssue("V3-PN-TARGET-NOT-FOUND", patternNode.Id, projectPath, null, $"依命名公式推導的產品專案不存在：{projectName}", "error"));
                 hasConfigurationError = true;
                 continue;
             }
@@ -90,7 +90,7 @@ public class CodeGateRunner
             }
         }
 
-        return new GateRunResult(SortIssues(issues), hasConfigurationError);
+        return CreateRunResult(SortIssues(issues), hasConfigurationError);
     }
 
     private void ValidateSolutionEntry(
@@ -103,7 +103,7 @@ public class CodeGateRunner
         string expectedEntry = $"= \"{projectName}\", \"{projectName}\\{projectName}.csproj\"";
         if (!solutionText.Contains(expectedEntry, StringComparison.Ordinal))
         {
-            issues.Add(new GateIssue("PN-NAME-001", patternNode.Id, solutionPath, null, $"Solution 必須以推導名稱與路徑包含專案 {projectName}。", "error"));
+            issues.Add(new GateIssue("V3-PN-NAME-001", patternNode.Id, solutionPath, null, $"Solution 必須以推導名稱與路徑包含專案 {projectName}。", "error"));
         }
     }
 
@@ -123,7 +123,7 @@ public class CodeGateRunner
         }
         catch (Exception exception)
         {
-            issues.Add(new GateIssue("PN-PROJECT-READ", patternNode.Id, projectPath, null, $"讀取專案檔失敗：{exception.Message}", "error"));
+            issues.Add(new GateIssue("V3-PN-PROJECT-READ", patternNode.Id, projectPath, null, $"讀取專案檔失敗：{exception.Message}", "error"));
             hasConfigurationError = true;
         }
     }
@@ -154,13 +154,13 @@ public class CodeGateRunner
         string? assemblyName = projectDocument.Descendants("AssemblyName").Select(element => element.Value.Trim()).FirstOrDefault();
         if (!string.IsNullOrWhiteSpace(assemblyName) && !string.Equals(assemblyName, projectName, StringComparison.Ordinal))
         {
-            issues.Add(new GateIssue("PN-NAME-001", patternNode.Id, projectPath, null, $"AssemblyName 必須等於推導名稱 {projectName}。", "error"));
+            issues.Add(new GateIssue("V3-PN-NAME-001", patternNode.Id, projectPath, null, $"AssemblyName 必須等於推導名稱 {projectName}。", "error"));
         }
 
         string? rootNamespace = projectDocument.Descendants("RootNamespace").Select(element => element.Value.Trim()).FirstOrDefault();
         if (!string.IsNullOrWhiteSpace(rootNamespace) && !string.Equals(rootNamespace, projectName, StringComparison.Ordinal))
         {
-            issues.Add(new GateIssue("PN-NAME-001", patternNode.Id, projectPath, null, $"RootNamespace 必須等於推導名稱 {projectName}。", "error"));
+            issues.Add(new GateIssue("V3-PN-NAME-001", patternNode.Id, projectPath, null, $"RootNamespace 必須等於推導名稱 {projectName}。", "error"));
         }
     }
 
@@ -189,12 +189,12 @@ public class CodeGateRunner
 
         foreach (string missingReference in expectedReferences.Except(actualReferences, StringComparer.OrdinalIgnoreCase))
         {
-            issues.Add(new GateIssue("PN-ARCH-001", patternNode.Id, projectPath, null, $"缺少必要 ProjectReference：{missingReference}", "error"));
+            issues.Add(new GateIssue("V3-PN-ARCH-001", patternNode.Id, projectPath, null, $"缺少必要 ProjectReference：{missingReference}", "error"));
         }
 
         foreach (string forbiddenReference in actualReferences.Except(expectedReferences, StringComparer.OrdinalIgnoreCase))
         {
-            issues.Add(new GateIssue("PN-ARCH-001", patternNode.Id, projectPath, null, $"不允許的 ProjectReference：{forbiddenReference}", "error"));
+            issues.Add(new GateIssue("V3-PN-ARCH-001", patternNode.Id, projectPath, null, $"不允許的 ProjectReference：{forbiddenReference}", "error"));
         }
     }
 
@@ -217,5 +217,35 @@ public class CodeGateRunner
             .ThenBy(issue => issue.Line)
             .ThenBy(issue => issue.RuleId, StringComparer.Ordinal)
             .ToList();
+    }
+
+    private GateRunResult CreateRunResult(List<GateIssue> issues, bool hasConfigurationError)
+    {
+        List<GateIssue> auditIssues = issues
+            .Where(issue => string.Equals(issue.Severity, "warning", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        List<GateIssue> blockingIssues = issues
+            .Where(issue => !string.Equals(issue.Severity, "warning", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        List<GateCheckResult> checks = new List<GateCheckResult>
+        {
+            new GateCheckResult(
+                "code-architecture",
+                VerificationMode.Blocking,
+                blockingIssues.Count == 0 ? VerificationStatus.Pass : VerificationStatus.Fail,
+                new List<string>(),
+                new List<string>(),
+                new List<string>(),
+                blockingIssues),
+            new GateCheckResult(
+                "code-architecture-audit",
+                VerificationMode.Audit,
+                auditIssues.Count == 0 ? VerificationStatus.Pass : VerificationStatus.Fail,
+                new List<string>(),
+                new List<string>(),
+                new List<string>(),
+                auditIssues)
+        };
+        return new GateRunResult(checks, hasConfigurationError);
     }
 }

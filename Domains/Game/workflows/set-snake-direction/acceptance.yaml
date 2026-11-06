@@ -1,0 +1,66 @@
+schema_version: 3
+spec_kind: acceptance_contract
+id: V3-ACCEPT-GAME-SET-SNAKE-DIRECTION
+contract_ref: V3-WF-GAME-SET-SNAKE-DIRECTION
+scenarios:
+  - id: V3-SCN-DIRECTION-COMMAND-ACCEPTED
+    title: "Playing 中接受非反向方向"
+    given:
+      phase: Playing
+      current_direction: Right
+      snake_body_before: [[2, 1], [1, 1], [0, 1]]
+    when:
+      command_direction: Up
+    then:
+      outcome: Accepted
+      queued_direction: Up
+      snake_body_unchanged: true
+      runtime_directive: Unchanged
+    evidence: [behavioral, invariant]
+  - id: V3-SCN-DIRECTION-OPPOSITE-IGNORED
+    title: "直接反向成功忽略"
+    given:
+      phase: Playing
+      current_direction: Right
+    when:
+      command_direction: Left
+    then:
+      is_success: true
+      outcome: OppositeDirection
+      direction_unchanged: true
+      snake_body_unchanged: true
+    evidence: [behavioral, invariant]
+  - id: V3-SCN-DIRECTION-NOT-PLAYING
+    title: "非 Playing 不改變方向"
+    given:
+      phase: Ready
+      current_direction: Right
+    when:
+      command_direction: Up
+    then:
+      is_success: true
+      outcome: NotPlaying
+      domain_state_unchanged: true
+    evidence: [behavioral]
+  - id: V3-SCN-DIRECTION-NO-MOVEMENT
+    title: "方向操作本身不移動蛇"
+    given:
+      phase: Playing
+      valid_non_opposite_direction: true
+    when:
+      operation: SetSnakeDirection
+    then:
+      snake_position_unchanged: true
+      snake_length_unchanged: true
+      elapsed_time_unchanged: true
+      screen_output_count: 1
+    evidence: [behavioral, invariant]
+evidence_requirements:
+  - type: behavioral
+    required: true
+    provider: checker_or_test_suite
+    rule: "必須涵蓋接受、反向忽略與非 Playing 分支。"
+  - type: invariant
+    required: true
+    provider: aggregate_checker_or_test_suite
+    rule: "必須證明方向操作不改變 body_cells 與長度。"

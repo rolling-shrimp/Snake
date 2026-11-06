@@ -40,7 +40,7 @@ public class PatternNetworkValidator
         }
         catch (Exception exception)
         {
-            issues.Add(new GateIssue("PN-CONFIG-LOAD", "network", fullNetworkPath, null, exception.Message, "error"));
+            issues.Add(new GateIssue("V3-PN-CONFIG-LOAD", "network", fullNetworkPath, null, exception.Message, "error"));
         }
 
         patternNodes.Sort((first, second) => string.Compare(first.Name, second.Name, StringComparison.Ordinal));
@@ -75,7 +75,7 @@ public class PatternNetworkValidator
         string resolvedInheritedPath = Path.GetFullPath(Path.Combine(patternDirectory, inheritedPath));
         if (!string.Equals(resolvedInheritedPath, Path.GetFullPath(rootDoctrinePath), StringComparison.OrdinalIgnoreCase))
         {
-            issues.Add(new GateIssue("PN-CONFIG-INHERITANCE", Path.GetFileName(patternDirectory), doctrinePath, null, "節點 doctrine 必須繼承根層 doctrine.yaml。", "error"));
+            issues.Add(new GateIssue("V3-PN-CONFIG-INHERITANCE", Path.GetFileName(patternDirectory), doctrinePath, null, "節點 doctrine 必須繼承根層 doctrine.yaml。", "error"));
         }
 
         YamlMappingNode patternNodeMapping = GetMapping(doctrine, "pattern_node", doctrinePath);
@@ -84,7 +84,7 @@ public class PatternNetworkValidator
         string directoryName = Path.GetFileName(patternDirectory);
         if (!string.Equals(patternNodeId, directoryName, StringComparison.Ordinal))
         {
-            issues.Add(new GateIssue("PN-CONFIG-NODE-ID", patternNodeId, doctrinePath, null, $"pattern_node.id 必須等於目錄名稱 {directoryName}。", "error"));
+            issues.Add(new GateIssue("V3-PN-CONFIG-NODE-ID", patternNodeId, doctrinePath, null, $"pattern_node.id 必須等於目錄名稱 {directoryName}。", "error"));
         }
 
         ValidatePatternNodeIdentity(prohibitions, gate, patternNodeId, patternNodeName, prohibitionsPath, gatePath, issues);
@@ -120,7 +120,7 @@ public class PatternNetworkValidator
             || !string.Equals(targetFramework, patternNode.TargetFramework, StringComparison.Ordinal)
             || useWindowsForms != patternNode.UseWindowsForms)
         {
-            issues.Add(new GateIssue("PN-CONFIG-GATE-DRIFT", patternNode.Id, gatePath, null, "project_identity 參數必須與節點 doctrine 的 project 設定一致。", "error"));
+            issues.Add(new GateIssue("V3-PN-CONFIG-GATE-DRIFT", patternNode.Id, gatePath, null, "project_identity 參數必須與節點 doctrine 的 project 設定一致。", "error"));
         }
 
         GateCheckDefinition? referenceCheck = patternNode.Checks.FirstOrDefault(check => string.Equals(check.Checker, "project_references", StringComparison.Ordinal));
@@ -128,7 +128,7 @@ public class PatternNetworkValidator
             || !referenceCheck.ListParameters.TryGetValue("required_pattern_nodes", out List<string>? requiredPatternNodes)
             || !requiredPatternNodes.OrderBy(value => value, StringComparer.Ordinal).SequenceEqual(patternNode.AllowedProjectReferences.OrderBy(value => value, StringComparer.Ordinal), StringComparer.Ordinal))
         {
-            issues.Add(new GateIssue("PN-CONFIG-GATE-DRIFT", patternNode.Id, gatePath, null, "project_references 的 required_pattern_nodes 必須與 doctrine 的 allowed_project_references 一致。", "error"));
+            issues.Add(new GateIssue("V3-PN-CONFIG-GATE-DRIFT", patternNode.Id, gatePath, null, "project_references 的 required_pattern_nodes 必須與 doctrine 的 allowed_project_references 一致。", "error"));
         }
     }
 
@@ -150,17 +150,17 @@ public class PatternNetworkValidator
 
         if (!string.Equals(prohibitionId, expectedId, StringComparison.Ordinal) || !string.Equals(prohibitionName, expectedName, StringComparison.Ordinal))
         {
-            issues.Add(new GateIssue("PN-CONFIG-NODE-MISMATCH", expectedId, prohibitionsPath, null, "prohibitions.yaml 的 pattern node 與 doctrine.yaml 不一致。", "error"));
+            issues.Add(new GateIssue("V3-PN-CONFIG-NODE-MISMATCH", expectedId, prohibitionsPath, null, "prohibitions.yaml 的 pattern node 與 doctrine.yaml 不一致。", "error"));
         }
 
         if (!string.Equals(gateNodeId, expectedId, StringComparison.Ordinal))
         {
-            issues.Add(new GateIssue("PN-CONFIG-NODE-MISMATCH", expectedId, gatePath, null, "gate.yaml 的 pattern_node_id 與 doctrine.yaml 不一致。", "error"));
+            issues.Add(new GateIssue("V3-PN-CONFIG-NODE-MISMATCH", expectedId, gatePath, null, "gate.yaml 的 pattern_node_id 與 doctrine.yaml 不一致。", "error"));
         }
 
         if (!string.Equals(formula, "{solution_name}.{pattern_node_name}", StringComparison.Ordinal))
         {
-            issues.Add(new GateIssue("PN-CONFIG-PROJECT-FORMULA", expectedId, gatePath, null, "project_name_formula 必須使用共用命名公式。", "error"));
+            issues.Add(new GateIssue("V3-PN-CONFIG-PROJECT-FORMULA", expectedId, gatePath, null, "project_name_formula 必須使用共用命名公式。", "error"));
         }
     }
 
@@ -173,9 +173,10 @@ public class PatternNetworkValidator
             "csharp_global_rules",
             "forbidden_namespaces",
             "entity_boundaries",
-            "use_case_contracts",
+            "application_workflow_contracts",
             "use_case_entity_exposure",
             "winforms_boundaries",
+            "presentation_workflow_boundaries",
             "top_level_program",
             "manual_review"
         };
@@ -187,6 +188,7 @@ public class PatternNetworkValidator
             {
                 Id = GetScalar(checkMapping, "id", gatePath),
                 Checker = GetScalar(checkMapping, "checker", gatePath),
+                Mode = ParseVerificationMode(GetScalar(checkMapping, "mode", gatePath), gatePath),
                 Severity = GetScalar(checkMapping, "severity", gatePath),
                 RuleReferences = GetScalarList(checkMapping, "rule_refs", gatePath)
             };
@@ -194,7 +196,7 @@ public class PatternNetworkValidator
             AddUniqueId(check.Id, gatePath, allIds, issues);
             if (!knownCheckers.Contains(check.Checker))
             {
-                issues.Add(new GateIssue("PN-CONFIG-CHECKER", "network", gatePath, null, $"未知 checker：{check.Checker}", "error"));
+                issues.Add(new GateIssue("V3-PN-CONFIG-CHECKER", "network", gatePath, null, $"未知 checker：{check.Checker}", "error"));
             }
 
             if (TryGetNode(checkMapping, "parameters", out YamlNode? parametersNode))
@@ -230,7 +232,7 @@ public class PatternNetworkValidator
                 {
                     if (!ruleIds.Contains(ruleReference))
                     {
-                        issues.Add(new GateIssue("PN-CONFIG-RULE-REF", patternNode.Id, Path.Combine(patternNode.DirectoryPath, "gate.yaml"), null, $"{check.Id} 引用了不存在的規則 {ruleReference}。", "error"));
+                        issues.Add(new GateIssue("V3-PN-CONFIG-RULE-REF", patternNode.Id, Path.Combine(patternNode.DirectoryPath, "gate.yaml"), null, $"{check.Id} 引用了不存在的規則 {ruleReference}。", "error"));
                     }
                 }
             }
@@ -243,7 +245,7 @@ public class PatternNetworkValidator
         {
             if (group.Count() > 1)
             {
-                issues.Add(new GateIssue("PN-CONFIG-DUPLICATE-NODE", group.Key, group.First().DirectoryPath, null, $"pattern node id 重複：{group.Key}", "error"));
+                issues.Add(new GateIssue("V3-PN-CONFIG-DUPLICATE-NODE", group.Key, group.First().DirectoryPath, null, $"pattern node id 重複：{group.Key}", "error"));
             }
         }
 
@@ -251,7 +253,7 @@ public class PatternNetworkValidator
         {
             if (group.Count() > 1)
             {
-                issues.Add(new GateIssue("PN-CONFIG-DUPLICATE-NODE", group.Key, group.First().DirectoryPath, null, $"pattern node name 重複：{group.Key}", "error"));
+                issues.Add(new GateIssue("V3-PN-CONFIG-DUPLICATE-NODE", group.Key, group.First().DirectoryPath, null, $"pattern node name 重複：{group.Key}", "error"));
             }
         }
     }
@@ -265,7 +267,7 @@ public class PatternNetworkValidator
         }
         catch (ArgumentException exception)
         {
-            issues.Add(new GateIssue("PN-CONFIG-NODE-NAME", patternNodeName, doctrinePath, null, exception.Message, "error"));
+            issues.Add(new GateIssue("V3-PN-CONFIG-NODE-NAME", patternNodeName, doctrinePath, null, exception.Message, "error"));
         }
     }
 
@@ -274,12 +276,12 @@ public class PatternNetworkValidator
         string templateText = File.ReadAllText(templatePath);
         if (!templateText.Contains("{{ namespace_name }}", StringComparison.Ordinal))
         {
-            issues.Add(new GateIssue("PN-CONFIG-TEMPLATE", patternNodeId, templatePath, null, "template.cs.j2 必須使用 namespace_name 變數。", "error"));
+            issues.Add(new GateIssue("V3-PN-CONFIG-TEMPLATE", patternNodeId, templatePath, null, "template.cs.j2 必須使用 namespace_name 變數。", "error"));
         }
 
         if (!templateText.Contains("public class", StringComparison.Ordinal))
         {
-            issues.Add(new GateIssue("PN-CONFIG-TEMPLATE", patternNodeId, templatePath, null, "template.cs.j2 必須產生一個 public class。", "error"));
+            issues.Add(new GateIssue("V3-PN-CONFIG-TEMPLATE", patternNodeId, templatePath, null, "template.cs.j2 必須產生一個 public class。", "error"));
         }
     }
 
@@ -298,7 +300,7 @@ public class PatternNetworkValidator
     {
         if (!allIds.Add(id))
         {
-            issues.Add(new GateIssue("PN-CONFIG-DUPLICATE-ID", "network", filePath, null, $"規則或檢查 ID 重複：{id}", "error"));
+            issues.Add(new GateIssue("V3-PN-CONFIG-DUPLICATE-ID", "network", filePath, null, $"規則或檢查 ID 重複：{id}", "error"));
         }
     }
 
@@ -325,10 +327,25 @@ public class PatternNetworkValidator
     private void ValidateSchemaVersion(YamlMappingNode document, string filePath)
     {
         string version = GetScalar(document, "schema_version", filePath);
-        if (!string.Equals(version, "1", StringComparison.Ordinal))
+        if (!string.Equals(version, "3", StringComparison.Ordinal))
         {
             throw new InvalidDataException($"不支援的 schema_version：{version}；檔案：{filePath}");
         }
+    }
+
+    private VerificationMode ParseVerificationMode(string mode, string filePath)
+    {
+        if (string.Equals(mode, "blocking", StringComparison.Ordinal))
+        {
+            return VerificationMode.Blocking;
+        }
+
+        if (string.Equals(mode, "audit", StringComparison.Ordinal))
+        {
+            return VerificationMode.Audit;
+        }
+
+        throw new InvalidDataException($"不支援的 Gate mode：{mode}；檔案：{filePath}");
     }
 
     private YamlMappingNode GetMapping(YamlMappingNode parent, string key, string filePath)

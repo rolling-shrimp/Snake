@@ -8,32 +8,23 @@ public class PresentationContractValidatorTests
     public void ValidateAcceptsRepositoryPresentationContracts()
     {
         string projectRoot = FindProjectRoot();
-        string domainsPath = Path.Combine(projectRoot, "Domains");
         PresentationContractValidator validator = new PresentationContractValidator();
 
-        PresentationContractValidationResult result = validator.Validate(domainsPath, projectRoot);
+        PresentationContractValidationResult result = validator.Validate(
+            Path.Combine(projectRoot, "Domains"),
+            projectRoot);
 
         Assert.True(result.IsValid, string.Join(Environment.NewLine, result.Issues.Select(issue => issue.Message)));
     }
 
     [Fact]
-    public void ValidateRejectsDuplicateRelationIdsAcrossPresentation()
+    public void ValidateRejectsCatalogWithoutAllPresentationStates()
     {
         string temporaryProjectRoot = CreateTemporaryProject();
         try
         {
-            string contractPath = Path.Combine(
-                temporaryProjectRoot,
-                "Domains",
-                "Game",
-                "presentation",
-                "first-level-ready",
-                "presentation.yaml");
-            string contract = File.ReadAllText(contractPath);
-            File.WriteAllText(contractPath, contract.Replace(
-                "PRES-FIRST-READY-BOARD",
-                "PRES-FIRST-READY-RULES",
-                StringComparison.Ordinal));
+            string catalogPath = Path.Combine(temporaryProjectRoot, "Domains", "catalog.yaml");
+            RemoveLineContaining(catalogPath, "V3-PRES-STATE-GAME-GAME-OVER");
             PresentationContractValidator validator = new PresentationContractValidator();
 
             PresentationContractValidationResult result = validator.Validate(
@@ -41,7 +32,7 @@ public class PresentationContractValidatorTests
                 temporaryProjectRoot);
 
             Assert.False(result.IsValid);
-            Assert.Contains(result.Issues, issue => issue.RuleId == "PRES-RELATION-DUPLICATE");
+            Assert.Contains(result.Issues, issue => issue.RuleId == "PRES-CATALOG-STATES");
         }
         finally
         {
@@ -50,7 +41,7 @@ public class PresentationContractValidatorTests
     }
 
     [Fact]
-    public void ValidateRejectsUnknownFrameCheckReference()
+    public void ValidateRejectsVisibilityOverlap()
     {
         string temporaryProjectRoot = CreateTemporaryProject();
         try
@@ -64,8 +55,8 @@ public class PresentationContractValidatorTests
                 "presentation.yaml");
             string contract = File.ReadAllText(contractPath);
             File.WriteAllText(contractPath, contract.Replace(
-                "IDF-SHOW-GAME-OVER-RESULT-001",
-                "IDF-UNKNOWN-001",
+                "    - game-board",
+                "    - game-over-message",
                 StringComparison.Ordinal));
             PresentationContractValidator validator = new PresentationContractValidator();
 
@@ -74,7 +65,7 @@ public class PresentationContractValidatorTests
                 temporaryProjectRoot);
 
             Assert.False(result.IsValid);
-            Assert.Contains(result.Issues, issue => issue.RuleId == "PRES-FRAME-REF");
+            Assert.Contains(result.Issues, issue => issue.RuleId == "PRES-VISIBILITY-CONFLICT");
         }
         finally
         {
@@ -83,7 +74,7 @@ public class PresentationContractValidatorTests
     }
 
     [Fact]
-    public void ValidateRejectsTransitionDrift()
+    public void ValidateRejectsUnknownTransitionTargetState()
     {
         string temporaryProjectRoot = CreateTemporaryProject();
         try
@@ -97,8 +88,8 @@ public class PresentationContractValidatorTests
                 "presentation.yaml");
             string contract = File.ReadAllText(contractPath);
             File.WriteAllText(contractPath, contract.Replace(
-                "target_screen: first-level-playing",
-                "target_screen: first-level-ready",
+                "V3-PRES-STATE-GAME-FIRST-LEVEL-PLAYING",
+                "V3-PRES-STATE-GAME-UNKNOWN",
                 StringComparison.Ordinal));
             PresentationContractValidator validator = new PresentationContractValidator();
 
@@ -107,8 +98,7 @@ public class PresentationContractValidatorTests
                 temporaryProjectRoot);
 
             Assert.False(result.IsValid);
-            Assert.Contains(result.Issues, issue => issue.RuleId == "PRES-TRANSITION-MISSING");
-            Assert.Contains(result.Issues, issue => issue.RuleId == "PRES-TRANSITION-UNEXPECTED");
+            Assert.Contains(result.Issues, issue => issue.RuleId == "PRES-TRANSITION-TARGET");
         }
         finally
         {
@@ -117,23 +107,20 @@ public class PresentationContractValidatorTests
     }
 
     [Fact]
-    public void ValidateRejectsTransitionLinkedToWrongUseCase()
+    public void ValidateRejectsRenderWorkflowWithoutAllStates()
     {
         string temporaryProjectRoot = CreateTemporaryProject();
         try
         {
-            string contractPath = Path.Combine(
+            string workflowPath = Path.Combine(
                 temporaryProjectRoot,
                 "Domains",
                 "Game",
                 "presentation",
-                "game-over",
-                "presentation.yaml");
-            string contract = File.ReadAllText(contractPath);
-            File.WriteAllText(contractPath, contract.Replace(
-                "relation_ref: PRES-GAME-OVER-REPLAY",
-                "relation_ref: PRES-GAME-OVER-RESULT",
-                StringComparison.Ordinal));
+                "workflows",
+                "render-game-screen",
+                "workflow.yaml");
+            RemoveLineContaining(workflowPath, "V3-PRES-STATE-GAME-GAME-COMPLETED");
             PresentationContractValidator validator = new PresentationContractValidator();
 
             PresentationContractValidationResult result = validator.Validate(
@@ -141,7 +128,7 @@ public class PresentationContractValidatorTests
                 temporaryProjectRoot);
 
             Assert.False(result.IsValid);
-            Assert.Contains(result.Issues, issue => issue.RuleId == "PRES-TRANSITION-USE-CASE");
+            Assert.Contains(result.Issues, issue => issue.RuleId == "PRES-RENDER-STATES");
         }
         finally
         {
@@ -150,22 +137,23 @@ public class PresentationContractValidatorTests
     }
 
     [Fact]
-    public void ValidateRejectsNonReferenceOnlyOwnership()
+    public void ValidateRejectsRenderWorkflowWithWrongOutputGrain()
     {
         string temporaryProjectRoot = CreateTemporaryProject();
         try
         {
-            string contractPath = Path.Combine(
+            string workflowPath = Path.Combine(
                 temporaryProjectRoot,
                 "Domains",
                 "Game",
                 "presentation",
-                "game-over",
-                "presentation.yaml");
-            string contract = File.ReadAllText(contractPath);
-            File.WriteAllText(contractPath, contract.Replace(
-                "ownership: reference_only",
-                "ownership: aggregate",
+                "workflows",
+                "render-game-screen",
+                "workflow.yaml");
+            string workflow = File.ReadAllText(workflowPath);
+            File.WriteAllText(workflowPath, workflow.Replace(
+                "one_atomic_rendered_screen",
+                "incremental_control_updates",
                 StringComparison.Ordinal));
             PresentationContractValidator validator = new PresentationContractValidator();
 
@@ -174,7 +162,105 @@ public class PresentationContractValidatorTests
                 temporaryProjectRoot);
 
             Assert.False(result.IsValid);
-            Assert.Contains(result.Issues, issue => issue.RuleId == "PRES-SCHEMA-VALUE");
+            Assert.Contains(result.Issues, issue => issue.RuleId == "PRES-RENDER-GRAIN");
+        }
+        finally
+        {
+            Directory.Delete(temporaryProjectRoot, true);
+        }
+    }
+
+    [Fact]
+    public void ValidateRejectsRenderWorkflowThatRecreatesControls()
+    {
+        string temporaryProjectRoot = CreateTemporaryProject();
+        try
+        {
+            string workflowPath = Path.Combine(
+                temporaryProjectRoot,
+                "Domains",
+                "Game",
+                "presentation",
+                "workflows",
+                "render-game-screen",
+                "workflow.yaml");
+            string workflow = File.ReadAllText(workflowPath);
+            File.WriteAllText(workflowPath, workflow.Replace(
+                "preserve_semantic_control_identity",
+                "recreate_all_controls",
+                StringComparison.Ordinal));
+            PresentationContractValidator validator = new PresentationContractValidator();
+
+            PresentationContractValidationResult result = validator.Validate(
+                Path.Combine(temporaryProjectRoot, "Domains"),
+                temporaryProjectRoot);
+
+            Assert.False(result.IsValid);
+            Assert.Contains(result.Issues, issue => issue.RuleId == "PRES-RENDER-POLICY");
+        }
+        finally
+        {
+            Directory.Delete(temporaryProjectRoot, true);
+        }
+    }
+
+    [Fact]
+    public void ValidateRejectsDirectionInputWorkflowAfterControlNavigation()
+    {
+        string temporaryProjectRoot = CreateTemporaryProject();
+        try
+        {
+            string workflowPath = Path.Combine(
+                temporaryProjectRoot,
+                "Domains",
+                "Game",
+                "presentation",
+                "workflows",
+                "handle-direction-input",
+                "workflow.yaml");
+            string workflow = File.ReadAllText(workflowPath);
+            File.WriteAllText(workflowPath, workflow.Replace(
+                "process_cmd_key_before_control_navigation",
+                "key_down_after_control_navigation",
+                StringComparison.Ordinal));
+            PresentationContractValidator validator = new PresentationContractValidator();
+
+            PresentationContractValidationResult result = validator.Validate(
+                Path.Combine(temporaryProjectRoot, "Domains"),
+                temporaryProjectRoot);
+
+            Assert.False(result.IsValid);
+            Assert.Contains(result.Issues, issue => issue.RuleId == "PRES-DIRECTION-DELIVERY");
+        }
+        finally
+        {
+            Directory.Delete(temporaryProjectRoot, true);
+        }
+    }
+
+    [Fact]
+    public void ValidateRejectsDirectionInputWorkflowWithIncompleteMapping()
+    {
+        string temporaryProjectRoot = CreateTemporaryProject();
+        try
+        {
+            string workflowPath = Path.Combine(
+                temporaryProjectRoot,
+                "Domains",
+                "Game",
+                "presentation",
+                "workflows",
+                "handle-direction-input",
+                "workflow.yaml");
+            RemoveLineContaining(workflowPath, "Right: Right");
+            PresentationContractValidator validator = new PresentationContractValidator();
+
+            PresentationContractValidationResult result = validator.Validate(
+                Path.Combine(temporaryProjectRoot, "Domains"),
+                temporaryProjectRoot);
+
+            Assert.False(result.IsValid);
+            Assert.Contains(result.Issues, issue => issue.RuleId == "PRES-DIRECTION-MAPPING");
         }
         finally
         {
@@ -219,7 +305,7 @@ public class PresentationContractValidatorTests
             string domainPath = Path.Combine(temporaryProjectRoot, "Domains", "Game", "domain_spec.yaml");
             File.AppendAllText(
                 domainPath,
-                $"{Environment.NewLine}presentation_refs:{Environment.NewLine}  - presentation/game-over/presentation.yaml{Environment.NewLine}");
+                $"{Environment.NewLine}presentation_refs:{Environment.NewLine}  - V3-PRES-STATE-GAME-GAME-OVER{Environment.NewLine}");
             PresentationContractValidator validator = new PresentationContractValidator();
 
             PresentationContractValidationResult result = validator.Validate(
@@ -286,5 +372,13 @@ public class PresentationContractValidatorTests
             Directory.CreateDirectory(Path.GetDirectoryName(destinationFilePath)!);
             File.Copy(filePath, destinationFilePath);
         }
+    }
+
+    private void RemoveLineContaining(string path, string value)
+    {
+        List<string> lines = File.ReadAllLines(path)
+            .Where(line => !line.Contains(value, StringComparison.Ordinal))
+            .ToList();
+        File.WriteAllLines(path, lines);
     }
 }

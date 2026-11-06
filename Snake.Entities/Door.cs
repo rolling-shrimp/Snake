@@ -18,6 +18,13 @@ public class Door
     public DoorPhase Phase => _phase;
     public bool IsPassable => _phase != DoorPhase.Closed;
 
+    internal Door Copy()
+    {
+        Door copy = new Door(_doorId, _position);
+        copy._phase = _phase;
+        return copy;
+    }
+
     public void ChangePhase(DoorPhase phase)
     {
         _phase = phase;

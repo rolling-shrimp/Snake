@@ -22,6 +22,14 @@ public class DoorAndMaze
     public int ToggleIntervalMilliseconds => TOGGLE_INTERVAL_MILLISECONDS;
     public int ClosingWarningMilliseconds => CLOSING_WARNING_MILLISECONDS;
 
+    internal DoorAndMaze Copy()
+    {
+        DoorAndMaze copy = new DoorAndMaze(_doorAndMazeId);
+        copy._wallCells = new List<GridPosition>(_wallCells);
+        copy._doors = _doors.Select(door => door.Copy()).ToList();
+        return copy;
+    }
+
     public void AddDoor(DoorId doorId, GridPosition position)
     {
         ArgumentNullException.ThrowIfNull(doorId);
@@ -40,47 +48,58 @@ public class DoorAndMaze
         return _doors.FirstOrDefault(door => door.DoorId.Equals(doorId));
     }
 
-    public void Update(int elapsedMilliseconds, List<GridPosition> snakeBodyCells)
+    public void ApplyClosingWarning()
     {
-        ArgumentNullException.ThrowIfNull(snakeBodyCells);
-
         foreach (Door door in _doors)
         {
-            bool isOccupied = snakeBodyCells.Contains(door.Position);
-            if (door.Phase == DoorPhase.CloseDeferred)
-            {
-                if (!isOccupied)
-                {
-                    door.ChangePhase(DoorPhase.Closed);
-                }
-
-                continue;
-            }
-
-            if (elapsedMilliseconds >= TOGGLE_INTERVAL_MILLISECONDS)
-            {
-                if (door.Phase == DoorPhase.Closed)
-                {
-                    door.ChangePhase(DoorPhase.Open);
-                }
-                else if (isOccupied)
-                {
-                    door.ChangePhase(DoorPhase.CloseDeferred);
-                }
-                else
-                {
-                    door.ChangePhase(DoorPhase.Closed);
-                }
-
-                continue;
-            }
-
-            int warningStart = TOGGLE_INTERVAL_MILLISECONDS - CLOSING_WARNING_MILLISECONDS;
-            if (elapsedMilliseconds >= warningStart && door.Phase == DoorPhase.Open)
+            if (door.Phase == DoorPhase.Open)
             {
                 door.ChangePhase(DoorPhase.ClosingWarning);
             }
         }
+    }
+
+    public bool ApplyToggle(List<GridPosition> snakeBodyCells)
+    {
+        ArgumentNullException.ThrowIfNull(snakeBodyCells);
+        bool wasDeferred = false;
+        foreach (Door door in _doors)
+        {
+            if (door.Phase == DoorPhase.Closed)
+            {
+                door.ChangePhase(DoorPhase.Open);
+                continue;
+            }
+
+            if (snakeBodyCells.Contains(door.Position))
+            {
+                door.ChangePhase(DoorPhase.CloseDeferred);
+                wasDeferred = true;
+            }
+            else
+            {
+                door.ChangePhase(DoorPhase.Closed);
+            }
+        }
+
+        return wasDeferred;
+    }
+
+    public bool CloseDeferredDoors(List<GridPosition> snakeBodyCells)
+    {
+        ArgumentNullException.ThrowIfNull(snakeBodyCells);
+        bool closedAnyDoor = false;
+        foreach (Door door in _doors)
+        {
+            if (door.Phase == DoorPhase.CloseDeferred
+                && !snakeBodyCells.Contains(door.Position))
+            {
+                door.ChangePhase(DoorPhase.Closed);
+                closedAnyDoor = true;
+            }
+        }
+
+        return closedAnyDoor;
     }
 
     public List<GridPosition> GetUnavailableCells()

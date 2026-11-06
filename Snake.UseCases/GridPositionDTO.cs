@@ -10,4 +10,14 @@ public class GridPositionDTO
 
     public int X { get; }
     public int Y { get; }
+
+    public override bool Equals(object? value)
+    {
+        return value is GridPositionDTO position && X == position.X && Y == position.Y;
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(X, Y);
+    }
 }

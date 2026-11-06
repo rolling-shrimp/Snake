@@ -1,0 +1,31 @@
+schema_version: 3
+spec_kind: presentation_workflow
+id: V3-PRES-WF-GAME-HANDLE-DIRECTION-INPUT
+workflow: HandleDirectionInput
+workflow_ref: V3-WF-GAME-SET-SNAKE-DIRECTION
+input:
+  model: WinFormsCommandKeyMessage
+  grain: one_declared_direction_command_key_message
+  owner: winforms_message_preprocessing
+  rules:
+    - "宣告的方向鍵恰好為 Up、Down、Left、Right。"
+    - "輸入必須在控制項導覽前交給 Form。"
+output:
+  model: DirectionRequestedEventArgs
+  grain: one_direction_request
+  owner: presentation_input_adapter
+  guarantees:
+    - "每個宣告方向鍵訊息恰好送出一次對應方向要求。"
+    - "輸出只包含 Direction，不包含焦點、KeyData 或控制項狀態。"
+runtime_policy:
+  delivery_stage: process_cmd_key_before_control_navigation
+  focus_scope: form_and_descendant_controls
+  dispatch_count: exactly_once_per_declared_key_message
+  handled_result: true_for_declared_direction_keys
+  undeclared_input: delegate_to_base_winforms
+  direction_mapping:
+    Up: Up
+    Down: Down
+    Left: Left
+    Right: Right
+acceptance_ref: V3-ACCEPT-GAME-HANDLE-DIRECTION-INPUT

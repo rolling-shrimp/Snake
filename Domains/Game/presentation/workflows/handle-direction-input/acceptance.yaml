@@ -1,0 +1,51 @@
+schema_version: 3
+spec_kind: acceptance_contract
+id: V3-ACCEPT-GAME-HANDLE-DIRECTION-INPUT
+contract_ref: V3-PRES-WF-GAME-HANDLE-DIRECTION-INPUT
+scenarios:
+  - id: V3-SCN-INPUT-MAPS-DECLARED-DIRECTIONS
+    title: "四個方向鍵各建立一次對應方向要求"
+    given:
+      declared_direction_keys: [Up, Down, Left, Right]
+    when:
+      each_key_message_is_preprocessed_once: true
+    then:
+      direction_requests: [Up, Down, Left, Right]
+      request_count_per_message: 1
+      message_handled: true
+    evidence: [behavioral, static, runtime_ui]
+  - id: V3-SCN-INPUT-INDEPENDENT-OF-FOCUS
+    title: "焦點停在任一 Form 子控制項仍能送出方向要求"
+    given:
+      focused_control: any_form_descendant
+      declared_direction_key: Down
+    when:
+      command_key_message_is_preprocessed: true
+    then:
+      requested_direction: Down
+      direction_request_count: 1
+      control_navigation_consumed_message_first: false
+    evidence: [behavioral, runtime_ui]
+  - id: V3-SCN-INPUT-UNDECLARED-DELEGATES
+    title: "未宣告輸入交回 WinForms"
+    given:
+      key_is_declared_direction: false
+    when:
+      command_key_message_is_preprocessed: true
+    then:
+      direction_request_count: 0
+      delegated_to_base_winforms: true
+    evidence: [behavioral, static]
+evidence_requirements:
+  - type: static
+    required: true
+    provider: winforms_boundary_checker
+    rule: "必須證明四個映射位於 ProcessCmdKey，且沒有平行 KeyDown 方向派送路徑。"
+  - type: behavioral
+    required: true
+    provider: checker_or_test_suite
+    rule: "必須證明映射正確、單次派送與未宣告輸入委派。"
+  - type: runtime_ui
+    required: true
+    provider: winforms_preprocess_message_test_or_manual_reviewer
+    rule: "必須在實際 WinForms 訊息預處理與具有焦點控制項的情境驗證。"

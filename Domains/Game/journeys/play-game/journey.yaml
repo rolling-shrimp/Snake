@@ -1,0 +1,84 @@
+schema_version: 3
+spec_kind: journey_contract
+id: V3-JOURNEY-GAME-PLAY
+journey: PlayGame
+states:
+  - id: V3-JOURNEY-STATE-FIRST-READY
+    screen_ref: V3-PRES-STATE-GAME-FIRST-LEVEL-READY
+    round_state: active
+  - id: V3-JOURNEY-STATE-FIRST-PLAYING
+    screen_ref: V3-PRES-STATE-GAME-FIRST-LEVEL-PLAYING
+    round_state: active
+  - id: V3-JOURNEY-STATE-SECOND-READY
+    screen_ref: V3-PRES-STATE-GAME-SECOND-LEVEL-READY
+    round_state: active
+  - id: V3-JOURNEY-STATE-SECOND-PLAYING
+    screen_ref: V3-PRES-STATE-GAME-SECOND-LEVEL-PLAYING
+    round_state: active
+  - id: V3-JOURNEY-STATE-THIRD-READY
+    screen_ref: V3-PRES-STATE-GAME-THIRD-LEVEL-READY
+    round_state: active
+  - id: V3-JOURNEY-STATE-THIRD-PLAYING
+    screen_ref: V3-PRES-STATE-GAME-THIRD-LEVEL-PLAYING
+    round_state: active
+  - id: V3-JOURNEY-STATE-GAME-OVER
+    screen_ref: V3-PRES-STATE-GAME-GAME-OVER
+    round_state: terminal
+  - id: V3-JOURNEY-STATE-GAME-COMPLETED
+    screen_ref: V3-PRES-STATE-GAME-GAME-COMPLETED
+    round_state: terminal
+state_refs:
+  - V3-PRES-STATE-GAME-FIRST-LEVEL-READY
+  - V3-PRES-STATE-GAME-FIRST-LEVEL-PLAYING
+  - V3-PRES-STATE-GAME-SECOND-LEVEL-READY
+  - V3-PRES-STATE-GAME-SECOND-LEVEL-PLAYING
+  - V3-PRES-STATE-GAME-THIRD-LEVEL-READY
+  - V3-PRES-STATE-GAME-THIRD-LEVEL-PLAYING
+  - V3-PRES-STATE-GAME-GAME-OVER
+  - V3-PRES-STATE-GAME-GAME-COMPLETED
+transitions:
+  - id: V3-JOURNEY-TRANSITION-START-LEVEL
+    from: [FirstLevelReady, SecondLevelReady, ThirdLevelReady]
+    workflow_ref: V3-WF-GAME-START-CURRENT-LEVEL
+    to: [FirstLevelPlaying, SecondLevelPlaying, ThirdLevelPlaying]
+  - id: V3-JOURNEY-TRANSITION-DIRECTION
+    from: [FirstLevelPlaying, SecondLevelPlaying, ThirdLevelPlaying]
+    workflow_ref: V3-WF-GAME-SET-SNAKE-DIRECTION
+    to: same_playing_state
+  - id: V3-JOURNEY-TRANSITION-TICK-CONTINUE
+    from: [FirstLevelPlaying, SecondLevelPlaying, ThirdLevelPlaying]
+    workflow_ref: V3-WF-GAME-PROCESS-TICK
+    to: same_playing_state
+  - id: V3-JOURNEY-TRANSITION-FIRST-PASSED
+    from: [FirstLevelPlaying]
+    workflow_ref: V3-WF-GAME-PROCESS-TICK
+    to: [SecondLevelReady]
+  - id: V3-JOURNEY-TRANSITION-SECOND-PASSED
+    from: [SecondLevelPlaying]
+    workflow_ref: V3-WF-GAME-PROCESS-TICK
+    to: [ThirdLevelReady]
+  - id: V3-JOURNEY-TRANSITION-THIRD-PASSED
+    from: [ThirdLevelPlaying]
+    workflow_ref: V3-WF-GAME-PROCESS-TICK
+    to: [GameCompleted]
+  - id: V3-JOURNEY-TRANSITION-DEATH
+    from: [FirstLevelPlaying, SecondLevelPlaying, ThirdLevelPlaying]
+    workflow_ref: V3-WF-GAME-PROCESS-TICK
+    to: [GameOver]
+  - id: V3-JOURNEY-TRANSITION-RESTART
+    from: [GameOver, GameCompleted]
+    workflow_ref: V3-WF-GAME-RESTART
+    to: [FirstLevelPlaying]
+  - id: V3-JOURNEY-TRANSITION-OBSERVE
+    from: any_state
+    workflow_ref: V3-WF-GAME-GET-CURRENT-SCREEN
+    to: same_state
+workflow_refs:
+  - V3-WF-GAME-START-CURRENT-LEVEL
+  - V3-WF-GAME-SET-SNAKE-DIRECTION
+  - V3-WF-GAME-PROCESS-TICK
+  - V3-WF-GAME-RESTART
+  - V3-WF-GAME-GET-CURRENT-SCREEN
+terminal_states:
+  - GameOver
+  - GameCompleted

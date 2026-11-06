@@ -1,0 +1,107 @@
+schema_version: 3
+spec_kind: workflow_contract
+id: V3-WF-GAME-START-CURRENT-LEVEL
+workflow: StartCurrentLevel
+frame_ref: V3-FRAME-GAME-START-CURRENT-LEVEL
+input:
+  grain: one_empty_start_current_level_command
+  owner: ui_command_adapter
+  rules:
+    - "命令不帶 Level；目前 Level 只從一致的已提交遊戲快照取得。"
+output:
+  grain: one_complete_start_result_with_one_final_screen
+  owner: application_workflow
+  guarantees:
+    - "成功開始時包含目前關卡唯一的 Playing 畫面與 RuntimeDirective.StartOrReset。"
+    - "成功 no-op 時包含未變更的目前畫面與 RuntimeDirective.Unchanged。"
+domain_refs:
+  - V3-AGG-BOARD-BOARD
+  - V3-AGG-BOMB-BOMB
+  - V3-AGG-DOORMAZE-DOORMAZE
+  - V3-AGG-FIRE-FIRE
+  - V3-AGG-FOOD-FOOD
+  - V3-AGG-GAME-GAME
+  - V3-AGG-GAMERESULT-GAMERESULT
+  - V3-AGG-LEVEL-LEVEL
+  - V3-AGG-SHIELD-SHIELD
+  - V3-AGG-SNAKE-SNAKE
+preconditions:
+  - id: V3-WF-START-PRE-CONSISTENT-SNAPSHOT
+    rule: "所有 Aggregate 必須能載入同一個已提交版本的遊戲快照。"
+  - id: V3-WF-START-PRE-READY
+    rule: "接受開始效果時 Game.phase 必須為 Ready，Level 必須是 1、2、3。"
+  - id: V3-WF-START-PRE-READY-STATE
+    rule: "Ready 快照必須有長度 3 的安全 Snake、沒有本關 active objects、Shield 已歸零；第三關的迷宮與門已準備完成。"
+decisions:
+  - id: V3-WF-START-DECISION-NOOP
+    rule: "Game 非 Ready 時回傳成功 no-op；不得重生物件、重設已處理時間或重新啟動 Runtime。"
+  - id: V3-WF-START-DECISION-OBJECT-TYPES
+    rule: "第一關依序產生 Ordinary Food；第二關依序產生 Ordinary Food、Special Food、Shield、Fire；第三關再產生 Bomb。"
+  - id: V3-WF-START-DECISION-ALL-OBJECTS
+    rule: "本關每個必要首批物件都必須取得合法位置；任何一種只能 pending 時，整次開始失敗且不提交。"
+steps:
+  - order: 1
+    id: V3-WF-START-STEP-LOAD-AND-VALIDATE
+    action: "載入一致快照並驗證 Ready、目前 Level、Snake、安全 Board 與物件初始狀態。"
+  - order: 2
+    id: V3-WF-START-STEP-RESOLVE-POLICY
+    action: "取得目前 Level policy，決定本關首批物件類型與 Playing 畫面種類。"
+  - order: 3
+    id: V3-WF-START-STEP-SELECT-POSITIONS
+    action: "依固定物件順序逐一從更新後的未占用格集合選取合法位置；每次選取立即保留於工作快照。"
+  - order: 4
+    id: V3-WF-START-STEP-SPAWN
+    action: "由 Food、Shield、Fire、Bomb 各自的 Spawn behavior 建立目前關卡需要的首批物件。"
+  - order: 5
+    id: V3-WF-START-STEP-START-GAME
+    action: "所有首批物件成功後才由 Game.StartLevel 將 phase 設為 Playing，並把關卡累積時間基準設為 0。"
+  - order: 6
+    id: V3-WF-START-STEP-COMMIT
+    action: "一次原子提交完整 Playing 快照；任何失敗都不得保留物件、phase 或時間的部分變更。"
+  - order: 7
+    id: V3-WF-START-STEP-PRESENT
+    action: "從已提交快照建立唯一 Playing GameScreenOutput，回傳 RuntimeDirective.StartOrReset。"
+branches:
+  - id: V3-WF-START-BRANCH-FIRST
+    when: "目前 Level 為 1。"
+    result: "恰好一個 Ordinary Food，畫面為 FirstLevelPlaying。"
+  - id: V3-WF-START-BRANCH-SECOND
+    when: "目前 Level 為 2。"
+    result: "Ordinary Food、Special Food、第一個 Shield、Fire 各一，畫面為 SecondLevelPlaying。"
+  - id: V3-WF-START-BRANCH-THIRD
+    when: "目前 Level 為 3。"
+    result: "第二關物件加 Bomb 各一，門週期以 0 毫秒為基準，畫面為 ThirdLevelPlaying。"
+stop_conditions:
+  - "任一必要物件沒有合法格位時停止並整批回滾。"
+  - "任一 Aggregate invariant 或原子提交失敗時，不得切換 Playing 或啟動 Runtime。"
+commit_policy:
+  unit: complete_start_current_level
+  atomicity: all_or_nothing
+  visibility: one_commit_then_one_screen
+  rules:
+    - "物件位置選擇、生成與 phase 切換只存在於工作快照，完成前不得被 UI 或 Timer 觀察。"
+postconditions:
+  - id: V3-WF-START-POST-PLAYING
+    rule: "成功開始後 Game.phase 為 Playing，last_processed_elapsed_milliseconds 為 0。"
+  - id: V3-WF-START-POST-SNAKE
+    rule: "Snake 長度仍為 3、位置與方向不因開始操作改變，且全部拓樸不變式成立。"
+  - id: V3-WF-START-POST-OBJECTS
+    rule: "本關要求的每種首批物件恰好一個，位置合法、唯一且不與 Snake、牆、門或其他物件重疊。"
+  - id: V3-WF-START-POST-ONE-SCREEN
+    rule: "成功開始恰好輸出一個對應目前 Level 的 Playing 畫面。"
+failures:
+  - code: InconsistentSnapshot
+    condition: "無法載入同一版本的完整 Aggregate 快照。"
+    state_guarantee: no_state_committed
+  - code: InvalidReadyState
+    condition: "Ready 快照不符合 Level、Snake、Shield、物件或第三關迷宮前置條件。"
+    state_guarantee: no_state_committed
+  - code: InitialSpawnUnavailable
+    condition: "任一必要首批物件沒有合法未占用格位。"
+    state_guarantee: no_object_phase_time_or_runtime_change_committed
+  - code: AtomicCommitFailed
+    condition: "無法一次提交完整 Playing 快照。"
+    state_guarantee: no_partial_commit
+no_op:
+  - outcome: NotReady
+    state_guarantee: "不產生物件、不改變 phase 或時間、不重啟 Runtime，回傳目前完整畫面。"

@@ -1,0 +1,49 @@
+schema_version: 3
+spec_kind: problem_frame
+id: V3-FRAME-GAME-PROCESS-TICK
+frame:
+  name: process-game-tick
+  type: RBF
+  bounded_context: snake-game
+  requirement: "遊戲在 Playing 期間依外部觀察到的累積時間，完整處理所有已到期的遊戲反應，並呈現一個一致的最終狀態。"
+problem_domains:
+  - name: Player
+    kind: biddable
+  - name: RuntimeClock
+    kind: causal
+  - name: SnakeGame
+    kind: designed
+  - name: Display
+    kind: display
+shared_phenomena:
+  - name: accumulated_elapsed_time_observed
+    source: RuntimeClock
+    receiver: SnakeGame
+  - name: game_state_changed
+    source: SnakeGame
+    receiver: Display
+  - name: final_screen_presented
+    source: Display
+    receiver: Player
+world_facts:
+  - id: V3-FRAME-FACT-TICK-TIME
+    fact: "每次輸入代表本關開始後的單調累積毫秒，不是兩次呼叫間的時間差。"
+  - id: V3-FRAME-FACT-MOVEMENT-INTERVAL
+    fact: "三個關卡的蛇移動間隔都是 250ms，且沒有關卡時間上限。"
+  - id: V3-FRAME-FACT-DELAYED-OBSERVATION
+    fact: "RuntimeClock 的觀察可能延遲；一次輸入可能同時涵蓋多個已到期事件。"
+  - id: V3-FRAME-FACT-DOOR-CYCLE
+    fact: "第三關門每 6000ms 切換；預計關閉前 2000ms 出現提醒，因此第一輪提醒與切換分別在 4000ms、6000ms 到期。"
+  - id: V3-FRAME-FACT-PLAYING-ONLY
+    fact: "只有 Playing 狀態會對移動、物件與門的時間現象產生遊戲反應。"
+  - id: V3-FRAME-FACT-HEAD-CONTACT
+    fact: "只有蛇頭進入物件格位會觸發該物件。"
+frame_concerns:
+  - id: V3-FRAME-CONCERN-NO-LOST-EVENTS
+    concern: "延遲觀察不得遺漏已到期事件，也不得重複處理已提交事件。"
+  - id: V3-FRAME-CONCERN-CAUSAL-ORDER
+    concern: "同時到期的現象必須有明確且可重現的因果順序。"
+  - id: V3-FRAME-CONCERN-CONSISTENT-VIEW
+    concern: "玩家只能看到完成所有本次反應後的一個一致畫面，不得看到中間狀態。"
+  - id: V3-FRAME-CONCERN-INVALID-TIME
+    concern: "負時間或時間倒退不得改變遊戲世界。"

@@ -19,6 +19,14 @@ public class Food
     public int OrdinaryLengthDelta => 1;
     public int SpecialLengthDelta => 2;
 
+    internal Food Copy()
+    {
+        Food copy = new Food(_foodId);
+        copy._activeItems = new List<FoodItem>(_activeItems);
+        copy._pendingTypes = new List<FoodType>(_pendingTypes);
+        return copy;
+    }
+
     public void SpawnOrdinary(FoodItemId foodItemId, GridPosition position)
     {
         if (_activeItems.Any(item => item.Type == FoodType.Ordinary))
@@ -76,5 +84,10 @@ public class Food
     public void ClearPending()
     {
         _pendingTypes.Clear();
+    }
+
+    public void RemovePending(FoodType foodType)
+    {
+        _pendingTypes.Remove(foodType);
     }
 }

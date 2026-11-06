@@ -16,6 +16,14 @@ public class Fire
     public bool PendingSpawn => _pendingSpawn;
     public int LengthDelta => -2;
 
+    internal Fire Copy()
+    {
+        Fire copy = new Fire(_fireId);
+        copy._activeItem = _activeItem;
+        copy._pendingSpawn = _pendingSpawn;
+        return copy;
+    }
+
     public void Spawn(FireItemId fireItemId, GridPosition position)
     {
         if (_activeItem is not null)

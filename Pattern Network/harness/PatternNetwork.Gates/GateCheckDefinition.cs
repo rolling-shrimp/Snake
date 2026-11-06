@@ -15,6 +15,8 @@ public class GateCheckDefinition
 
     public string Severity { get; set; } = string.Empty;
 
+    public VerificationMode Mode { get; set; }
+
     public List<string> RuleReferences { get; set; }
 
     public Dictionary<string, string> ScalarParameters { get; set; }

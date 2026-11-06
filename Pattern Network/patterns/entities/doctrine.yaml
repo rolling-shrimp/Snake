@@ -1,7 +1,7 @@
-schema_version: 1
+schema_version: 3
 
 doctrine:
-  id: PN-ENTITIES-DOCTRINE
+  id: V3-PN-ENTITIES-DOCTRINE
   title: "Entities 節點準則"
   inherits: ../../doctrine.yaml
 
@@ -17,12 +17,13 @@ project:
 
 responsibility:
   owns:
-    - entity
     - aggregate
+    - entity
     - value_object
     - domain_event
     - domain_state
     - domain_invariant
+    - invariant_preserving_behavior
   excludes:
     - application_orchestration
     - user_interface
@@ -35,22 +36,27 @@ contract:
   owner: Entities
 
 rules:
-  - id: PN-ENT-001
-    title: "領域狀態由領域行為維護"
-    statement: "Entity 與 Aggregate 必須透過具業務意義的方法改變狀態並維持不變式。"
+  - id: V3-PN-ENT-001
+    title: "Rich Aggregate 擁有狀態與多個領域行為"
+    statement: "Aggregate 必須同時擁有狀態與維持不變式的業務方法；方向、移動、成長、縮短與重設等行為不得全部外移到 UseCases。"
     enforcement: manual
 
-  - id: PN-ENT-002
+  - id: V3-PN-ENT-002
     title: "禁止公開狀態修改入口"
     statement: "領域狀態屬性不得提供 public set 或 public init。"
     enforcement: automated
 
-  - id: PN-ENT-003
+  - id: V3-PN-ENT-003
     title: "領域行為保持確定性"
     statement: "系統時間、隨機值與外部資料必須由呼叫端以領域值傳入，不得由 Entity 自行取得。"
     enforcement: automated
 
-  - id: PN-ENT-004
+  - id: V3-PN-ENT-004
     title: "禁止 UI 與技術 I/O 相依"
     statement: "Entities 不得參考 WinForms、System.Drawing、檔案、網路或環境 API。"
     enforcement: automated
+
+  - id: V3-PN-ENT-005
+    title: "集合狀態由 Aggregate 保護"
+    statement: "表達有序、唯一或連續語意的集合必須由 Aggregate 保護，不得把可變集合直接交給外層修改。"
+    enforcement: manual

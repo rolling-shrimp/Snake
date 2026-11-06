@@ -1,165 +1,116 @@
-domain:
-  name: DoorAndMaze
-  bounded_context: snake-game
-  aggregate_root: DoorAndMaze
-  purpose: "擁有第三關牆壁、迷宮、門實例與門週期規則。"
-
-aggregate:
-  name: DoorAndMaze
-  fields:
-    - name: door_and_maze_id
-      path: door_and_maze.door_and_maze_id
-      type: DoorAndMazeId
-      required: true
-    - name: wall_cells
-      path: door_and_maze.wall_cells
-      type: "List<Board.GridPosition>"
-      required: true
-      initial_value: []
-    - name: doors
-      path: door_and_maze.doors
-      type: "List<Door>"
-      required: true
-      initial_value: []
-
+schema_version: 3
+spec_kind: aggregate_contract
+id: V3-AGG-DOORMAZE-DOORMAZE
+aggregate: DoorAndMaze
+state:
+  - name: door_and_maze_id
+    type: DoorAndMazeId
+    required: true
+  - name: wall_cells
+    type: List<GridPosition>
+    required: true
+  - name: doors
+    type: List<Door>
+    required: true
 value_objects:
-  DoorAndMazeId:
-    opaque: true
-    description: "DoorAndMaze Aggregate 的領域專屬識別型別。"
-  DoorId:
-    opaque: true
-    description: "Door entity 的領域專屬識別型別。"
-  Door:
+  - name: DoorAndMazeId
+    kind: opaque_identity
+  - name: DoorId
+    kind: opaque_identity
+  - name: Door
     fields:
       - name: door_id
         type: DoorId
         required: true
       - name: position
-        type: Board.GridPosition
+        type: GridPosition
         required: true
       - name: phase
         type: DoorPhase
         required: true
-
+      - name: next_toggle_elapsed_milliseconds
+        type: integer
+        required: true
+  - name: DoorTimedEvent
+    fields:
+      - name: due_elapsed_milliseconds
+        type: integer
+        required: true
+      - name: kind
+        type: DoorTimedEventKind
+        required: true
+      - name: door_id
+        type: DoorId
+        required: true
 enums:
-  DoorPhase:
-    values:
-      - Open
-      - ClosingWarning
-      - CloseDeferred
-      - Closed
-
-configuration:
-  allowed_levels: [3]
-  includes_outer_walls: true
-  includes_fixed_inner_walls: true
-  toggle_interval_milliseconds: 6000
-  closing_warning_milliseconds: 2000
-  minimum_snake_capacity: 50
-  must_reserve_object_spawn_cells: true
-
-derived_values:
-  - name: blocked_cells
-    path: door_and_maze.blocked_cells
-    formula: "wall_cells 加上 phase == Closed 的門格。"
-  - name: passable_door_cells
-    path: door_and_maze.passable_door_cells
-    formula: "phase 為 Open、ClosingWarning 或 CloseDeferred 的門格。"
-
-domain_relations:
-  - relation_id: DOOR-MAZE-REL-001
-    target_domain: Game
-    target_spec: ../Game/domain_spec.yaml
-    cardinality: one
+  - name: DoorPhase
+    values: [Open, ClosingWarning, CloseDeferred, Closed]
+  - name: DoorTimedEventKind
+    values: [ClosingWarningDue, ToggleDue]
+relations:
+  - target_ref: V3-AGG-BOARD-BOARD
     ownership: reference_only
-  - relation_id: DOOR-MAZE-REL-002
-    target_domain: Board
-    target_spec: ../Board/domain_spec.yaml
-    cardinality: one
+  - target_ref: V3-AGG-SNAKE-SNAKE
     ownership: reference_only
-  - relation_id: DOOR-MAZE-REL-003
-    target_domain: Level
-    target_spec: ../Level/domain_spec.yaml
-    cardinality: one
+  - target_ref: V3-AGG-SHIELD-SHIELD
     ownership: reference_only
-  - relation_id: DOOR-MAZE-REL-004
-    target_domain: Snake
-    target_spec: ../Snake/domain_spec.yaml
-    cardinality: one
-    ownership: reference_only
-  - relation_id: DOOR-MAZE-REL-005
-    target_domain: Shield
-    target_spec: ../Shield/domain_spec.yaml
-    cardinality: one
-    ownership: reference_only
-  - relation_id: DOOR-MAZE-REL-006
-    target_domain: GameResult
-    target_spec: ../GameResult/domain_spec.yaml
-    cardinality: one
-    ownership: reference_only
-
-rules:
-  invariants:
-    - rule_id: DOOR-MAZE-INV-001
-      description: "牆壁與門只存在於第三關，且占用格位計入 Board 的 100 格。"
-      field_refs:
-        - door_and_maze.wall_cells
-        - door_and_maze.doors
-    - rule_id: DOOR-MAZE-INV-002
-      description: "迷宮必須保留可容納 50 格蛇身的連續路線與物件合法空格。"
-      field_refs:
-        - door_and_maze.wall_cells
-        - door_and_maze.doors
-
-  collision:
-    - rule_id: DOOR-MAZE-COLLISION-001
-      description: "蛇頭撞到外圍牆壁或迷宮內牆時回報 WallCollision。"
-      when: "Snake head 下一格存在於 wall_cells。"
-      then: "回報 WallCollision，不提交 Snake 移動。"
-      field_refs:
-        - door_and_maze.wall_cells
-    - rule_id: DOOR-MAZE-COLLISION-002
-      description: "蛇頭撞到 Closed 門時回報 ClosedDoorCollision。"
-      when: "Snake head 下一格為 phase == Closed 的門格。"
-      then: "回報 ClosedDoorCollision，不提交 Snake 移動。"
-      field_refs:
-        - door_and_maze.doors
-    - rule_id: DOOR-MAZE-COLLISION-003
-      description: "Open、ClosingWarning、CloseDeferred 的門可以通過。"
-      when: "Snake head 下一格存在於 passable_door_cells。"
-      then: "允許 Board 回傳該格為合法移動位置。"
-      field_refs:
-        - door_and_maze.passable_door_cells
-
-  cycle:
-    - rule_id: DOOR-MAZE-CYCLE-001
-      description: "第三關 Playing 時，門每 6 秒執行一次開關切換。"
-      when: "門週期到達 6000 毫秒。"
-      then: "執行開門或關門判定。"
-      field_refs:
-        - door_and_maze.doors
-    - rule_id: DOOR-MAZE-CYCLE-002
-      description: "預定關閉前 2 秒，門進入 ClosingWarning。"
-      when: "距離預定關閉剩 2000 毫秒。"
-      then: "將門 phase 設為 ClosingWarning。"
-      field_refs:
-        - door_and_maze.doors
-    - rule_id: DOOR-MAZE-CYCLE-003
-      description: "關閉時蛇仍占用門格，門必須保持可通行並延後關閉。"
-      when: "關閉時點 Snake body 仍占用門格。"
-      then: "將門 phase 設為 CloseDeferred。"
-      otherwise: "沒有蛇身占用時設為 Closed。"
-      field_refs:
-        - door_and_maze.doors
-    - rule_id: DOOR-MAZE-CYCLE-004
-      description: "CloseDeferred 門在整條蛇離開後才關閉。"
-      when: "Snake body 不再占用 CloseDeferred 門格。"
-      then: "將門 phase 設為 Closed。"
-      field_refs:
-        - door_and_maze.doors
-    - rule_id: DOOR-MAZE-CYCLE-005
-      description: "第三關不在 Playing 時停止門週期。"
-      when: "Game 不允許門更新。"
-      then: "保持目前門狀態，不再切換。"
-      field_refs:
-        - door_and_maze.doors
+invariants:
+  - id: V3-DOORMAZE-INV-LEVEL
+    rule: "牆與門只存在於第三關，並占用 10×10 Board 中的格位。"
+  - id: V3-DOORMAZE-INV-CAPACITY
+    rule: "迷宮必須保留可容納 50 格連續蛇身的路線與至少一個可供活動物件使用的合法空格。"
+  - id: V3-DOORMAZE-INV-DOOR-PASSABILITY
+    rule: "Open、ClosingWarning、CloseDeferred 可通行；只有 Closed 不可通行。"
+behaviors:
+  - id: V3-DOORMAZE-BEHAVIOR-GET-DUE-EVENTS
+    name: GetDueEvents
+    input:
+      grain: one_accumulated_elapsed_milliseconds_value
+    output:
+      grain: one_time_ordered_door_event_list
+    rules:
+      - "第三關 Playing 時每 6000ms 產生 ToggleDue。"
+      - "預定由開啟轉為關閉前 2000ms 產生 ClosingWarningDue，因此第一輪分別於 4000ms 與 6000ms 到期。"
+      - "此行為只列出事件，不改變門狀態。"
+  - id: V3-DOORMAZE-BEHAVIOR-APPLY-WARNING
+    name: ApplyClosingWarning
+    input:
+      grain: one_closing_warning_due_event
+    output:
+      grain: one_closing_warning_door_state
+  - id: V3-DOORMAZE-BEHAVIOR-APPLY-TOGGLE
+    name: ApplyToggle
+    input:
+      grain: one_toggle_due_event_and_current_snake_body
+    output:
+      grain: one_toggled_or_deferred_door_state
+    rules:
+      - "開門事件直接設為 Open。"
+      - "關門時蛇頭或任一蛇身仍占用門格，設為 CloseDeferred 並保持可通行。"
+      - "沒有蛇身占用時才設為 Closed。"
+  - id: V3-DOORMAZE-BEHAVIOR-CLOSE-DEFERRED
+    name: CloseDeferredDoor
+    input:
+      grain: one_close_deferred_door_and_current_snake_body
+    output:
+      grain: one_unchanged_or_closed_door_state
+    rules:
+      - "只有整條蛇離開門格後才可關閉。"
+  - id: V3-DOORMAZE-BEHAVIOR-INSPECT-COLLISION
+    name: InspectCollision
+    input:
+      grain: one_candidate_head_position
+    output:
+      grain: zero_or_one_wall_or_closed_door_collision
+    rules:
+      - "牆格回傳 WallCollision，Closed 門格回傳 ClosedDoorCollision。"
+      - "碰撞檢查不得提交 Snake 移動。"
+  - id: V3-DOORMAZE-BEHAVIOR-RESET
+    name: Reset
+    input:
+      grain: one_restart_to_first_level_request
+    output:
+      grain: one_empty_maze_and_door_state
+    rules:
+      - "清除 wall_cells 與 doors，但保留 DoorAndMaze identity。"
+      - "重玩後第一關不得保留第三關門事件或計時基準。"

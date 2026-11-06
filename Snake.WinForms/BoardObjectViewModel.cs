@@ -4,7 +4,7 @@ namespace Snake.WinForms;
 
 public class BoardObjectViewModel
 {
-    public BoardObjectViewModel(GameObjectType type, string itemId, GridCellViewModel position)
+    public BoardObjectViewModel(BoardObjectKind type, string itemId, GridCellViewModel position)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(itemId);
         Type = type;
@@ -12,7 +12,7 @@ public class BoardObjectViewModel
         Position = position ?? throw new ArgumentNullException(nameof(position));
     }
 
-    public GameObjectType Type { get; }
+    public BoardObjectKind Type { get; }
     public string ItemId { get; }
     public GridCellViewModel Position { get; }
 }

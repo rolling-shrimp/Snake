@@ -2,10 +2,10 @@ namespace Snake.WinForms;
 
 public class GameTickEventArgs : EventArgs
 {
-    public GameTickEventArgs(int elapsedMilliseconds)
+    public GameTickEventArgs(long accumulatedElapsedMilliseconds)
     {
-        ElapsedMilliseconds = elapsedMilliseconds;
+        AccumulatedElapsedMilliseconds = accumulatedElapsedMilliseconds;
     }
 
-    public int ElapsedMilliseconds { get; }
+    public long AccumulatedElapsedMilliseconds { get; }
 }

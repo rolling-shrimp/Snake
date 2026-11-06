@@ -1,0 +1,98 @@
+schema_version: 3
+spec_kind: workflow_contract
+id: V3-WF-GAME-RESTART
+workflow: RestartGame
+frame_ref: V3-FRAME-GAME-RESTART
+input:
+  grain: one_empty_restart_game_command
+  owner: ui_command_adapter
+output:
+  grain: one_complete_restart_result_with_first_level_playing_screen
+  owner: application_workflow
+  guarantees:
+    - "接受重玩時回傳 FirstLevelPlaying 與 RuntimeDirective.StartOrReset。"
+    - "非終局時成功 no-op，狀態與 Runtime 都不變。"
+domain_refs:
+  - V3-AGG-BOARD-BOARD
+  - V3-AGG-BOMB-BOMB
+  - V3-AGG-DOORMAZE-DOORMAZE
+  - V3-AGG-FIRE-FIRE
+  - V3-AGG-FOOD-FOOD
+  - V3-AGG-GAME-GAME
+  - V3-AGG-GAMERESULT-GAMERESULT
+  - V3-AGG-LEVEL-LEVEL
+  - V3-AGG-SHIELD-SHIELD
+  - V3-AGG-SNAKE-SNAKE
+preconditions:
+  - id: V3-WF-RESTART-PRE-CONSISTENT-SNAPSHOT
+    rule: "所有 Aggregate 必須能載入同一個已提交版本的遊戲快照。"
+decisions:
+  - id: V3-WF-RESTART-DECISION-ACCEPT
+    rule: "只有 GameOver 或 Completed 接受重玩。"
+  - id: V3-WF-RESTART-DECISION-NOOP
+    rule: "Ready 或 Playing 收到重玩時成功忽略，不清除或重設任何狀態。"
+  - id: V3-WF-RESTART-DECISION-COMPLETE-NEW-ROUND
+    rule: "重玩必須一次完成舊輪清除、第一關安全蛇身、普通食物、Playing 與時間基準；缺少任一部分即失敗。"
+steps:
+  - order: 1
+    id: V3-WF-RESTART-STEP-LOAD-AND-CHECK
+    action: "載入一致快照並確認 Game 是否為 GameOver 或 Completed。"
+  - order: 2
+    id: V3-WF-RESTART-STEP-RESET-ROUND
+    action: "在工作快照重設 Level 為第一關，清空 GameResult、Food、Shield、Fire、Bomb、DoorAndMaze 的舊輪次狀態。"
+  - order: 3
+    id: V3-WF-RESTART-STEP-SAFE-SNAKE
+    action: "由 Board.FindSafeBody 取得長度 3 的第一關安全身體，再由 Snake.ResetSafely 設定身體與 Right 方向。"
+  - order: 4
+    id: V3-WF-RESTART-STEP-SPAWN-FOOD
+    action: "從更新後未占用格選擇合法位置，由 Food.Spawn 建立唯一 Ordinary Food。"
+  - order: 5
+    id: V3-WF-RESTART-STEP-RESTART-GAME
+    action: "由 Game.Restart 將 phase 直接設為 Playing，last_processed_elapsed_milliseconds 設為 0。"
+  - order: 6
+    id: V3-WF-RESTART-STEP-COMMIT
+    action: "一次原子提交完整新輪快照；任一失敗都保留原終局快照。"
+  - order: 7
+    id: V3-WF-RESTART-STEP-PRESENT
+    action: "從新快照建立唯一 FirstLevelPlaying Screen，回傳 RuntimeDirective.StartOrReset。"
+branches:
+  - id: V3-WF-RESTART-BRANCH-RESTARTED
+    when: "Game 為 GameOver 或 Completed 且新輪完整可提交。"
+    result: "Outcome 為 Restarted，第一關直接 Playing。"
+  - id: V3-WF-RESTART-BRANCH-NOT-TERMINAL
+    when: "Game 為 Ready 或 Playing。"
+    result: "Outcome 為 NotTerminal，所有狀態不變。"
+stop_conditions:
+  - "找不到合法安全蛇身或 Ordinary Food 位置時整次重玩失敗。"
+  - "任一 Aggregate reset、invariant 或原子提交失敗時不得公開新輪狀態。"
+commit_policy:
+  unit: complete_restart_game
+  atomicity: all_or_nothing
+  visibility: one_commit_then_one_screen
+  rules:
+    - "舊輪次清除與新第一關建立只存在於工作快照，完成前不得被 UI 或 Timer 觀察。"
+postconditions:
+  - id: V3-WF-RESTART-POST-GAME
+    rule: "成功後 Level 為 1、Game.phase 為 Playing、累積時間基準為 0。"
+  - id: V3-WF-RESTART-POST-SNAKE
+    rule: "Snake 長度為 3、方向為 Right，身體安全且滿足順序、唯一與連續不變式。"
+  - id: V3-WF-RESTART-POST-RESET
+    rule: "GameResult、Shield、Fire、Bomb、DoorAndMaze 與舊 Food 狀態已清除，Shield 次數與生成紀錄為 0。"
+  - id: V3-WF-RESTART-POST-FOOD
+    rule: "第一關恰好有一個合法 Ordinary Food，沒有其他物件。"
+failures:
+  - code: InconsistentSnapshot
+    condition: "無法載入同一版本的完整 Aggregate 快照。"
+    state_guarantee: original_terminal_snapshot_unchanged
+  - code: SafeBodyUnavailable
+    condition: "Board 無法提供長度 3 的合法第一關安全身體。"
+    state_guarantee: original_terminal_snapshot_unchanged
+  - code: InitialFoodUnavailable
+    condition: "沒有合法格位產生 Ordinary Food。"
+    state_guarantee: original_terminal_snapshot_unchanged
+  - code: AtomicCommitFailed
+    condition: "無法一次提交完整新輪快照。"
+    state_guarantee: no_partial_restart
+no_op:
+  - outcome: NotTerminal
+    state_guarantee: "不清除結果、不重設 Aggregate、不重啟 Runtime，回傳目前完整畫面。"

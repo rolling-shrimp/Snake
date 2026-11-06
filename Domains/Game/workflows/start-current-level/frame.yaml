@@ -1,0 +1,43 @@
+schema_version: 3
+spec_kind: problem_frame
+id: V3-FRAME-GAME-START-CURRENT-LEVEL
+frame:
+  bounded_context: snake-game
+  frame_type: CBF
+  requirement: "玩家在目前關卡的待開始畫面按下開始後，遊戲立即進入該關 Playing。"
+problem_domains:
+  - name: player
+    role: command_source
+  - name: ready_level
+    role: controlled_domain
+  - name: game_runtime
+    role: causal_domain
+  - name: playing_screen
+    role: information_display
+shared_phenomena:
+  - name: press_start
+    direction: player_to_system
+  - name: begin_level_runtime
+    direction: system_to_game_runtime
+  - name: observe_playing_screen
+    direction: system_to_player
+world_facts:
+  - id: V3-FRAME-START-FACT-LEVELS
+    fact: "遊戲恰有第一、第二、第三關，且目前關卡在開始前處於 Ready。"
+  - id: V3-FRAME-START-FACT-READY-SNAKE
+    fact: "每個 Ready 畫面已有一條位於安全起點、長度為 3 且由頭到尾連續的蛇。"
+  - id: V3-FRAME-START-FACT-FIRST-OBJECTS
+    fact: "第一關開始時有 Ordinary Food；第二關另有 Special Food、第一個 Shield 與 Fire；第三關再增加 Bomb。"
+  - id: V3-FRAME-START-FACT-OBJECT-VISIBILITY
+    fact: "本關首批物件在玩家按下開始後立即出現，每種類型同時最多一個且不得重疊。"
+  - id: V3-FRAME-START-FACT-MOVEMENT
+    fact: "Playing 中蛇每 250 毫秒自動移動，沒有關卡倒數。"
+  - id: V3-FRAME-START-FACT-THIRD-DOOR
+    fact: "第三關的門每 6000 毫秒切換，預定關閉前 2000 毫秒顯示提醒。"
+frame_concerns:
+  - id: V3-FRAME-START-CONCERN-ONCE
+    concern: "同一個 Ready 狀態只能接受一次開始效果，重複輸入不得重生物件或重設時間。"
+  - id: V3-FRAME-START-CONCERN-COMPLETE
+    concern: "Playing 對外可見時，首批物件、蛇、關卡狀態與 Runtime 必須已形成一致結果。"
+  - id: V3-FRAME-START-CONCERN-PLACEMENT
+    concern: "所有首批物件都必須位於合法且互不重疊的空格；不得用假座標補足。"

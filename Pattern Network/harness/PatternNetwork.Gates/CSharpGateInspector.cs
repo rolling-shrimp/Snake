@@ -17,7 +17,7 @@ public class CSharpGateInspector
         }
         catch (Exception exception)
         {
-            issues.Add(new GateIssue("PN-SOURCE-READ", patternNode.Id, projectDirectory, null, $"列舉 C# 原始碼失敗：{exception.Message}", "error"));
+            issues.Add(new GateIssue("V3-PN-SOURCE-READ", patternNode.Id, projectDirectory, null, $"列舉 C# 原始碼失敗：{exception.Message}", "error"));
             return issues;
         }
 
@@ -50,7 +50,7 @@ public class CSharpGateInspector
             foreach (Diagnostic diagnostic in syntaxTree.GetDiagnostics().Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error))
             {
                 FileLinePositionSpan lineSpan = diagnostic.Location.GetLineSpan();
-                issues.Add(new GateIssue("PN-CS-SYNTAX", patternNode.Id, sourceFile, lineSpan.StartLinePosition.Line + 1, diagnostic.GetMessage(), "error"));
+                issues.Add(new GateIssue("V3-PN-CS-SYNTAX", patternNode.Id, sourceFile, lineSpan.StartLinePosition.Line + 1, diagnostic.GetMessage(), "error"));
             }
 
             if (HasChecker(patternNode, "csharp_global_rules"))
@@ -64,19 +64,24 @@ public class CSharpGateInspector
                 ValidateEntityBoundaries(patternNode, sourceFile, root, issues);
             }
 
-            if (HasChecker(patternNode, "use_case_contracts"))
+            if (HasChecker(patternNode, "application_workflow_contracts"))
             {
-                ValidateUseCaseContracts(patternNode, sourceFile, root, issues);
+                ValidateApplicationWorkflowContracts(patternNode, sourceFile, root, issues);
             }
 
             if (HasChecker(patternNode, "winforms_boundaries"))
             {
                 ValidateWinFormsBoundaries(patternNode, sourceFile, root, issues);
             }
+
+            if (HasChecker(patternNode, "presentation_workflow_boundaries"))
+            {
+                ValidatePresentationWorkflowBoundaries(patternNode, sourceFile, root, issues);
+            }
         }
         catch (Exception exception)
         {
-            issues.Add(new GateIssue("PN-SOURCE-READ", patternNode.Id, sourceFile, null, $"讀取或分析 C# 原始碼失敗：{exception.Message}", "error"));
+            issues.Add(new GateIssue("V3-PN-SOURCE-READ", patternNode.Id, sourceFile, null, $"讀取或分析 C# 原始碼失敗：{exception.Message}", "error"));
         }
     }
 
@@ -84,13 +89,13 @@ public class CSharpGateInspector
     {
         foreach (RecordDeclarationSyntax record in root.DescendantNodes().OfType<RecordDeclarationSyntax>())
         {
-            AddIssue(issues, "PN-CS-CLASS-002", patternNode.Id, sourceFile, record, "手寫型別不得使用 record。 ");
+            AddIssue(issues, "V3-PN-CS-CLASS-002", patternNode.Id, sourceFile, record, "手寫型別不得使用 record。 ");
         }
 
         List<ClassDeclarationSyntax> classes = root.DescendantNodes().OfType<ClassDeclarationSyntax>().ToList();
         if (classes.Count > 1)
         {
-            AddIssue(issues, "PN-CS-FILE-001", patternNode.Id, sourceFile, classes[1], "一個 .cs 檔案只能包含一個類別。 ");
+            AddIssue(issues, "V3-PN-CS-FILE-001", patternNode.Id, sourceFile, classes[1], "一個 .cs 檔案只能包含一個類別。 ");
         }
 
         foreach (ClassDeclarationSyntax classDeclaration in classes)
@@ -100,7 +105,7 @@ public class CSharpGateInspector
 
         if (classes.Count == 1 && !string.Equals(Path.GetFileNameWithoutExtension(sourceFile), classes[0].Identifier.ValueText, StringComparison.Ordinal))
         {
-            AddIssue(issues, "PN-CS-FILE-001", patternNode.Id, sourceFile, classes[0], $"類別 {classes[0].Identifier.ValueText} 必須放在同名檔案。 ");
+            AddIssue(issues, "V3-PN-CS-FILE-001", patternNode.Id, sourceFile, classes[0], $"類別 {classes[0].Identifier.ValueText} 必須放在同名檔案。 ");
         }
 
         foreach (FieldDeclarationSyntax field in root.DescendantNodes().OfType<FieldDeclarationSyntax>())
@@ -114,12 +119,12 @@ public class CSharpGateInspector
         {
             if (method.Modifiers.Any(SyntaxKind.StaticKeyword))
             {
-                AddIssue(issues, "PN-CS-METHOD-001", patternNode.Id, sourceFile, method, $"方法 {method.Identifier.ValueText} 不得宣告 static。 ");
+                AddIssue(issues, "V3-PN-CS-METHOD-001", patternNode.Id, sourceFile, method, $"方法 {method.Identifier.ValueText} 不得宣告 static。 ");
             }
 
             if (!IsPascalCase(method.Identifier.ValueText))
             {
-                AddIssue(issues, "PN-CS-NAME-001", patternNode.Id, sourceFile, method, $"方法 {method.Identifier.ValueText} 必須使用 PascalCase。 ");
+                AddIssue(issues, "V3-PN-CS-NAME-001", patternNode.Id, sourceFile, method, $"方法 {method.Identifier.ValueText} 必須使用 PascalCase。 ");
             }
         }
 
@@ -127,7 +132,7 @@ public class CSharpGateInspector
         {
             if (!IsPascalCase(property.Identifier.ValueText))
             {
-                AddIssue(issues, "PN-CS-NAME-001", patternNode.Id, sourceFile, property, $"屬性 {property.Identifier.ValueText} 必須使用 PascalCase。 ");
+                AddIssue(issues, "V3-PN-CS-NAME-001", patternNode.Id, sourceFile, property, $"屬性 {property.Identifier.ValueText} 必須使用 PascalCase。 ");
             }
         }
 
@@ -135,7 +140,7 @@ public class CSharpGateInspector
         {
             if (!IsPascalCase(enumDeclaration.Identifier.ValueText))
             {
-                AddIssue(issues, "PN-CS-NAME-001", patternNode.Id, sourceFile, enumDeclaration, $"列舉 {enumDeclaration.Identifier.ValueText} 必須使用 PascalCase。 ");
+                AddIssue(issues, "V3-PN-CS-NAME-001", patternNode.Id, sourceFile, enumDeclaration, $"列舉 {enumDeclaration.Identifier.ValueText} 必須使用 PascalCase。 ");
             }
         }
 
@@ -143,7 +148,7 @@ public class CSharpGateInspector
         {
             if (!IsCamelCase(parameter.Identifier.ValueText))
             {
-                AddIssue(issues, "PN-CS-NAME-001", patternNode.Id, sourceFile, parameter, $"參數 {parameter.Identifier.ValueText} 必須使用 camelCase。 ");
+                AddIssue(issues, "V3-PN-CS-NAME-001", patternNode.Id, sourceFile, parameter, $"參數 {parameter.Identifier.ValueText} 必須使用 camelCase。 ");
             }
         }
 
@@ -151,7 +156,7 @@ public class CSharpGateInspector
         {
             if (variable.Parent?.Parent is LocalDeclarationStatementSyntax && !IsCamelCase(variable.Identifier.ValueText))
             {
-                AddIssue(issues, "PN-CS-NAME-001", patternNode.Id, sourceFile, variable, $"區域變數 {variable.Identifier.ValueText} 必須使用 camelCase。 ");
+                AddIssue(issues, "V3-PN-CS-NAME-001", patternNode.Id, sourceFile, variable, $"區域變數 {variable.Identifier.ValueText} 必須使用 camelCase。 ");
             }
         }
 
@@ -181,7 +186,7 @@ public class CSharpGateInspector
                 string expectedFieldName = $"_{parameterReference.Identifier.ValueText}";
                 if (!string.Equals(fieldName, expectedFieldName, StringComparison.Ordinal))
                 {
-                    AddIssue(issues, "PN-CS-DI-001", patternNode.Id, sourceFile, assignment, $"建構式參數 {parameterReference.Identifier.ValueText} 必須保存至 {expectedFieldName}，不得保存至 {fieldName}。 ");
+                    AddIssue(issues, "V3-PN-CS-DI-001", patternNode.Id, sourceFile, assignment, $"建構式參數 {parameterReference.Identifier.ValueText} 必須保存至 {expectedFieldName}，不得保存至 {fieldName}。 ");
                 }
             }
         }
@@ -206,7 +211,7 @@ public class CSharpGateInspector
     {
         if (!classDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword))
         {
-            AddIssue(issues, "PN-CS-CLASS-001", patternNode.Id, sourceFile, classDeclaration, $"類別 {classDeclaration.Identifier.ValueText} 必須宣告 public。 ");
+            AddIssue(issues, "V3-PN-CS-CLASS-001", patternNode.Id, sourceFile, classDeclaration, $"類別 {classDeclaration.Identifier.ValueText} 必須宣告 public。 ");
         }
 
         foreach (SyntaxKind forbiddenModifier in new[] { SyntaxKind.SealedKeyword, SyntaxKind.AbstractKeyword, SyntaxKind.PartialKeyword, SyntaxKind.StaticKeyword })
@@ -214,13 +219,13 @@ public class CSharpGateInspector
             if (classDeclaration.Modifiers.Any(forbiddenModifier))
             {
                 string modifierText = SyntaxFacts.GetText(forbiddenModifier);
-                AddIssue(issues, "PN-CS-CLASS-001", patternNode.Id, sourceFile, classDeclaration, $"手寫類別 {classDeclaration.Identifier.ValueText} 不得宣告 {modifierText}。 ");
+                AddIssue(issues, "V3-PN-CS-CLASS-001", patternNode.Id, sourceFile, classDeclaration, $"手寫類別 {classDeclaration.Identifier.ValueText} 不得宣告 {modifierText}。 ");
             }
         }
 
         if (!IsPascalCase(classDeclaration.Identifier.ValueText))
         {
-            AddIssue(issues, "PN-CS-NAME-001", patternNode.Id, sourceFile, classDeclaration, $"類別 {classDeclaration.Identifier.ValueText} 必須使用 PascalCase。 ");
+            AddIssue(issues, "V3-PN-CS-NAME-001", patternNode.Id, sourceFile, classDeclaration, $"類別 {classDeclaration.Identifier.ValueText} 必須使用 PascalCase。 ");
         }
     }
 
@@ -229,12 +234,12 @@ public class CSharpGateInspector
         bool isConst = field.Modifiers.Any(SyntaxKind.ConstKeyword);
         if (!field.Modifiers.Any(SyntaxKind.PrivateKeyword))
         {
-            AddIssue(issues, "PN-CS-FIELD-001", patternNode.Id, sourceFile, field, "欄位必須宣告 private。 ");
+            AddIssue(issues, "V3-PN-CS-FIELD-001", patternNode.Id, sourceFile, field, "欄位必須宣告 private。 ");
         }
 
         if (field.Modifiers.Any(SyntaxKind.StaticKeyword) || field.Modifiers.Any(SyntaxKind.ReadOnlyKeyword))
         {
-            AddIssue(issues, "PN-CS-FIELD-002", patternNode.Id, sourceFile, field, "欄位不得宣告 static 或 readonly。 ");
+            AddIssue(issues, "V3-PN-CS-FIELD-002", patternNode.Id, sourceFile, field, "欄位不得宣告 static 或 readonly。 ");
         }
 
         foreach (VariableDeclaratorSyntax variable in field.Declaration.Variables)
@@ -243,12 +248,12 @@ public class CSharpGateInspector
             {
                 if (!Regex.IsMatch(variable.Identifier.ValueText, "^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*$"))
                 {
-                    AddIssue(issues, "PN-CS-CONST-001", patternNode.Id, sourceFile, variable, $"常數 {variable.Identifier.ValueText} 必須使用 UPPER_SNAKE_CASE。 ");
+                    AddIssue(issues, "V3-PN-CS-CONST-001", patternNode.Id, sourceFile, variable, $"常數 {variable.Identifier.ValueText} 必須使用 UPPER_SNAKE_CASE。 ");
                 }
             }
             else if (!Regex.IsMatch(variable.Identifier.ValueText, "^_[a-z][A-Za-z0-9]*$"))
             {
-                AddIssue(issues, "PN-CS-FIELD-001", patternNode.Id, sourceFile, variable, $"欄位 {variable.Identifier.ValueText} 必須使用 _camelCase。 ");
+                AddIssue(issues, "V3-PN-CS-FIELD-001", patternNode.Id, sourceFile, variable, $"欄位 {variable.Identifier.ValueText} 必須使用 _camelCase。 ");
             }
         }
     }
@@ -259,12 +264,12 @@ public class CSharpGateInspector
         {
             if (statement.Statement is not BlockSyntax)
             {
-                AddIssue(issues, "PN-CS-FLOW-001", patternNode.Id, sourceFile, statement.Statement, "if 或 else if 主體必須使用大括號。 ");
+                AddIssue(issues, "V3-PN-CS-FLOW-001", patternNode.Id, sourceFile, statement.Statement, "if 或 else if 主體必須使用大括號。 ");
             }
 
             if (statement.Else != null && statement.Else.Statement is not BlockSyntax && statement.Else.Statement is not IfStatementSyntax)
             {
-                AddIssue(issues, "PN-CS-FLOW-001", patternNode.Id, sourceFile, statement.Else.Statement, "else 主體必須使用大括號。 ");
+                AddIssue(issues, "V3-PN-CS-FLOW-001", patternNode.Id, sourceFile, statement.Else.Statement, "else 主體必須使用大括號。 ");
             }
         }
 
@@ -293,7 +298,7 @@ public class CSharpGateInspector
     {
         if (body is not BlockSyntax)
         {
-            AddIssue(issues, "PN-CS-FLOW-001", patternNode.Id, sourceFile, body, "迴圈主體必須使用大括號。 ");
+            AddIssue(issues, "V3-PN-CS-FLOW-001", patternNode.Id, sourceFile, body, "迴圈主體必須使用大括號。 ");
         }
     }
 
@@ -305,7 +310,7 @@ public class CSharpGateInspector
             return;
         }
 
-        string ruleId = patternNode.Id == "entities" ? "PN-ENT-PRO-002" : "PN-UC-PRO-002";
+        string ruleId = patternNode.Id == "entities" ? "V3-PN-ENT-PRO-002" : "V3-PN-UC-PRO-002";
         foreach (UsingDirectiveSyntax usingDirective in root.Usings)
         {
             string namespaceName = usingDirective.Name?.ToString() ?? string.Empty;
@@ -333,7 +338,7 @@ public class CSharpGateInspector
                 bool isRestricted = accessor.Modifiers.Any(SyntaxKind.PrivateKeyword) || accessor.Modifiers.Any(SyntaxKind.ProtectedKeyword) || accessor.Modifiers.Any(SyntaxKind.InternalKeyword);
                 if (!isRestricted)
                 {
-                    AddIssue(issues, "PN-ENT-PRO-004", patternNode.Id, sourceFile, accessor, $"領域屬性 {property.Identifier.ValueText} 不得提供 public {accessor.Keyword.ValueText}。 ");
+                    AddIssue(issues, "V3-PN-ENT-PRO-004", patternNode.Id, sourceFile, accessor, $"領域屬性 {property.Identifier.ValueText} 不得提供 public {accessor.Keyword.ValueText}。 ");
                 }
             }
         }
@@ -343,7 +348,7 @@ public class CSharpGateInspector
             string expression = memberAccess.ToString();
             if (expression is "DateTime.Now" or "DateTime.UtcNow" or "Guid.NewGuid" || expression.StartsWith("Environment.", StringComparison.Ordinal))
             {
-                AddIssue(issues, "PN-ENT-PRO-003", patternNode.Id, sourceFile, memberAccess, $"Entities 不得直接取得非確定性來源：{expression}。 ");
+                AddIssue(issues, "V3-PN-ENT-PRO-003", patternNode.Id, sourceFile, memberAccess, $"Entities 不得直接取得非確定性來源：{expression}。 ");
             }
         }
 
@@ -351,44 +356,82 @@ public class CSharpGateInspector
         {
             if (objectCreation.Type.ToString() is "Random" or "System.Random")
             {
-                AddIssue(issues, "PN-ENT-PRO-003", patternNode.Id, sourceFile, objectCreation, "Entities 不得自行建立 Random。 ");
+                AddIssue(issues, "V3-PN-ENT-PRO-003", patternNode.Id, sourceFile, objectCreation, "Entities 不得自行建立 Random。 ");
             }
         }
     }
 
-    private void ValidateUseCaseContracts(PatternNodeDefinition patternNode, string sourceFile, CompilationUnitSyntax root, List<GateIssue> issues)
+    private void ValidateApplicationWorkflowContracts(
+        PatternNodeDefinition patternNode,
+        string sourceFile,
+        CompilationUnitSyntax root,
+        List<GateIssue> issues)
     {
         foreach (ClassDeclarationSyntax classDeclaration in root.DescendantNodes().OfType<ClassDeclarationSyntax>())
         {
-            if (classDeclaration.Identifier.ValueText.EndsWith("UseCase", StringComparison.Ordinal))
+            bool isLegacyUseCase = classDeclaration.Identifier.ValueText.EndsWith("UseCase", StringComparison.Ordinal);
+            bool isApplicationService = classDeclaration.Identifier.ValueText.EndsWith("ApplicationService", StringComparison.Ordinal);
+            if (isLegacyUseCase || isApplicationService)
             {
-                List<MethodDeclarationSyntax> executeMethods = classDeclaration.Members
+                List<MethodDeclarationSyntax> workflowMethods = classDeclaration.Members
                     .OfType<MethodDeclarationSyntax>()
-                    .Where(method => method.Modifiers.Any(SyntaxKind.PublicKeyword) && method.Identifier.ValueText == "Execute")
+                    .Where(method => method.Modifiers.Any(SyntaxKind.PublicKeyword))
                     .ToList();
-                if (executeMethods.Count != 1)
+                if (isLegacyUseCase
+                    && workflowMethods.Count == 1
+                    && workflowMethods[0].Identifier.ValueText == "Execute")
                 {
-                    AddIssue(issues, "PN-UC-002", patternNode.Id, sourceFile, classDeclaration, $"{classDeclaration.Identifier.ValueText} 必須有且只有一個 public Execute。 ");
-                    continue;
+                    AddIssue(
+                        issues,
+                        "V3-PN-UC-PRO-006",
+                        patternNode.Id,
+                        sourceFile,
+                        classDeclaration,
+                        $"{classDeclaration.Identifier.ValueText} 仍採用單一 Execute 的葉節點 Use Case 結構。 ",
+                        "warning");
                 }
 
-                MethodDeclarationSyntax executeMethod = executeMethods[0];
-                if (executeMethod.ParameterList.Parameters.Count != 1)
+                foreach (MethodDeclarationSyntax workflowMethod in workflowMethods)
                 {
-                    AddIssue(issues, "PN-UC-002", patternNode.Id, sourceFile, executeMethod, "Execute 必須接受一個 Command 或 Query。 ");
-                }
-                else
-                {
-                    string inputType = executeMethod.ParameterList.Parameters[0].Type?.ToString() ?? string.Empty;
-                    if (!inputType.EndsWith("Command", StringComparison.Ordinal) && !inputType.EndsWith("Query", StringComparison.Ordinal))
+                    if (workflowMethod.ParameterList.Parameters.Count != 1)
                     {
-                        AddIssue(issues, "PN-UC-PRO-003", patternNode.Id, sourceFile, executeMethod.ParameterList.Parameters[0], $"Execute 輸入型別 {inputType} 必須以 Command 或 Query 結尾。 ");
+                        AddIssue(
+                            issues,
+                            "V3-PN-UC-002",
+                            patternNode.Id,
+                            sourceFile,
+                            workflowMethod,
+                            $"Workflow Method {workflowMethod.Identifier.ValueText} 必須接受一個 Command 或 Query。 ",
+                            "warning");
                     }
-                }
+                    else
+                    {
+                        string inputType = workflowMethod.ParameterList.Parameters[0].Type?.ToString() ?? string.Empty;
+                        if (!inputType.EndsWith("Command", StringComparison.Ordinal)
+                            && !inputType.EndsWith("Query", StringComparison.Ordinal))
+                        {
+                            AddIssue(
+                                issues,
+                                "V3-PN-UC-PRO-003",
+                                patternNode.Id,
+                                sourceFile,
+                                workflowMethod.ParameterList.Parameters[0],
+                                $"Workflow Method 輸入型別 {inputType} 必須以 Command 或 Query 結尾。 ",
+                                "warning");
+                        }
+                    }
 
-                if (!executeMethod.ReturnType.ToString().EndsWith("Result", StringComparison.Ordinal))
-                {
-                    AddIssue(issues, "PN-UC-002", patternNode.Id, sourceFile, executeMethod.ReturnType, "Execute 回傳型別必須以 Result 結尾。 ");
+                    if (!workflowMethod.ReturnType.ToString().EndsWith("Result", StringComparison.Ordinal))
+                    {
+                        AddIssue(
+                            issues,
+                            "V3-PN-UC-002",
+                            patternNode.Id,
+                            sourceFile,
+                            workflowMethod.ReturnType,
+                            $"Workflow Method {workflowMethod.Identifier.ValueText} 回傳型別必須以 Result 結尾。 ",
+                            "warning");
+                    }
                 }
             }
 
@@ -416,7 +459,14 @@ public class CSharpGateInspector
         {
             if (!actualProperties.TryGetValue(requiredProperty.Key, out PropertyDeclarationSyntax? actualProperty) || !string.Equals(actualProperty.Type.ToString(), requiredProperty.Value, StringComparison.Ordinal))
             {
-                AddIssue(issues, "PN-UC-003", patternNode.Id, sourceFile, resultClass, $"Result 必須提供 {requiredProperty.Value} {requiredProperty.Key}。 ");
+                AddIssue(
+                    issues,
+                    "V3-PN-UC-003",
+                    patternNode.Id,
+                    sourceFile,
+                    resultClass,
+                    $"Result 必須提供 {requiredProperty.Value} {requiredProperty.Key}。 ",
+                    "warning");
             }
         }
     }
@@ -429,7 +479,7 @@ public class CSharpGateInspector
             {
                 if (IsWinFormsType(baseType.Type.ToString()))
                 {
-                    AddIssue(issues, "PN-UI-PRO-002", patternNode.Id, sourceFile, baseType, "Presenter 不得繼承 WinForms 型別。 ");
+                    AddIssue(issues, "V3-PN-UI-PRO-002", patternNode.Id, sourceFile, baseType, "Presenter 不得繼承 WinForms 型別。 ");
                 }
             }
 
@@ -437,7 +487,7 @@ public class CSharpGateInspector
             {
                 if (IsWinFormsType(field.Declaration.Type.ToString()))
                 {
-                    AddIssue(issues, "PN-UI-PRO-002", patternNode.Id, sourceFile, field, "Presenter 不得保存 WinForms 控制項。 ");
+                    AddIssue(issues, "V3-PN-UI-PRO-002", patternNode.Id, sourceFile, field, "Presenter 不得保存 WinForms 控制項。 ");
                 }
             }
 
@@ -447,11 +497,341 @@ public class CSharpGateInspector
                 {
                     if (IsWinFormsType(parameter.Type?.ToString() ?? string.Empty))
                     {
-                        AddIssue(issues, "PN-UI-PRO-002", patternNode.Id, sourceFile, parameter, "Presenter 建構式不得接收 WinForms 控制項。 ");
+                        AddIssue(issues, "V3-PN-UI-PRO-002", patternNode.Id, sourceFile, parameter, "Presenter 建構式不得接收 WinForms 控制項。 ");
                     }
                 }
             }
         }
+
+        GateCheckDefinition? boundaryCheck = patternNode.Checks.FirstOrDefault(
+            candidate => string.Equals(candidate.Checker, "winforms_boundaries", StringComparison.Ordinal));
+        if (boundaryCheck is null
+            || !boundaryCheck.ScalarParameters.TryGetValue("direction_dispatch_event", out string? directionDispatchEvent)
+            || !boundaryCheck.ScalarParameters.TryGetValue("direction_value_type", out string? directionValueType)
+            || !boundaryCheck.ListParameters.TryGetValue("declared_direction_keys", out List<string>? declaredDirectionKeys))
+        {
+            return;
+        }
+
+        foreach (ClassDeclarationSyntax form in root.DescendantNodes()
+            .OfType<ClassDeclarationSyntax>()
+            .Where(IsWinFormsForm))
+        {
+            bool declaresDirectionEvent = form.Members
+                .OfType<EventFieldDeclarationSyntax>()
+                .SelectMany(eventField => eventField.Declaration.Variables)
+                .Any(variable => string.Equals(
+                    variable.Identifier.ValueText,
+                    directionDispatchEvent,
+                    StringComparison.Ordinal));
+            bool referencesDeclaredDirectionKey = form.DescendantNodes()
+                .OfType<MemberAccessExpressionSyntax>()
+                .Any(memberAccess => IsMemberAccess(
+                    memberAccess,
+                    "Keys",
+                    declaredDirectionKeys));
+            if (!declaresDirectionEvent || !referencesDeclaredDirectionKey)
+            {
+                continue;
+            }
+
+            ValidateDirectionInputForm(
+                patternNode,
+                sourceFile,
+                form,
+                directionDispatchEvent,
+                directionValueType,
+                declaredDirectionKeys,
+                issues);
+        }
+    }
+
+    private void ValidateDirectionInputForm(
+        PatternNodeDefinition patternNode,
+        string sourceFile,
+        ClassDeclarationSyntax form,
+        string directionDispatchEvent,
+        string directionValueType,
+        List<string> declaredDirectionKeys,
+        List<GateIssue> issues)
+    {
+        MethodDeclarationSyntax? processCmdKey = form.Members
+            .OfType<MethodDeclarationSyntax>()
+            .FirstOrDefault(method => string.Equals(
+                method.Identifier.ValueText,
+                "ProcessCmdKey",
+                StringComparison.Ordinal));
+        if (processCmdKey is null)
+        {
+            AddIssue(
+                issues,
+                "V3-PN-UI-008",
+                patternNode.Id,
+                sourceFile,
+                form,
+                "宣告方向鍵輸入的 Form 必須覆寫 ProcessCmdKey，在控制項導覽前派送輸入。 ");
+        }
+        else
+        {
+            ValidateProcessCmdKey(
+                patternNode,
+                sourceFile,
+                processCmdKey,
+                directionDispatchEvent,
+                directionValueType,
+                declaredDirectionKeys,
+                issues);
+        }
+
+        foreach (MethodDeclarationSyntax parallelMethod in form.Members
+            .OfType<MethodDeclarationSyntax>()
+            .Where(method => !string.Equals(
+                method.Identifier.ValueText,
+                "ProcessCmdKey",
+                StringComparison.Ordinal)))
+        {
+            if (CountEventDispatches(parallelMethod, directionDispatchEvent) == 0)
+            {
+                continue;
+            }
+
+            AddIssue(
+                issues,
+                "V3-PN-UI-PRO-007",
+                patternNode.Id,
+                sourceFile,
+                parallelMethod,
+                $"方向輸入事件 {directionDispatchEvent} 只能由 ProcessCmdKey 派送，不得保留平行 KeyDown 或其他鍵盤事件路徑。 ");
+        }
+    }
+
+    private void ValidateProcessCmdKey(
+        PatternNodeDefinition patternNode,
+        string sourceFile,
+        MethodDeclarationSyntax processCmdKey,
+        string directionDispatchEvent,
+        string directionValueType,
+        List<string> declaredDirectionKeys,
+        List<GateIssue> issues)
+    {
+        bool hasRequiredSignature = processCmdKey.Modifiers.Any(SyntaxKind.ProtectedKeyword)
+            && processCmdKey.Modifiers.Any(SyntaxKind.OverrideKeyword)
+            && string.Equals(processCmdKey.ReturnType.ToString(), "bool", StringComparison.Ordinal);
+        if (!hasRequiredSignature)
+        {
+            AddIssue(
+                issues,
+                "V3-PN-UI-008",
+                patternNode.Id,
+                sourceFile,
+                processCmdKey,
+                "ProcessCmdKey 必須使用 protected override bool 簽章。 ");
+        }
+
+        SwitchExpressionSyntax? directionSwitch = processCmdKey.DescendantNodes()
+            .OfType<SwitchExpressionSyntax>()
+            .FirstOrDefault(candidate => candidate.Arms.Any(arm =>
+                GetMemberName(arm.Pattern, "Keys") is not null));
+        if (directionSwitch is null
+            || !directionSwitch.GoverningExpression.ToString().Contains(
+                "Keys.KeyCode",
+                StringComparison.Ordinal)
+            || !HasExactDirectionMappings(
+                directionSwitch,
+                directionValueType,
+                declaredDirectionKeys))
+        {
+            AddIssue(
+                issues,
+                "V3-PN-UI-008",
+                patternNode.Id,
+                sourceFile,
+                processCmdKey,
+                $"ProcessCmdKey 必須以 Keys.KeyCode 恰好映射 {string.Join("、", declaredDirectionKeys)} 到同名 {directionValueType}。 ");
+        }
+
+        int dispatchCount = CountEventDispatches(processCmdKey, directionDispatchEvent);
+        if (dispatchCount != 1)
+        {
+            AddIssue(
+                issues,
+                "V3-PN-UI-008",
+                patternNode.Id,
+                sourceFile,
+                processCmdKey,
+                $"ProcessCmdKey 必須恰好包含一次 {directionDispatchEvent} 派送，實際為 {dispatchCount} 次。 ");
+        }
+
+        bool returnsHandled = processCmdKey.DescendantNodes()
+            .OfType<ReturnStatementSyntax>()
+            .Any(returnStatement => returnStatement.Expression is LiteralExpressionSyntax literal
+                && literal.IsKind(SyntaxKind.TrueLiteralExpression));
+        bool delegatesUndeclaredInput = processCmdKey.DescendantNodes()
+            .OfType<InvocationExpressionSyntax>()
+            .Any(invocation => invocation.Expression is MemberAccessExpressionSyntax memberAccess
+                && memberAccess.Expression is BaseExpressionSyntax
+                && string.Equals(
+                    memberAccess.Name.Identifier.ValueText,
+                    "ProcessCmdKey",
+                    StringComparison.Ordinal));
+        if (!returnsHandled || !delegatesUndeclaredInput)
+        {
+            AddIssue(
+                issues,
+                "V3-PN-UI-008",
+                patternNode.Id,
+                sourceFile,
+                processCmdKey,
+                "宣告方向鍵派送後必須回傳 true；未宣告輸入必須委派 base.ProcessCmdKey。 ");
+        }
+    }
+
+    private bool HasExactDirectionMappings(
+        SwitchExpressionSyntax directionSwitch,
+        string directionValueType,
+        List<string> declaredDirectionKeys)
+    {
+        List<KeyValuePair<string, string>> mappings = new List<KeyValuePair<string, string>>();
+        foreach (SwitchExpressionArmSyntax arm in directionSwitch.Arms)
+        {
+            string? keyName = GetMemberName(arm.Pattern, "Keys");
+            string? directionName = GetMemberName(arm.Expression, directionValueType);
+            if (keyName is null && directionName is null)
+            {
+                continue;
+            }
+
+            if (keyName is null || directionName is null)
+            {
+                return false;
+            }
+
+            mappings.Add(new KeyValuePair<string, string>(keyName, directionName));
+        }
+
+        if (mappings.Count != declaredDirectionKeys.Count
+            || mappings.Select(mapping => mapping.Key).Distinct(StringComparer.Ordinal).Count()
+                != declaredDirectionKeys.Count)
+        {
+            return false;
+        }
+
+        return declaredDirectionKeys.All(key => mappings.Any(mapping =>
+            string.Equals(mapping.Key, key, StringComparison.Ordinal)
+            && string.Equals(mapping.Value, key, StringComparison.Ordinal)));
+    }
+
+    private string? GetMemberName(SyntaxNode node, string ownerName)
+    {
+        return node.DescendantNodesAndSelf()
+            .OfType<MemberAccessExpressionSyntax>()
+            .FirstOrDefault(memberAccess => string.Equals(
+                memberAccess.Expression.ToString(),
+                ownerName,
+                StringComparison.Ordinal))
+            ?.Name.Identifier.ValueText;
+    }
+
+    private int CountEventDispatches(SyntaxNode node, string eventName)
+    {
+        int conditionalDispatches = node.DescendantNodes()
+            .OfType<ConditionalAccessExpressionSyntax>()
+            .Count(conditionalAccess => conditionalAccess.Expression is IdentifierNameSyntax identifier
+                && string.Equals(identifier.Identifier.ValueText, eventName, StringComparison.Ordinal)
+                && conditionalAccess.WhenNotNull.DescendantNodesAndSelf()
+                    .OfType<InvocationExpressionSyntax>()
+                    .Any());
+        int directDispatches = node.DescendantNodes()
+            .OfType<InvocationExpressionSyntax>()
+            .Count(invocation => invocation.Expression is MemberAccessExpressionSyntax memberAccess
+                && memberAccess.Expression is IdentifierNameSyntax identifier
+                && string.Equals(identifier.Identifier.ValueText, eventName, StringComparison.Ordinal));
+        return conditionalDispatches + directDispatches;
+    }
+
+    private bool IsWinFormsForm(ClassDeclarationSyntax classDeclaration)
+    {
+        return classDeclaration.BaseList?.Types.Any(baseType =>
+            string.Equals(
+                baseType.Type.ToString().Split('.').Last(),
+                "Form",
+                StringComparison.Ordinal)) == true;
+    }
+
+    private bool IsMemberAccess(
+        MemberAccessExpressionSyntax memberAccess,
+        string ownerName,
+        List<string> memberNames)
+    {
+        return string.Equals(memberAccess.Expression.ToString(), ownerName, StringComparison.Ordinal)
+            && memberNames.Contains(memberAccess.Name.Identifier.ValueText, StringComparer.Ordinal);
+    }
+
+    private void ValidatePresentationWorkflowBoundaries(
+        PatternNodeDefinition patternNode,
+        string sourceFile,
+        CompilationUnitSyntax root,
+        List<GateIssue> issues)
+    {
+        foreach (ClassDeclarationSyntax presenter in root.DescendantNodes()
+            .OfType<ClassDeclarationSyntax>()
+            .Where(type => type.Identifier.ValueText.EndsWith("Presenter", StringComparison.Ordinal)))
+        {
+            HashSet<string> applicationDependencyFields = presenter.Members
+                .OfType<FieldDeclarationSyntax>()
+                .Where(field =>
+                    field.Declaration.Type.ToString().EndsWith("UseCase", StringComparison.Ordinal)
+                    || field.Declaration.Type.ToString().EndsWith("ApplicationService", StringComparison.Ordinal))
+                .SelectMany(field => field.Declaration.Variables)
+                .Select(variable => variable.Identifier.ValueText)
+                .ToHashSet(StringComparer.Ordinal);
+            HashSet<string> sessionFields = presenter.Members
+                .OfType<FieldDeclarationSyntax>()
+                .Where(field => field.Declaration.Type.ToString().EndsWith("Session", StringComparison.Ordinal))
+                .SelectMany(field => field.Declaration.Variables)
+                .Select(variable => variable.Identifier.ValueText)
+                .ToHashSet(StringComparer.Ordinal);
+
+            foreach (MethodDeclarationSyntax method in presenter.Members.OfType<MethodDeclarationSyntax>())
+            {
+                List<InvocationExpressionSyntax> applicationCalls = method.DescendantNodes()
+                    .OfType<InvocationExpressionSyntax>()
+                    .Where(invocation => IsInvocationOnField(invocation, applicationDependencyFields))
+                    .ToList();
+                if (applicationCalls.Count > 1)
+                {
+                    AddIssue(
+                        issues,
+                        "V3-PN-UI-PRO-005",
+                        patternNode.Id,
+                        sourceFile,
+                        method,
+                        $"Presenter 方法 {method.Identifier.ValueText} 呼叫了 {applicationCalls.Count} 個應用操作；一個 UI 事件只能呼叫一個完整 Workflow Method。 ",
+                        "warning");
+                }
+
+                foreach (InvocationExpressionSyntax sessionCall in method.DescendantNodes()
+                    .OfType<InvocationExpressionSyntax>()
+                    .Where(invocation => IsInvocationOnField(invocation, sessionFields)))
+                {
+                    AddIssue(
+                        issues,
+                        "V3-PN-UI-PRO-005",
+                        patternNode.Id,
+                        sourceFile,
+                        sessionCall,
+                        $"Presenter 方法 {method.Identifier.ValueText} 不得讀取 Session 後決定業務流程。 ",
+                        "warning");
+                }
+            }
+        }
+    }
+
+    private bool IsInvocationOnField(InvocationExpressionSyntax invocation, HashSet<string> fieldNames)
+    {
+        return invocation.Expression is MemberAccessExpressionSyntax memberAccess
+            && memberAccess.Expression is IdentifierNameSyntax receiver
+            && fieldNames.Contains(receiver.Identifier.ValueText);
     }
 
     private void ValidateTopLevelProgram(PatternNodeDefinition patternNode, string projectDirectory, List<GateIssue> issues)
@@ -459,7 +839,7 @@ public class CSharpGateInspector
         string programPath = Path.Combine(projectDirectory, "Program.cs");
         if (!File.Exists(programPath))
         {
-            issues.Add(new GateIssue("PN-CS-ENTRY-001", patternNode.Id, programPath, null, "WinForms 專案必須提供頂層 Program.cs。", "error"));
+            issues.Add(new GateIssue("V3-PN-CS-ENTRY-001", patternNode.Id, programPath, null, "WinForms 專案必須提供頂層 Program.cs。", "error"));
             return;
         }
 
@@ -467,7 +847,7 @@ public class CSharpGateInspector
         CompilationUnitSyntax root = CSharpSyntaxTree.ParseText(sourceText, path: programPath).GetCompilationUnitRoot();
         if (!root.Members.OfType<GlobalStatementSyntax>().Any())
         {
-            issues.Add(new GateIssue("PN-CS-ENTRY-001", patternNode.Id, programPath, 1, "Program.cs 必須使用頂層陳述式。", "error"));
+            issues.Add(new GateIssue("V3-PN-CS-ENTRY-001", patternNode.Id, programPath, 1, "Program.cs 必須使用頂層陳述式。", "error"));
         }
     }
 
@@ -502,9 +882,16 @@ public class CSharpGateInspector
         return Regex.IsMatch(value, "^[a-z][A-Za-z0-9]*$");
     }
 
-    private void AddIssue(List<GateIssue> issues, string ruleId, string node, string file, SyntaxNode syntaxNode, string message)
+    private void AddIssue(
+        List<GateIssue> issues,
+        string ruleId,
+        string node,
+        string file,
+        SyntaxNode syntaxNode,
+        string message,
+        string severity = "error")
     {
         FileLinePositionSpan lineSpan = syntaxNode.GetLocation().GetLineSpan();
-        issues.Add(new GateIssue(ruleId, node, file, lineSpan.StartLinePosition.Line + 1, message.TrimEnd(), "error"));
+        issues.Add(new GateIssue(ruleId, node, file, lineSpan.StartLinePosition.Line + 1, message.TrimEnd(), severity));
     }
 }

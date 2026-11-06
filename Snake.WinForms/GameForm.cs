@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Snake.UseCases;
 
 namespace Snake.WinForms;
@@ -23,6 +24,8 @@ public class GameForm : Form, IGameView
     private Button _replayButton;
     private Label _errorLabel;
     private System.Windows.Forms.Timer _gameTimer;
+    private Stopwatch _levelClock;
+    private List<Label> _ruleLabels;
 
     public GameForm()
     {
@@ -54,10 +57,11 @@ public class GameForm : Form, IGameView
         _replayButton = CreateActionButton("重玩");
         _errorLabel = CreateLabel(11, FontStyle.Bold, 52, ContentAlignment.MiddleCenter);
         _gameTimer = new System.Windows.Forms.Timer();
+        _levelClock = new Stopwatch();
+        _ruleLabels = new List<Label>();
 
         _gameTimer.Interval = 250;
         _gameTimer.Tick += OnGameTimerTick;
-        KeyDown += OnGameKeyDown;
         BuildLayout();
     }
 
@@ -66,9 +70,25 @@ public class GameForm : Form, IGameView
     public event EventHandler<DirectionRequestedEventArgs>? DirectionRequested;
     public event EventHandler<GameTickEventArgs>? TickRequested;
 
-    public void Render(GameViewModel viewModel)
+    public void ApplyRuntimeDirective(RuntimeDirective runtimeDirective)
     {
-        ArgumentNullException.ThrowIfNull(viewModel);
+        if (runtimeDirective == RuntimeDirective.StartOrReset)
+        {
+            _gameTimer.Stop();
+            _levelClock.Restart();
+            _gameTimer.Start();
+        }
+        else if (runtimeDirective == RuntimeDirective.Stop)
+        {
+            _gameTimer.Stop();
+            _levelClock.Stop();
+        }
+    }
+
+    public void RenderGameScreen(GameScreenOutput screen)
+    {
+        ArgumentNullException.ThrowIfNull(screen);
+        GameViewModel viewModel = CreateViewModel(screen);
         SuspendLayout();
         try
         {
@@ -85,13 +105,6 @@ public class GameForm : Form, IGameView
             _replayButton.Visible = viewModel.IsReplayButtonVisible;
             _replayButton.Enabled = viewModel.IsReplayButtonVisible;
 
-            _gameTimer.Stop();
-            if (viewModel.IsMovementActive)
-            {
-                _gameTimer.Interval = Math.Max(1, viewModel.MovementIntervalMilliseconds);
-                _gameTimer.Start();
-            }
-
             ResizeSidebarChildren();
         }
         finally
@@ -102,7 +115,6 @@ public class GameForm : Form, IGameView
 
     public void ShowFailure(string message)
     {
-        _gameTimer.Stop();
         _errorLabel.Text = message;
         _errorLabel.Visible = true;
         _startButton.Enabled = false;
@@ -118,6 +130,153 @@ public class GameForm : Form, IGameView
         }
 
         base.Dispose(disposing);
+    }
+
+    protected override bool ProcessCmdKey(ref Message message, Keys keyData)
+    {
+        Direction? direction = (keyData & Keys.KeyCode) switch
+        {
+            Keys.Up => Direction.Up,
+            Keys.Down => Direction.Down,
+            Keys.Left => Direction.Left,
+            Keys.Right => Direction.Right,
+            _ => null
+        };
+        if (direction is null)
+        {
+            return base.ProcessCmdKey(ref message, keyData);
+        }
+
+        DirectionRequested?.Invoke(this, new DirectionRequestedEventArgs(direction.Value));
+        return true;
+    }
+
+    private GameViewModel CreateViewModel(GameScreenOutput screen)
+    {
+        bool isBoardVisible = screen.ScreenKind != GameScreenKind.GameOver;
+        int rows = screen.BoardCells.Count == 0
+            ? 10
+            : screen.BoardCells.Max(cell => cell.Position.Y) + 1;
+        int columns = screen.BoardCells.Count == 0
+            ? 10
+            : screen.BoardCells.Max(cell => cell.Position.X) + 1;
+        GameBoardViewModel board = new GameBoardViewModel(
+            isBoardVisible,
+            rows,
+            columns,
+            screen.SnakeBody.Select(ToGridCell).ToList(),
+            screen.WallCells.Select(ToGridCell).ToList(),
+            screen.Doors.Select(door => new DoorViewModel(
+                Guid.Parse(door.DoorId),
+                ToGridCell(door.Position),
+                door.State.ToString())).ToList(),
+            screen.Objects.Select(ToBoardObject).ToList());
+        LevelStatusOutput levelStatus = screen.LevelStatus;
+        int? shieldRemainingCharges = levelStatus.LevelNumber == 1
+            ? null
+            : levelStatus.RemainingShieldCharges;
+        GameStatusViewModel status = new GameStatusViewModel(
+            GetLevelName(levelStatus.LevelNumber),
+            levelStatus.CurrentLength,
+            levelStatus.TargetLength,
+            levelStatus.ProgressPercentage,
+            shieldRemainingCharges);
+        return new GameViewModel(
+            GetScreenId(screen.ScreenKind),
+            board,
+            status,
+            screen.RuleHints.Select(rule => new RuleHintViewModel("RULE", rule)).ToList(),
+            screen.AvailableActions.Contains(GameAction.Start),
+            screen.AvailableActions.Contains(GameAction.Restart),
+            screen.AvailableActions.Contains(GameAction.ChangeDirection),
+            250,
+            ToResultCard(screen.ResultCard));
+    }
+
+    private BoardObjectViewModel ToBoardObject(BoardObjectOutput gameObject)
+    {
+        return new BoardObjectViewModel(
+            gameObject.Kind,
+            gameObject.ObjectId,
+            ToGridCell(gameObject.Position));
+    }
+
+    private GameResultCardViewModel? ToResultCard(ResultCardOutput? resultCard)
+    {
+        if (resultCard is null)
+        {
+            return null;
+        }
+
+        string title = resultCard.Outcome switch
+        {
+            "Failed" => "Game Over",
+            "Passed" when resultCard.LevelNumber == 3 => "闖關成功",
+            "Passed" => $"第 {resultCard.LevelNumber} 關過關",
+            _ => resultCard.Outcome
+        };
+        string message = resultCard.Outcome == "Failed"
+            ? "遊戲結束"
+            : resultCard.LevelNumber == 3
+                ? "三關全部完成"
+                : "關卡通過";
+        string detail = string.IsNullOrWhiteSpace(resultCard.DeathCause)
+            ? $"最後蛇長：{resultCard.FinalLength} 格"
+            : GetDeathCauseText(resultCard.DeathCause);
+        return new GameResultCardViewModel(
+            title,
+            message,
+            resultCard.LevelNumber,
+            resultCard.FinalLength,
+            detail);
+    }
+
+    private string GetDeathCauseText(string deathCause)
+    {
+        return deathCause switch
+        {
+            "SelfCollision" => "撞到自己的身體",
+            "WallCollision" or "BoundaryCollision" => "撞到牆或邊界",
+            "ClosedDoorCollision" => "撞到關閉的門",
+            "Bomb" => "碰到炸彈",
+            "FatalFire" => "火焰使蛇身歸零",
+            _ => deathCause
+        };
+    }
+
+    private string GetScreenId(GameScreenKind screenKind)
+    {
+        return screenKind switch
+        {
+            GameScreenKind.FirstLevelReady => "first-level-ready",
+            GameScreenKind.FirstLevelPlaying => "first-level-playing",
+            GameScreenKind.SecondLevelReady => "second-level-ready",
+            GameScreenKind.SecondLevelPlaying => "second-level-playing",
+            GameScreenKind.ThirdLevelReady => "third-level-ready",
+            GameScreenKind.ThirdLevelPlaying => "third-level-playing",
+            GameScreenKind.GameOver => "game-over",
+            GameScreenKind.GameCompleted => "game-completed",
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(screenKind),
+                screenKind,
+                "不支援的畫面種類。")
+        };
+    }
+
+    private string GetLevelName(int levelNumber)
+    {
+        return levelNumber switch
+        {
+            1 => "第一關",
+            2 => "第二關",
+            3 => "第三關",
+            _ => $"第 {levelNumber} 關"
+        };
+    }
+
+    private GridCellViewModel ToGridCell(GridPositionDTO position)
+    {
+        return new GridCellViewModel(position.X, position.Y);
     }
 
     private void BuildLayout()
@@ -285,23 +444,36 @@ public class GameForm : Form, IGameView
         _rulesList.SuspendLayout();
         try
         {
-            _rulesList.Controls.Clear();
-            foreach (RuleHintViewModel ruleHint in viewModel.RuleHints)
-            {
-                _rulesList.Controls.Add(CreateRuleLabel(
-                    GetRuleGlyph(ruleHint.Code),
-                    ruleHint.Text));
-            }
-
+            List<string> visibleRules = viewModel.RuleHints
+                .Select(ruleHint => $"{GetRuleGlyph(ruleHint.Text)}   {ruleHint.Text}")
+                .ToList();
             if (viewModel.ScreenId.StartsWith("third-level-", StringComparison.Ordinal)
                 && viewModel.Board.Doors.Count > 0)
             {
                 string doorState = GetDoorStateText(viewModel.Board.Doors[0].State);
-                _rulesList.Controls.Add(CreateRuleLabel("[門]", $"門目前：{doorState}"));
+                visibleRules.Add($"[門]   門目前：{doorState}");
             }
 
-            _rulesPanel.Visible = _rulesList.Controls.Count > 0;
-            _rulesPanel.Height = 60 + _rulesList.Controls.Count * 43;
+            while (_ruleLabels.Count < visibleRules.Count)
+            {
+                Label ruleLabel = CreateRuleLabel(string.Empty, string.Empty);
+                _ruleLabels.Add(ruleLabel);
+                _rulesList.Controls.Add(ruleLabel);
+            }
+
+            for (int index = 0; index < _ruleLabels.Count; index++)
+            {
+                bool isVisible = index < visibleRules.Count;
+                _ruleLabels[index].Visible = isVisible;
+                if (isVisible)
+                {
+                    _ruleLabels[index].Text = visibleRules[index];
+                    _ruleLabels[index].AccessibleName = visibleRules[index];
+                }
+            }
+
+            _rulesPanel.Visible = visibleRules.Count > 0;
+            _rulesPanel.Height = 60 + visibleRules.Count * 43;
         }
         finally
         {
@@ -418,20 +590,44 @@ public class GameForm : Form, IGameView
         }
     }
 
-    private string GetRuleGlyph(string code)
+    private string GetRuleGlyph(string ruleText)
     {
-        return code switch
+        if (ruleText.Contains("普通食物", StringComparison.Ordinal))
         {
-            "ORDINARY_FOOD_GROWTH" => "[草莓]",
-            "SPECIAL_FOOD_GROWTH" => "[藍莓]",
-            "SHIELD_RESCUE" => "[護盾]",
-            "FIRE_SHRINK" => "[火焰]",
-            "BOMB_FATAL" => "[炸彈]",
-            "BOUNDARY_WRAP" => "[穿越]",
-            "SELF_COLLISION_DEATH" => "[注意]",
-            "WALL_BLOCKED" => "[牆]",
-            _ => "•"
-        };
+            return "[草莓]";
+        }
+
+        if (ruleText.Contains("特殊食物", StringComparison.Ordinal))
+        {
+            return "[藍莓]";
+        }
+
+        if (ruleText.Contains("護盾", StringComparison.Ordinal))
+        {
+            return "[護盾]";
+        }
+
+        if (ruleText.Contains("火焰", StringComparison.Ordinal))
+        {
+            return "[火焰]";
+        }
+
+        if (ruleText.Contains("炸彈", StringComparison.Ordinal))
+        {
+            return "[炸彈]";
+        }
+
+        if (ruleText.Contains("穿越", StringComparison.Ordinal))
+        {
+            return "[穿越]";
+        }
+
+        if (ruleText.Contains("牆", StringComparison.Ordinal))
+        {
+            return "[牆]";
+        }
+
+        return "[注意]";
     }
 
     private string GetDoorStateText(string state)
@@ -479,26 +675,7 @@ public class GameForm : Form, IGameView
 
     private void OnGameTimerTick(object? sender, EventArgs eventArgs)
     {
-        TickRequested?.Invoke(this, new GameTickEventArgs(_gameTimer.Interval));
+        TickRequested?.Invoke(this, new GameTickEventArgs(_levelClock.ElapsedMilliseconds));
     }
 
-    private void OnGameKeyDown(object? sender, KeyEventArgs eventArgs)
-    {
-        Direction? direction = eventArgs.KeyCode switch
-        {
-            Keys.Up or Keys.W => Direction.Up,
-            Keys.Down or Keys.S => Direction.Down,
-            Keys.Left or Keys.A => Direction.Left,
-            Keys.Right or Keys.D => Direction.Right,
-            _ => null
-        };
-        if (direction is null)
-        {
-            return;
-        }
-
-        DirectionRequested?.Invoke(this, new DirectionRequestedEventArgs(direction.Value));
-        eventArgs.Handled = true;
-        eventArgs.SuppressKeyPress = true;
-    }
 }

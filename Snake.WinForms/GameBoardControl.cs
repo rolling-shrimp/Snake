@@ -177,19 +177,19 @@ public class GameBoardControl : Control
                 cellSize * 0.08f);
             switch (gameObject.Type)
             {
-                case GameObjectType.Strawberry:
+                case BoardObjectKind.OrdinaryFood:
                     DrawStrawberry(graphics, cell);
                     break;
-                case GameObjectType.SpecialFood:
+                case BoardObjectKind.SpecialFood:
                     DrawBlueberries(graphics, cell);
                     break;
-                case GameObjectType.Shield:
+                case BoardObjectKind.Shield:
                     DrawShield(graphics, cell);
                     break;
-                case GameObjectType.Fire:
+                case BoardObjectKind.Fire:
                     DrawFire(graphics, cell);
                     break;
-                case GameObjectType.Bomb:
+                case BoardObjectKind.Bomb:
                     DrawBomb(graphics, cell);
                     break;
                 default:

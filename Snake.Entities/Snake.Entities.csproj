@@ -6,4 +6,9 @@
     <RootNamespace>Snake.Entities</RootNamespace>
     <AssemblyName>Snake.Entities</AssemblyName>
   </PropertyGroup>
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>Snake.UseCases</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
 </Project>

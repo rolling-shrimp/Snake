@@ -1,18 +1,20 @@
 namespace {{ namespace_name }};
 
-public class {{ use_case_name }}UseCase
+public class {{ service_name }}ApplicationService
 {
 {% for dependency in dependencies %}
     private {{ dependency.type }} _{{ dependency.name }};
 {% endfor %}
 
-    public {{ use_case_name }}UseCase({{ constructor_parameters }})
+    public {{ service_name }}ApplicationService({{ constructor_parameters }})
     {
 {{ constructor_body | indent(8, true) }}
     }
 
-    public {{ result_type }} Execute({{ request_type }} request)
+{% for operation in operations %}
+    public {{ operation.result_type }} {{ operation.name }}({{ operation.request_type }} request)
     {
-{{ execute_body | indent(8, true) }}
+{{ operation.body | indent(8, true) }}
     }
+{% endfor %}
 }

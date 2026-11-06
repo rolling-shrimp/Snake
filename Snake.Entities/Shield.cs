@@ -22,6 +22,16 @@ public class Shield
     public int SpawnedCount => _spawnedCount;
     public bool CanRescue => _remainingCharges > 0;
 
+    internal Shield Copy()
+    {
+        Shield copy = new Shield(_shieldId);
+        copy._activeItem = _activeItem;
+        copy._pendingSpawn = _pendingSpawn;
+        copy._remainingCharges = _remainingCharges;
+        copy._spawnedCount = _spawnedCount;
+        return copy;
+    }
+
     public void Spawn(ShieldItemId shieldItemId, GridPosition position)
     {
         if (_activeItem is not null || _spawnedCount >= MAX_SPAWNED_PER_LEVEL)

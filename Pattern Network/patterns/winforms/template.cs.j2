@@ -3,8 +3,8 @@ namespace {{ namespace_name }};
 public class {{ presenter_name }}Presenter
 {
     private {{ view_interface }} _view;
-{% for use_case in use_cases %}
-    private {{ use_case.type }} _{{ use_case.name }};
+{% for service in application_services %}
+    private {{ service.type }} _{{ service.name }};
 {% endfor %}
 
     public {{ presenter_name }}Presenter({{ constructor_parameters }})

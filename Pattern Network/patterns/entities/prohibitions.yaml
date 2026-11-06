@@ -1,11 +1,11 @@
-schema_version: 1
+schema_version: 3
 
 pattern_node:
   id: entities
   name: Entities
 
 prohibitions:
-  - id: PN-ENT-PRO-001
+  - id: V3-PN-ENT-PRO-001
     title: "禁止外層專案參考"
     description: "Entities 不得參考 UseCases、WinForms 或其他產品專案。"
     severity: error
@@ -13,7 +13,7 @@ prohibitions:
     remediation: "移除 ProjectReference，將需要的規則與型別放回 Entities 擁有的契約。"
     exceptions: []
 
-  - id: PN-ENT-PRO-002
+  - id: V3-PN-ENT-PRO-002
     title: "禁止 UI 與 I/O namespace"
     description: "Entities 不得使用 System.Windows.Forms、System.Drawing、System.IO 或 System.Net。"
     severity: error
@@ -21,7 +21,7 @@ prohibitions:
     remediation: "以領域值取代框架型別，並由外層執行 I/O。"
     exceptions: []
 
-  - id: PN-ENT-PRO-003
+  - id: V3-PN-ENT-PRO-003
     title: "禁止非確定性來源"
     description: "Entities 不得直接取得 DateTime.Now、DateTime.UtcNow、Guid.NewGuid、Environment 或 Random。"
     severity: error
@@ -29,7 +29,7 @@ prohibitions:
     remediation: "由 Use Case 或外層 Port 取得值，再作為領域輸入傳入。"
     exceptions: []
 
-  - id: PN-ENT-PRO-004
+  - id: V3-PN-ENT-PRO-004
     title: "禁止公開 setter"
     description: "領域屬性不得以 public set 或 public init 暴露狀態修改。"
     severity: error
@@ -37,10 +37,18 @@ prohibitions:
     remediation: "改由維持不變式的領域方法修改私人欄位或私人 setter。"
     exceptions: []
 
-  - id: PN-ENT-PRO-005
+  - id: V3-PN-ENT-PRO-005
     title: "禁止貧血領域模型"
     description: "不得把領域行為全部移到 Use Case 而讓 Entity 只保存資料。"
     severity: error
     enforcement: manual
     remediation: "將真正維護領域不變式的行為放回 Entity 或 Aggregate。"
+    exceptions: []
+
+  - id: V3-PN-ENT-PRO-006
+    title: "禁止外洩可變集合狀態"
+    description: "Aggregate 不得讓外層直接修改承載 invariant 的內部集合。"
+    severity: error
+    enforcement: manual
+    remediation: "回傳快照或唯讀投影，並以具業務意義的方法提交集合狀態轉換。"
     exceptions: []

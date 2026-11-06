@@ -15,6 +15,14 @@ public class Bomb
     public BombItem? ActiveItem => _activeItem;
     public bool PendingSpawn => _pendingSpawn;
 
+    internal Bomb Copy()
+    {
+        Bomb copy = new Bomb(_bombId);
+        copy._activeItem = _activeItem;
+        copy._pendingSpawn = _pendingSpawn;
+        return copy;
+    }
+
     public void Spawn(BombItemId bombItemId, GridPosition position)
     {
         if (_activeItem is not null)

@@ -1,6 +1,6 @@
 # 貪吃蛇遊戲 Use Case
 
-本文件定義遊戲規則、玩家流程與可見結果，依打地鼠專案的 Use Case 格式撰寫。畫面狀態、必要／禁止元素、轉換與既有契約關聯，以 [`Domains/Game/presentation/`](Domains/Game/presentation/presentation_catalog.yaml) 的 YAML 為機器可驗證來源；畫面排版、圖案與各關預覽見 [ui_spec.md](ui_spec.md)。操作的輸入、回傳與狀態保證由 [design_by_contract.md](design_by_contract.md) 定義；測試案例與驗收由 [test_spec.md](test_spec.md) 定義。
+本文件是遊戲規則、玩家流程與可見結果的人工閱讀來源。有效的 schema v3 契約由 [`Domains/catalog.yaml`](Domains/catalog.yaml) 索引；畫面狀態、必要／禁止元素與轉換以 [`Domains/Game/presentation/`](Domains/Game/presentation/) 的 YAML 為機器可驗證來源，畫面排版、圖案與各關預覽見 [ui_spec.md](ui_spec.md)。操作順序、輸入／輸出、狀態保證與驗收則由 catalog 所引用的 Workflow、Technical、Aggregate 與 Acceptance 契約分別擁有。
 
 ## 遊戲規則
 
@@ -21,7 +21,7 @@
 下列細節尚未逐項討論，本版先採用以下預設，之後可再調整：
 
 - 100 格排成 10×10 棋盤；蛇長包含蛇頭。
-- 使用鍵盤方向鍵控制上、下、左、右；蛇持續自動前進，不接受直接反向的操作。
+- 使用鍵盤方向鍵控制上、下、左、右；每次方向鍵訊息由 UI 轉成一個方向要求，不受目前焦點控制項影響，也不得重複送出。蛇持續自動前進，不接受直接反向的操作；已接受的方向由下一個到期移動 Tick 使用。
 - 每關起始方向向右，蛇放在可安全起步的位置。
 - 三關皆每 250 毫秒前進一格，沒有關卡時間限制。
 - 第三關的門每 6 秒切換一次開關狀態，預計關閉前 2 秒開始閃爍提醒。
@@ -158,7 +158,7 @@
 玩家吃到普通食物：
 
 1. 普通食物消失，蛇長增加 1 格。
-2. 遊戲更新蛇長與進度，判定第一關是否達到 20 格。
+2. 遊戲更新蛇長與進度，判定第二關是否達到 20 格。
 3. 若尚未過關，補上普通食物並繼續遊玩。
 
 玩家吃到特殊食物：

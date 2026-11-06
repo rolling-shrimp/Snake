@@ -1,0 +1,96 @@
+schema_version: 3
+spec_kind: acceptance_contract
+id: V3-ACCEPT-GAME-RENDER-SCREEN
+contract_ref: V3-PRES-WF-GAME-RENDER-SCREEN
+scenarios:
+  - id: V3-SCN-RENDER-SELECT-ONE-STATE
+    title: "完整畫面只選擇一個 Presentation State"
+    given:
+      input_screen_kind: ThirdLevelPlaying
+    when:
+      operation: RenderGameScreen
+    then:
+      selected_state_ref: V3-PRES-STATE-GAME-THIRD-LEVEL-PLAYING
+      other_states_visible: false
+    evidence: [behavioral, static]
+  - id: V3-SCN-RENDER-REQUIRED-FORBIDDEN
+    title: "一次套用必要與禁止元素"
+    given:
+      input_screen_kind: GameOver
+    when:
+      operation: RenderGameScreen
+    then:
+      required_elements_visible: true
+      forbidden_elements_hidden: true
+      partial_layout_visible: false
+    evidence: [behavioral, runtime_ui]
+  - id: V3-SCN-RENDER-STABLE-CONTROL-IDENTITY
+    title: "相同畫面重複 render 保留控制項身分"
+    given:
+      same_screen_rendered_once: true
+    when:
+      same_screen_rendered_again: true
+    then:
+      board_cell_control_identity_preserved: true
+      stable_control_identity_preserved: true
+      controls_collection_cleared: false
+      visible_result_unchanged: true
+    evidence: [runtime_ui, invariant]
+  - id: V3-SCN-RENDER-ONE-VISIBLE-COMMIT
+    title: "多個資料差異只產生一次可見提交"
+    given:
+      screen_contains_board_status_door_and_object_changes: true
+    when:
+      operation: RenderGameScreen
+    then:
+      visible_commit_count: 1
+      intermediate_states_visible: false
+      final_screen_matches_input: true
+    evidence: [runtime_ui, behavioral]
+  - id: V3-SCN-RENDER-DOOR-WARNING-IN-PLACE
+    title: "門提醒只更新既有門控制項"
+    given:
+      previous_door_state: Open
+      next_door_state: ClosingWarning
+    when:
+      operation: RenderGameScreen
+    then:
+      same_door_control_identity: true
+      warning_visual_enabled: true
+      board_layout_rebuilt: false
+    evidence: [runtime_ui]
+  - id: V3-SCN-RENDER-NO-TIMER-OWNERSHIP
+    title: "Renderer 不控制 Timer"
+    given:
+      any_valid_screen_output: true
+    when:
+      operation: RenderGameScreen
+    then:
+      timer_started_by_renderer: false
+      timer_stopped_by_renderer: false
+      timer_reset_by_renderer: false
+    evidence: [static, runtime_ui]
+  - id: V3-SCN-RENDER-NO-BUSINESS-ORCHESTRATION
+    title: "Renderer 不呼叫 Use Case 或讀 Session 編排流程"
+    given:
+      any_valid_screen_output: true
+    when:
+      operation: RenderGameScreen
+    then:
+      application_workflow_calls: 0
+      session_reads: 0
+      entity_reads: 0
+    evidence: [static]
+evidence_requirements:
+  - type: static
+    required: true
+    provider: presentation_boundary_checker
+    rule: "檢查 Renderer 不依賴 Timer、UseCase、ApplicationService、Session 或 Entity。"
+  - type: runtime_ui
+    required: true
+    provider: ui_runtime_checker_or_manual_reviewer
+    rule: "檢查控制項身分、一次可見提交與無閃爍；產品尚未重構前可為 Audit pending。"
+  - type: behavioral
+    required: true
+    provider: checker_or_test_suite
+    rule: "同一 checker 可覆蓋多個畫面與 scenario，不要求一對一單元測試。"

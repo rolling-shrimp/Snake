@@ -16,6 +16,13 @@ public class Level
     public int TargetLength => _number == LevelNumber.Third ? 50 : 20;
     public BoundaryPolicy BoundaryPolicy => _number == LevelNumber.Third ? BoundaryPolicy.Blocked : BoundaryPolicy.Wrap;
 
+    internal Level Copy()
+    {
+        Level copy = new Level(_levelId);
+        copy._number = _number;
+        return copy;
+    }
+
     public int GetProgressPercent(int snakeLength)
     {
         int progressPercent = snakeLength * 100 / TargetLength;

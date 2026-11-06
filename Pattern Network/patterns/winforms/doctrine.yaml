@@ -1,7 +1,7 @@
-schema_version: 1
+schema_version: 3
 
 doctrine:
-  id: PN-WINFORMS-DOCTRINE
+  id: V3-PN-WINFORMS-DOCTRINE
   title: "WinForms 節點準則"
   inherits: ../../doctrine.yaml
 
@@ -23,6 +23,8 @@ responsibility:
     - presenter
     - view_model
     - input_event_mapping
+    - atomic_renderer
+    - timer_event_source
     - composition_root
     - outer_port_implementation
   excludes:
@@ -32,37 +34,47 @@ responsibility:
 
 contract:
   input_grain: keyboard_mouse_or_timer_event
-  output_grain: view_model
+  output_grain: atomic_rendered_screen
   owner: WinForms
   presentation_pattern: passive_view_presenter
 
 rules:
-  - id: PN-UI-001
+  - id: V3-PN-UI-001
     title: "Form 是 Passive View"
     statement: "Form 只把 WinForms 事件轉送給 Presenter，並依 ViewModel 更新控制項或繪圖。"
     enforcement: manual
 
-  - id: PN-UI-002
+  - id: V3-PN-UI-002
     title: "Presenter 不依賴 WinForms 控制項"
     statement: "Presenter 只能依賴 View Interface 與 Use Case，不得繼承或保存 Form、Control。"
     enforcement: automated
 
-  - id: PN-UI-003
+  - id: V3-PN-UI-003
     title: "UI 不直接使用 Entities"
     statement: "WinForms 不得直接參考 Entities 專案或以 Entity 作為 UI 契約。"
     enforcement: automated
 
-  - id: PN-UI-004
-    title: "Presenter 處理 Result"
-    statement: "Presenter 呼叫 Use Case、處理成功或失敗 Result，並轉換為 UI 擁有的 ViewModel。"
+  - id: V3-PN-UI-004
+    title: "一個 UI 事件只呼叫一個完整 Workflow"
+    statement: "Presenter 對每個 UI 事件只呼叫一個完整 Application Workflow Method，再機械式套用 RuntimeDirective 與完整畫面輸出。"
     enforcement: manual
 
-  - id: PN-UI-005
+  - id: V3-PN-UI-005
     title: "Program 是 Composition Root"
     statement: "Program.cs 使用頂層陳述式建立實作、Use Case、Presenter 與 Form 的依賴關係。"
     enforcement: automated
 
-  - id: PN-UI-006
+  - id: V3-PN-UI-006
     title: "Designer 產生碼例外"
     statement: "Visual Studio 產生的 *.Designer.cs 可以使用 partial；手寫 Presenter、ViewModel 與其他類別仍遵守根層規則。"
+    enforcement: automated
+
+  - id: V3-PN-UI-007
+    title: "Renderer 與事件來源分離"
+    statement: "Renderer 只提交完整畫面，不得啟停 Timer、呼叫 UseCases、執行商業判斷或重建未變更的控制項樹。"
+    enforcement: manual
+
+  - id: V3-PN-UI-008
+    title: "導覽鍵輸入必須在控制項導覽前交付"
+    statement: "Form 宣告為輸入的方向或導覽鍵必須由 ProcessCmdKey 優先轉成單一 Presentation 事件，且不受子控制項焦點影響。"
     enforcement: automated

@@ -28,13 +28,13 @@ public class PatternNetworkValidatorTests
             CopyDirectory(sourcePath, temporaryPath);
             string gatePath = Path.Combine(temporaryPath, "patterns", "entities", "gate.yaml");
             string gateText = File.ReadAllText(gatePath);
-            File.WriteAllText(gatePath, gateText.Replace("PN-NAME-001", "PN-UNKNOWN-001", StringComparison.Ordinal));
+            File.WriteAllText(gatePath, gateText.Replace("V3-PN-NAME-001", "V3-PN-UNKNOWN-001", StringComparison.Ordinal));
             PatternNetworkValidator validator = new PatternNetworkValidator();
 
             PatternNetworkValidationResult result = validator.Validate(temporaryPath);
 
             Assert.False(result.IsValid);
-            Assert.Contains(result.Issues, issue => issue.RuleId == "PN-CONFIG-RULE-REF");
+            Assert.Contains(result.Issues, issue => issue.RuleId == "V3-PN-CONFIG-RULE-REF");
         }
         finally
         {
@@ -60,12 +60,57 @@ public class PatternNetworkValidatorTests
             PatternNetworkValidationResult result = validator.Validate(temporaryPath);
 
             Assert.False(result.IsValid);
-            Assert.Contains(result.Issues, issue => issue.RuleId == "PN-CONFIG-GATE-DRIFT");
+            Assert.Contains(result.Issues, issue => issue.RuleId == "V3-PN-CONFIG-GATE-DRIFT");
         }
         finally
         {
             Directory.Delete(temporaryPath, true);
         }
+    }
+
+    [Fact]
+    public void ValidateRejectsSchemaVersionOnePatternNetworks()
+    {
+        string sourcePath = FindPatternNetworkPath();
+        string temporaryPath = Path.Combine(Path.GetTempPath(), $"pattern-network-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(temporaryPath);
+
+        try
+        {
+            CopyDirectory(sourcePath, temporaryPath);
+            string doctrinePath = Path.Combine(temporaryPath, "doctrine.yaml");
+            string doctrineText = File.ReadAllText(doctrinePath);
+            File.WriteAllText(doctrinePath, doctrineText.Replace(
+                "schema_version: 3",
+                "schema_version: 1",
+                StringComparison.Ordinal));
+            PatternNetworkValidator validator = new PatternNetworkValidator();
+
+            PatternNetworkValidationResult result = validator.Validate(temporaryPath);
+
+            Assert.False(result.IsValid);
+            Assert.Contains(result.Issues, issue => issue.RuleId == "V3-PN-CONFIG-LOAD");
+        }
+        finally
+        {
+            Directory.Delete(temporaryPath, true);
+        }
+    }
+
+    [Fact]
+    public void ValidateLoadsApplicationWorkflowChecksAsAudit()
+    {
+        PatternNetworkValidator validator = new PatternNetworkValidator();
+
+        PatternNetworkValidationResult result = validator.Validate(FindPatternNetworkPath());
+
+        PatternNodeDefinition useCases = Assert.Single(
+            result.Definition.PatternNodes,
+            node => node.Id == "use-cases");
+        GateCheckDefinition workflowCheck = Assert.Single(
+            useCases.Checks,
+            check => check.Checker == "application_workflow_contracts");
+        Assert.Equal(VerificationMode.Audit, workflowCheck.Mode);
     }
 
     private string FindPatternNetworkPath()

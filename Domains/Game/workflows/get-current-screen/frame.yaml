@@ -1,0 +1,35 @@
+schema_version: 3
+spec_kind: problem_frame
+id: V3-FRAME-GAME-GET-CURRENT-SCREEN
+frame:
+  bounded_context: snake-game
+  frame_type: IDF
+  requirement: "玩家或 UI 取得目前已提交遊戲狀態所對應的完整畫面。"
+problem_domains:
+  - name: player_or_ui
+    role: query_source
+  - name: committed_game_snapshot
+    role: information_source
+  - name: current_screen
+    role: information_display
+shared_phenomena:
+  - name: request_current_screen
+    direction: player_or_ui_to_system
+  - name: observe_complete_screen
+    direction: system_to_player_or_ui
+world_facts:
+  - id: V3-FRAME-SCREEN-FACT-CURRENT-STATE
+    fact: "任一已提交遊戲快照都有唯一的 Game phase 與目前 Level；終局 phase 保留最後關卡與結果。"
+  - id: V3-FRAME-SCREEN-FACT-SCREEN-KIND
+    fact: "Ready 與 Playing 依目前 Level 各對應一種畫面；GameOver 與 Completed 各對應一種終局畫面。"
+  - id: V3-FRAME-SCREEN-FACT-COMPLETE-VIEW
+    fact: "完整畫面需要可見棋盤、頭到尾蛇身、物件、牆、門、關卡狀態、提示、結果與可用操作。"
+  - id: V3-FRAME-SCREEN-FACT-READ-ONLY
+    fact: "觀察目前畫面不會改變遊戲時間、蛇身、物件、門、關卡、結果或 Game phase。"
+frame_concerns:
+  - id: V3-FRAME-SCREEN-CONCERN-CONSISTENCY
+    concern: "畫面所有欄位必須來自同一個已提交版本，不得混合不同時點資料。"
+  - id: V3-FRAME-SCREEN-CONCERN-COMPLETENESS
+    concern: "輸出必須足以一次渲染完整畫面，不要求 UI 再查詢 Entity 或 Session。"
+  - id: V3-FRAME-SCREEN-CONCERN-NO-MUTATION
+    concern: "查詢不得造成 Domain 狀態、計時或 Runtime 行為改變。"

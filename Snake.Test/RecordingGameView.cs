@@ -5,8 +5,9 @@ namespace Snake.Test;
 
 public class RecordingGameView : IGameView
 {
-    private GameViewModel? _currentViewModel;
+    private GameScreenOutput? _currentScreen;
     private string? _failureMessage;
+    private RuntimeDirective _lastRuntimeDirective;
     private int _renderCount;
 
     public event EventHandler? StartRequested;
@@ -14,13 +15,19 @@ public class RecordingGameView : IGameView
     public event EventHandler<DirectionRequestedEventArgs>? DirectionRequested;
     public event EventHandler<GameTickEventArgs>? TickRequested;
 
-    public GameViewModel? CurrentViewModel => _currentViewModel;
+    public GameScreenOutput? CurrentScreen => _currentScreen;
     public string? FailureMessage => _failureMessage;
+    public RuntimeDirective LastRuntimeDirective => _lastRuntimeDirective;
     public int RenderCount => _renderCount;
 
-    public void Render(GameViewModel viewModel)
+    public void ApplyRuntimeDirective(RuntimeDirective runtimeDirective)
     {
-        _currentViewModel = viewModel;
+        _lastRuntimeDirective = runtimeDirective;
+    }
+
+    public void RenderGameScreen(GameScreenOutput screen)
+    {
+        _currentScreen = screen;
         _renderCount++;
     }
 
@@ -44,8 +51,10 @@ public class RecordingGameView : IGameView
         DirectionRequested?.Invoke(this, new DirectionRequestedEventArgs(direction));
     }
 
-    public void RaiseTickRequested(int elapsedMilliseconds)
+    public void RaiseTickRequested(long accumulatedElapsedMilliseconds)
     {
-        TickRequested?.Invoke(this, new GameTickEventArgs(elapsedMilliseconds));
+        TickRequested?.Invoke(
+            this,
+            new GameTickEventArgs(accumulatedElapsedMilliseconds));
     }
 }
