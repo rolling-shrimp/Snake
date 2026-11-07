@@ -1,0 +1,15 @@
+schema_version: 3
+spec_kind: acceptance_contract
+id: V3-ACCEPT-GAME-PREPARE-NEXT-LEVEL
+contract_ref: V3-DOMAIN-GAME-PREPARE-NEXT-LEVEL
+scenarios:
+  - id: V3-SCN-PREPARE-NEXT-LEVEL
+    title: "第一或第二關通過後，直接準備下一關的待開始狀態。"
+    given:
+      precondition: "第一關或第二關已通過且成績已保存。"
+    when:
+      operation: PrepareNextLevel
+      call_count: 1
+    then:
+      postcondition: "下一關為 Ready，蛇位於安全起點並顯示正確起始進度。"
+    evidence: [behavioral, invariant]

@@ -1,0 +1,54 @@
+schema_version: 3
+spec_kind: acceptance_contract
+id: V3-ACCEPT-GAME-MOVE-SNAKE
+contract_ref: V3-DOMAIN-GAME-MOVE-SNAKE
+scenarios:
+  - id: V3-SCN-MOVE-SNAKE-RIGHT-ONCE
+    title: "向右移動一次只前進一格"
+    given:
+      phase: Playing
+      direction: Right
+      body_cells:
+        - { x: 3, y: 4 }
+        - { x: 2, y: 4 }
+        - { x: 1, y: 4 }
+      next_cell_is_legal: true
+    when:
+      operation: MoveSnake
+      call_count: 1
+    then:
+      body_cells:
+        - { x: 4, y: 4 }
+        - { x: 3, y: 4 }
+        - { x: 2, y: 4 }
+      length: 3
+      return_value: none
+    evidence: [behavioral, invariant]
+
+  - id: V3-SCN-MOVE-SNAKE-NO-CATCH-UP
+    title: "一次呼叫不補跑多格"
+    given:
+      phase: Playing
+      direction: Down
+      head: { x: 5, y: 5 }
+      next_cell_is_legal: true
+    when:
+      operation: MoveSnake
+      call_count: 1
+    then:
+      head: { x: 5, y: 6 }
+      moved_cell_count: 1
+      accumulated_time_read: false
+    evidence: [behavioral, temporal]
+
+  - id: V3-SCN-MOVE-SNAKE-PRESERVES-TOPOLOGY
+    title: "移動後蛇身保持有序唯一且連續"
+    given:
+      phase: Playing
+      next_cell_is_legal: true
+      body_is_ordered_unique_and_contiguous: true
+    when:
+      operation: MoveSnake
+    then:
+      body_is_ordered_unique_and_contiguous: true
+    evidence: [behavioral, invariant]

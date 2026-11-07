@@ -1,0 +1,15 @@
+schema_version: 3
+spec_kind: acceptance_contract
+id: V3-ACCEPT-GAME-GET-GAME-SCREEN
+contract_ref: V3-DOMAIN-GAME-GET-GAME-SCREEN
+scenarios:
+  - id: V3-SCN-GET-GAME-SCREEN
+    title: "UI 在一個事件完成後取得一份完整且一致的遊戲畫面資料。"
+    given:
+      precondition: "遊戲狀態已完成目前 UI 事件所需的所有 Use Case。"
+    when:
+      operation: GetGameScreen
+      call_count: 1
+    then:
+      postcondition: "回傳的 GameScreenDTO 足以讓 GameForm 比對前後狀態並只更新變動的控制項與棋盤格，不需要再查詢其他 Use Case。"
+    evidence: [behavioral, invariant]

@@ -1,21 +1,38 @@
-namespace {{ namespace_name }};
-
-public class {{ presenter_name }}Presenter
+{% if role == "form" %}
+namespace {{ namespace_name }}
 {
-    private {{ view_interface }} _view;
-{% for service in application_services %}
-    private {{ service.type }} _{{ service.name }};
-{% endfor %}
-
-    public {{ presenter_name }}Presenter({{ constructor_parameters }})
+    public partial class {{ game_name }}Form : System.Windows.Forms.Form
     {
-{{ constructor_body | indent(8, true) }}
-    }
+{% for use_case in use_cases %}
+        private {{ use_case.type }} _{{ use_case.name }};
+{% endfor %}
+        private System.Windows.Forms.Timer _gameTimer;
+        private {{ screen_dto_type }}? _currentScreen;
+
+        public {{ game_name }}Form({{ constructor_parameters }})
+        {
+{{ constructor_body | indent(12, true) }}
+            _gameTimer = new System.Windows.Forms.Timer
+            {
+                Interval = 250
+            };
+            InitializeComponent();
+{{ initialization_body | indent(12, true) }}
+        }
 
 {% for interaction in interactions %}
-    public void {{ interaction.name }}({{ interaction.parameters }})
-    {
-{{ interaction.body | indent(8, true) }}
-    }
+        private {{ interaction.return_type }} {{ interaction.name }}({{ interaction.parameters }})
+        {
+{{ interaction.body | indent(12, true) }}
+        }
 {% endfor %}
+
+        private void ApplyScreen({{ screen_dto_type }} gameScreenDTO)
+        {
+            {{ screen_dto_type }}? previousScreen = _currentScreen;
+            _currentScreen = gameScreenDTO;
+{{ render_body | indent(12, true) }}
+        }
+    }
 }
+{% endif %}

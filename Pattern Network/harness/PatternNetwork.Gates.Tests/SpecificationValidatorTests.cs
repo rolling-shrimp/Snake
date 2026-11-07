@@ -5,6 +5,56 @@ namespace PatternNetwork.Gates.Tests;
 public class SpecificationValidatorTests
 {
     [Fact]
+    public void ValidateAcceptsDomainContractAndTechnicalDomainReference()
+    {
+        string domainsPath = CreateTemporaryDomains(new Dictionary<string, string>
+        {
+            ["frame.yaml"] = """
+                schema_version: 3
+                spec_kind: problem_frame
+                id: V3-FRAME-GAME-MOVE-SNAKE
+                frame: {}
+                """,
+            ["domain_spec.yaml"] = """
+                schema_version: 3
+                spec_kind: domain_contract
+                id: V3-DOMAIN-GAME-MOVE-SNAKE
+                domain: MoveSnake
+                frame_ref: V3-FRAME-GAME-MOVE-SNAKE
+                use_case: MoveSnake
+                input: {}
+                output: {}
+                rules: []
+                """,
+            ["technical_spec.yaml"] = """
+                schema_version: 3
+                spec_kind: technical_contract
+                id: V3-TECH-GAME-MOVE-SNAKE
+                operation: MoveSnake
+                domain_ref: V3-DOMAIN-GAME-MOVE-SNAKE
+                dependency_injection: {}
+                dto: {}
+                """
+        });
+
+        try
+        {
+            SpecificationValidator validator = new SpecificationValidator();
+
+            SpecificationValidationResult result = validator.Validate(domainsPath);
+
+            Assert.True(result.IsValid, string.Join(Environment.NewLine, result.Issues.Select(issue => issue.Message)));
+            Assert.Contains(
+                result.Inventory.Documents,
+                document => document.Header.SpecificationKind == SpecificationKind.DomainContract);
+        }
+        finally
+        {
+            Directory.Delete(domainsPath, true);
+        }
+    }
+
+    [Fact]
     public void ValidateAcceptsAValidV3ProblemFrame()
     {
         string domainsPath = CreateTemporaryDomains("""
@@ -466,6 +516,12 @@ public class SpecificationValidatorTests
                 id: V3-AGG-SNAKE-SNAKE
                 aggregate: Snake
                 """,
+            ["domain.yaml"] = """
+                schema_version: 3
+                spec_kind: domain_contract
+                id: V3-DOMAIN-GAME-MOVE-SNAKE
+                domain: MoveSnake
+                """,
             ["workflow.yaml"] = """
                 schema_version: 3
                 spec_kind: workflow_contract
@@ -523,6 +579,8 @@ public class SpecificationValidatorTests
                   - V3-FRAME-GAME-PROCESS-TICK
                 aggregates:
                   - V3-AGG-SNAKE-SNAKE
+                domain_contracts:
+                  - V3-DOMAIN-GAME-MOVE-SNAKE
                 workflows:
                   - V3-WF-GAME-PROCESS-TICK
                 technical_contracts:
@@ -549,7 +607,7 @@ public class SpecificationValidatorTests
                 new List<string> { "catalog.yaml" });
 
             Assert.True(result.IsValid, string.Join(Environment.NewLine, result.Issues.Select(issue => issue.Message)));
-            Assert.Equal(10, result.Inventory.Documents.Count);
+            Assert.Equal(11, result.Inventory.Documents.Count);
         }
         finally
         {

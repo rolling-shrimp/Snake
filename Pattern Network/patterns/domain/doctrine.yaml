@@ -1,0 +1,79 @@
+schema_version: 3
+
+doctrine:
+  id: V3-PN-DOMAIN-DOCTRINE
+  title: "Domain 節點準則"
+  inherits: ../../doctrine.yaml
+
+pattern_node:
+  id: domain
+  name: Domain
+  role: inner_domain_state
+
+project:
+  solution_folder: Core
+  target_framework: net8.0
+  use_windows_forms: false
+  allowed_project_references: []
+
+responsibility:
+  owns:
+    - domain_state
+    - aggregate_root
+    - entity
+    - value_object
+    - domain_enum
+    - domain_invariant
+    - invariant_preserving_state_change
+  excludes:
+    - application_use_case
+    - use_case_execution_order
+    - user_interface
+    - file_or_network_io
+    - system_clock_and_random_source
+
+contract:
+  input_grain: one_domain_value_or_state_change
+  output_grain: validated_domain_state_or_value
+  owner: Domain
+
+rules:
+  - id: V3-PN-DOM-001
+    title: "Domain 擁有狀態與不變式"
+    statement: "Domain 類別保存遊戲狀態、值與永久不變式；Application UseCase 決定何時執行一個領域敘事，Domain 只接受能維持不變式的狀態變更。"
+    enforcement: manual
+
+  - id: V3-PN-DOM-002
+    title: "禁止公開狀態修改入口"
+    statement: "領域狀態屬性不得提供 public set 或 public init；集合不得直接交給外層修改。"
+    enforcement: automated
+
+  - id: V3-PN-DOM-003
+    title: "領域行為保持確定性"
+    statement: "系統時間、隨機值與外部資料必須由呼叫端以領域值傳入，不得由 Domain 自行取得。"
+    enforcement: automated
+
+  - id: V3-PN-DOM-004
+    title: "禁止 UI 與技術 I/O 相依"
+    statement: "Domain 不得參考 Application、WinForms、DI container、System.Drawing、檔案、網路或環境 API。"
+    enforcement: automated
+
+  - id: V3-PN-DOM-005
+    title: "集合狀態由 Domain 保護"
+    statement: "表達蛇身順序、唯一位置或連續性的集合必須由 Domain 保護；更新方法必須在提交前驗證完整集合。"
+    enforcement: manual
+
+  - id: V3-PN-DOM-006
+    title: "UseCase 名稱只屬於 Application"
+    statement: "Domain 不宣告 UseCase class，也不建立與 Application UseCase 同名的公開業務入口；例如 MoveSnake 由 MoveSnakeUseCase 擁有。"
+    enforcement: automated
+
+  - id: V3-PN-DOM-007
+    title: "沒有識別需求就不建立 ID 類別"
+    statement: "領域規格沒有持久化識別或跨生命週期追蹤需求時，不得建立 BoardId、SnakeId、FoodItemId 或其他以 Id 結尾的獨立類別；物件由 Game Aggregate 的擁有關係辨識。"
+    enforcement: automated
+
+  - id: V3-PN-DOM-008
+    title: "Domain Enum 集中於 Enums"
+    statement: "Domain 擁有的 enum 必須各自位於 Enums/{EnumName}.cs；不得散落在 Aggregate 根目錄或 Application。"
+    enforcement: automated

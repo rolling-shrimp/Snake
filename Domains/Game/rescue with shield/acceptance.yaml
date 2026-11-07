@@ -1,0 +1,15 @@
+schema_version: 3
+spec_kind: acceptance_contract
+id: V3-ACCEPT-GAME-RESCUE-WITH-SHIELD
+contract_ref: V3-DOMAIN-GAME-RESCUE-WITH-SHIELD
+scenarios:
+  - id: V3-SCN-RESCUE-WITH-SHIELD
+    title: "致命事件發生且仍有護盾時，消耗一次護盾並把完整蛇身安全安置。"
+    given:
+      precondition: "目前 Tick 存在致命事件且保命次數大於 0。"
+    when:
+      operation: RescueWithShield
+      call_count: 1
+    then:
+      postcondition: "保命次數減少 1，致命事件已清除，蛇位於安全起點且關卡繼續。"
+    evidence: [behavioral, invariant]

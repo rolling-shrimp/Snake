@@ -27,6 +27,10 @@ public class ProjectVerificationRunner
         checks.Add(CreateBlockingCheck("verify-specifications", specificationValidation.Issues));
         hasConfigurationError = hasConfigurationError || specificationValidation.HasConfigurationError;
 
+        UseCaseSpecificationBundleValidator useCaseBundleValidator = new UseCaseSpecificationBundleValidator();
+        List<GateIssue> useCaseBundleIssues = useCaseBundleValidator.Validate(domainsPath);
+        checks.Add(CreateBlockingCheck("verify-use-case-specification-bundles", useCaseBundleIssues));
+
         MigrationMapValidator migrationValidator = new MigrationMapValidator();
         MigrationMapValidationResult migrationValidation = migrationValidator.Validate(domainsPath, networkPath);
         checks.Add(CreateBlockingCheck("verify-migration", migrationValidation.Issues));
@@ -249,6 +253,7 @@ public class ProjectVerificationRunner
 
             string? checkId = GetScalar(customCheck, "check_id");
             string? checker = GetScalar(customCheck, "checker");
+            string? modeText = GetScalar(customCheck, "mode");
             if (!TryAddCheckId(checkId, checkIds, misfitPath, customCheck, configurationIssues)
                 || string.IsNullOrWhiteSpace(checker))
             {
@@ -265,6 +270,26 @@ public class ProjectVerificationRunner
                 continue;
             }
 
+            VerificationMode mode;
+            if (string.Equals(modeText, "blocking", StringComparison.Ordinal))
+            {
+                mode = VerificationMode.Blocking;
+            }
+            else if (string.Equals(modeText, "audit", StringComparison.Ordinal))
+            {
+                mode = VerificationMode.Audit;
+            }
+            else
+            {
+                configurationIssues.Add(CreateMisfitIssue(
+                    "V3-MISFIT-CUSTOM-CHECK",
+                    misfitPath,
+                    GetLine(customCheck),
+                    "custom check 的 mode 必須是 blocking 或 audit。",
+                    "error"));
+                continue;
+            }
+
             List<string> ruleRefs = ReadScalarList(customCheck, "rule_refs");
             ruleRefs.AddRange(ReadScalarList(customCheck, "contract_refs"));
             List<string> evidence = ReadScalarList(customCheck, "scope")
@@ -277,7 +302,7 @@ public class ProjectVerificationRunner
                 evidence.AddRange(checkerResult.Evidence);
                 auditChecks.Add(new GateCheckResult(
                     checkId!,
-                    VerificationMode.Audit,
+                    mode,
                     checkerResult.Status,
                     ruleRefs,
                     checkerResult.ScenarioRefs,
@@ -291,10 +316,10 @@ public class ProjectVerificationRunner
                 misfitPath,
                 GetLine(customCheck),
                 $"自訂 checker 尚未註冊執行：{checker}",
-                "warning");
+                mode == VerificationMode.Blocking ? "error" : "warning");
             auditChecks.Add(new GateCheckResult(
                 checkId!,
-                VerificationMode.Audit,
+                mode,
                 VerificationStatus.NotRun,
                 ruleRefs,
                 new List<string>(),
@@ -306,10 +331,8 @@ public class ProjectVerificationRunner
     private GateCheckerRegistry CreateCheckerRegistry(string projectRoot)
     {
         GateCheckerRegistry checkerRegistry = new GateCheckerRegistry();
-        checkerRegistry.Register(new CSharpApplicationWorkflowStructureChecker(projectRoot));
-        checkerRegistry.Register(new CSharpPresenterWorkflowOwnershipChecker(projectRoot));
+        checkerRegistry.Register(new CSharpApplicationUseCaseStructureChecker(projectRoot));
         checkerRegistry.Register(new CSharpSnakeMovementTopologyChecker(projectRoot));
-        checkerRegistry.Register(new CSharpRenderStabilityChecker(projectRoot));
         return checkerRegistry;
     }
 
@@ -682,6 +705,7 @@ public class ProjectVerificationRunner
         {
             SpecificationKind.ProblemFrame => "problem_frame",
             SpecificationKind.AggregateContract => "aggregate_contract",
+            SpecificationKind.DomainContract => "domain_contract",
             SpecificationKind.WorkflowContract => "workflow_contract",
             SpecificationKind.TechnicalContract => "technical_contract",
             SpecificationKind.AcceptanceContract => "acceptance_contract",

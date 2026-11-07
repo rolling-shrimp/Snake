@@ -1,0 +1,34 @@
+schema_version: 3
+spec_kind: domain_contract
+id: V3-DOMAIN-GAME-RESCUE-WITH-SHIELD
+domain: RescueWithShield
+frame_ref: V3-FRAME-GAME-RESCUE-WITH-SHIELD
+aggregate_refs:
+  - V3-AGG-GAME-GAME
+  - V3-AGG-SNAKE-SNAKE
+  - V3-AGG-SHIELD-SHIELD
+  - V3-AGG-BOARD-BOARD
+  - V3-AGG-LEVEL-LEVEL
+use_case: RescueWithShield
+input:
+  grain: current_tick_state
+  owner: GameForm
+  type: none
+output:
+  grain: no_return_value
+  owner: RescueWithShieldUseCase
+  type: none
+preconditions:
+  - id: V3-DOMAIN-RESCUE-WITH-SHIELD-PRE
+    rule: "目前 Tick 存在致命事件且保命次數大於 0。"
+rules:
+  - id: V3-DOMAIN-RESCUE-WITH-SHIELD-RULE
+    rule: "保留受擊前蛇長，尋找可容納完整蛇身的安全位置，移開衝突物件並繼續目前關卡。"
+postconditions:
+  - id: V3-DOMAIN-RESCUE-WITH-SHIELD-POST
+    rule: "保命次數減少 1，致命事件已清除，蛇位於安全起點且關卡繼續。"
+invariants:
+  - id: V3-DOMAIN-RESCUE-WITH-SHIELD-INV
+    rule: "致命、保命與通關狀態在同一 Tick 只能產生一個一致結果。"
+no_op:
+  - "前置條件不成立時不修改遊戲狀態。"

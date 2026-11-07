@@ -1,0 +1,118 @@
+schema_version: 3
+
+doctrine:
+  id: V3-PN-APPLICATION-DOCTRINE
+  title: "Application Use Case 節點準則"
+  inherits: ../../doctrine.yaml
+
+pattern_node:
+  id: application
+  name: Application
+  role: application_use_case_boundary
+
+project:
+  solution_folder: Core
+  target_framework: net8.0
+  use_windows_forms: false
+  allowed_project_references:
+    - Domain
+  required_package_references:
+    - name: Microsoft.Extensions.DependencyInjection.Abstractions
+      version: 8.0.1
+
+responsibility:
+  owns:
+    - use_case
+    - use_case_input
+    - use_case_output
+    - use_case_dto
+    - external_dependency_port
+    - current_game_repository_contract
+    - domain_state_coordination
+  excludes:
+    - winforms_event_order
+    - winforms_control
+    - screen_rendering
+    - concrete_io_adapter
+    - duplicate_domain_state
+
+contract:
+  input_grain: use_case_specific_value_or_none
+  output_grain: none_or_one_semantic_result
+  owner: Application
+  use_case_identification:
+    source: use_case_md_executable_statement
+    class_name_format: "{operation}UseCase"
+    method_name_format: "{operation}"
+    interface_required: false
+  feature_layout:
+    feature_directory_format: "_{operation}UseCase"
+    use_case_file_format: "{operation}UseCase.cs"
+    dto_directory: Dto
+    enum_directory: Enums
+    dto_directory_required: false
+    dto_type_suffix: DTO
+    repository_directory: Repositories
+    current_game_repository: IGameRepository
+  dependency_injection:
+    registration_file: DependencyInjection.cs
+    registration_method: AddApplication
+    use_case_lifetime: transient
+    constructor_injection_required: true
+    service_locator_allowed: false
+
+rules:
+  - id: V3-PN-UC-001
+    title: "一個領域敘事對應一個 UseCase"
+    statement: "use_case.md 中可獨立執行且具有明確結果的敘事，各自由一個同名 UseCase class 擁有；不得為了減少 class 數量重新合併成巨型 Workflow。"
+    enforcement: manual
+
+  - id: V3-PN-UC-002
+    title: "UseCase 方法使用自然契約"
+    statement: "UseCase 方法名稱描述實際行為；沒有輸入時不建立空輸入型別，沒有輸出時回傳 void，單一語意結果直接使用 bool、數值或 enum。"
+    enforcement: automated
+
+  - id: V3-PN-UC-003
+    title: "DTO 只承載必要的多欄位資料"
+    statement: "只有跨層傳遞多個具共同語意的欄位時才建立 DTO；DTO 類別以 DTO 結尾並位於所屬 UseCase 的 Dto 子資料夾。"
+    enforcement: automated
+
+  - id: V3-PN-UC-004
+    title: "公開輸出不得洩漏 Domain 狀態物件"
+    statement: "WinForms 可見的輸入與輸出不得直接暴露 Domain 類別或可變集合；需要畫面資料時由 Application 建立必要 DTO。"
+    enforcement: automated
+
+  - id: V3-PN-UC-005
+    title: "外部能力以 Port 表達"
+    statement: "隨機位置、儲存或其他外部能力由 Application 擁有必要介面，具體實作留在外層；介面不是每個 UseCase 的固定配對。"
+    enforcement: manual
+
+  - id: V3-PN-UC-006
+    title: "UseCase 不編排其他 UseCase"
+    statement: "UseCase 不得注入或呼叫另一個 UseCase；同一 WinForms 事件需要的 UseCase 順序由 GameForm 擁有。"
+    enforcement: automated
+
+  - id: V3-PN-UC-007
+    title: "一個 UseCase class 只公開一個領域行為"
+    statement: "每個 UseCase class 只公開 technical_spec.yaml 綁定的那一個領域行為方法；私人方法只能服務該行為。"
+    enforcement: automated
+
+  - id: V3-PN-UC-008
+    title: "UseCase 依賴由 DI 注入"
+    statement: "UseCase 必須由 constructor injection 取得 IGameRepository 與必要 Port，再從 repository 取得同一個 Game Aggregate；不得直接建立或持有另一份遊戲狀態。AddApplication 集中註冊具體 UseCase class。"
+    enforcement: automated
+
+  - id: V3-PN-UC-009
+    title: "UseCase 目錄遵守範本格式"
+    statement: "UseCase 位於 _{Operation}UseCase 目錄；同名 UseCase 檔案直接位於該目錄，DTO 與 enum 分別放在同層級的 Dto 與 Enums 子資料夾。"
+    enforcement: automated
+
+  - id: V3-PN-UC-010
+    title: "Application 擁有 Repository Port"
+    statement: "IGameRepository 位於 Repositories/IGameRepository.cs，只定義取得目前 Game Aggregate 的契約；具體生命週期與實作由 Infrastructure 擁有。"
+    enforcement: automated
+
+  - id: V3-PN-UC-011
+    title: "UseCase Enum 與 DTO 分類清楚"
+    statement: "DTO class 只放在 Dto；UseCase 專屬 enum 只放在 Enums，兩者為同層級資料夾且不得互相包含。"
+    enforcement: automated

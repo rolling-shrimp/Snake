@@ -1,0 +1,33 @@
+schema_version: 3
+spec_kind: domain_contract
+id: V3-DOMAIN-GAME-EVALUATE-LEVEL-COMPLETION
+domain: EvaluateLevelCompletion
+frame_ref: V3-FRAME-GAME-EVALUATE-LEVEL-COMPLETION
+aggregate_refs:
+  - V3-AGG-GAME-GAME
+  - V3-AGG-SNAKE-SNAKE
+  - V3-AGG-LEVEL-LEVEL
+  - V3-AGG-GAMERESULT-GAMERESULT
+use_case: EvaluateLevelCompletion
+input:
+  grain: current_tick_state
+  owner: GameForm
+  type: none
+output:
+  grain: no_return_value
+  owner: EvaluateLevelCompletionUseCase
+  type: none
+preconditions:
+  - id: V3-DOMAIN-EVALUATE-LEVEL-COMPLETION-PRE
+    rule: "目前關卡為 Playing，且本 Tick 沒有未處理致命事件。"
+rules:
+  - id: V3-DOMAIN-EVALUATE-LEVEL-COMPLETION-RULE
+    rule: "第一、二關目標為 20，第三關目標為 50；超過目標仍保留實際蛇長。"
+postconditions:
+  - id: V3-DOMAIN-EVALUATE-LEVEL-COMPLETION-POST
+    rule: "達標時記錄通關蛇長；未達標時保持 Playing。"
+invariants:
+  - id: V3-DOMAIN-EVALUATE-LEVEL-COMPLETION-INV
+    rule: "致命、保命與通關狀態在同一 Tick 只能產生一個一致結果。"
+no_op:
+  - "前置條件不成立時不修改遊戲狀態。"

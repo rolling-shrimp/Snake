@@ -3,48 +3,97 @@ spec_kind: aggregate_contract
 id: V3-AGG-GAME-GAME
 aggregate: Game
 state:
-  - name: game_id
-    type: GameId
-    required: true
   - name: phase
     type: GamePhase
     required: true
-  - name: last_processed_elapsed_milliseconds
+  - name: board
+    type: Board
+    required: true
+  - name: snake
+    type: Snake
+    required: true
+  - name: level
+    type: Level
+    required: true
+  - name: food
+    type: Food
+    required: true
+  - name: fire
+    type: Fire
+    required: true
+  - name: shield
+    type: Shield
+    required: true
+  - name: bomb
+    type: Bomb
+    required: true
+  - name: door_and_maze
+    type: DoorAndMaze
+    required: true
+  - name: game_result
+    type: GameResult
+    required: true
+  - name: next_head
+    type: GridPosition
+    required: false
+  - name: movement_plan
+    type: SnakeMovementPlan
+    required: false
+  - name: pending_death_cause
+    type: DeathCause
+    required: false
+  - name: pre_hit_length
     type: integer
     required: true
     initial_value: 0
-value_objects:
-  - name: GameId
-    kind: opaque_identity
+  - name: has_moved_this_tick
+    type: boolean
+    required: true
+    initial_value: false
+  - name: level_completion_pending
+    type: boolean
+    required: true
+    initial_value: false
+  - name: next_level_preparation_pending
+    type: boolean
+    required: true
+    initial_value: false
+  - name: door_tick_count
+    type: integer
+    required: true
+    initial_value: 0
+value_objects: []
 enums:
   - name: GamePhase
     values: [Ready, Playing, GameOver, Completed]
 relations:
   - target_ref: V3-AGG-SNAKE-SNAKE
-    ownership: reference_only
+    ownership: current_game_state
   - target_ref: V3-AGG-BOARD-BOARD
-    ownership: reference_only
+    ownership: current_game_state
   - target_ref: V3-AGG-LEVEL-LEVEL
-    ownership: reference_only
+    ownership: current_game_state
   - target_ref: V3-AGG-FOOD-FOOD
-    ownership: reference_only
+    ownership: current_game_state
   - target_ref: V3-AGG-FIRE-FIRE
-    ownership: reference_only
+    ownership: current_game_state
   - target_ref: V3-AGG-SHIELD-SHIELD
-    ownership: reference_only
+    ownership: current_game_state
   - target_ref: V3-AGG-BOMB-BOMB
-    ownership: reference_only
+    ownership: current_game_state
   - target_ref: V3-AGG-DOORMAZE-DOORMAZE
-    ownership: reference_only
+    ownership: current_game_state
   - target_ref: V3-AGG-GAMERESULT-GAMERESULT
-    ownership: reference_only
+    ownership: current_game_state
 invariants:
   - id: V3-GAME-INV-PHASE
     rule: "phase 只能是 Ready、Playing、GameOver 或 Completed。"
+  - id: V3-GAME-INV-CURRENT-STATE
+    rule: "一個 Game 必須保存且只保存一組目前使用中的 Board、Snake、Level、Food、Fire、Shield、Bomb、DoorAndMaze 與 GameResult。"
+  - id: V3-GAME-INV-TICK-STATE
+    rule: "每次 Tick 開始時必須清除上一個 Tick 的移動計畫、待處理死亡與通關暫存；一次 Tick 最多提交一次蛇移動。"
   - id: V3-GAME-INV-ACTIVE-OPERATIONS
     rule: "只有 Playing 允許移動、方向更新、物件觸發、物件補充與門週期更新。"
-  - id: V3-GAME-INV-MONOTONIC-TIME
-    rule: "last_processed_elapsed_milliseconds 不得為負，且同一關 Playing 期間只能單調增加。"
   - id: V3-GAME-INV-TERMINAL
     rule: "GameOver 與 Completed 不得再接受 Tick 所造成的狀態變更。"
 behaviors:
@@ -55,47 +104,57 @@ behaviors:
     output:
       grain: one_started_or_ignored_result
     rules:
-      - "Ready 時可切換為 Playing 並將關卡累積時間基準設為 0。"
-      - "非 Ready 或重複開始成功忽略且不改變狀態。"
-  - id: V3-GAME-BEHAVIOR-VALIDATE-TICK-TIME
-    name: ValidateTickTime
+      - "Ready 時切換為 Playing。"
+      - "非 Ready 或重複開始時保持原狀。"
+  - id: V3-GAME-BEHAVIOR-BEGIN-TICK
+    name: BeginTick
     input:
-      grain: one_accumulated_elapsed_milliseconds_value
+      grain: one_ui_timer_tick
     output:
-      grain: one_valid_or_noop_or_invalid_result
+      grain: one_clean_tick_state
     rules:
-      - "負值或小於 last_processed_elapsed_milliseconds 的時間為契約錯誤。"
-      - "非 Playing 或時間相同且沒有到期事件時為成功 no-op。"
-      - "驗證本身不得更新 last_processed_elapsed_milliseconds。"
-  - id: V3-GAME-BEHAVIOR-COMMIT-TICK-TIME
-    name: CommitTickTime
+      - "清除上一個 Tick 的 next_head、movement_plan 與 pending_death_cause。"
+      - "記錄移動前蛇長並將 has_moved_this_tick 與 level_completion_pending 設為 false。"
+  - id: V3-GAME-BEHAVIOR-PREPARE-MOVEMENT
+    name: PrepareMovement
     input:
-      grain: one_successfully_processed_tick_time
+      grain: current_game_state_for_one_move
     output:
-      grain: one_updated_game_time
+      grain: one_pending_movement_plan_or_death
     rules:
-      - "只能與 ProcessGameTick 的其他 Aggregate 變更一起原子提交。"
+      - "根據 Board、Snake、Level 與目前物件狀態建立唯一移動計畫。"
+      - "沒有合法下一格時記錄 BoundaryCollision，不製造預設位置。"
+  - id: V3-GAME-BEHAVIOR-MARK-DEATH
+    name: MarkDeath
+    input:
+      grain: one_death_cause_and_pre_hit_length
+    output:
+      grain: one_pending_death
+    rules:
+      - "同一 Tick 只保留第一個死亡原因。"
   - id: V3-GAME-BEHAVIOR-PREPARE-NEXT-LEVEL
     name: PrepareNextLevel
     input:
-      grain: one_passed_level_number
+      grain: one_passed_non_final_level
     output:
-      grain: one_ready_or_completed_phase
-    rules:
-      - "第一、二關通過後切換至下一關 Ready。"
-      - "第三關通過後切換為 Completed。"
+      grain: one_ready_phase
   - id: V3-GAME-BEHAVIOR-END-GAME
     name: EndGame
     input:
       grain: one_unrescued_death_event
     output:
       grain: one_game_over_phase
+  - id: V3-GAME-BEHAVIOR-COMPLETE
+    name: Complete
+    input:
+      grain: one_completed_third_level
+    output:
+      grain: one_completed_phase
   - id: V3-GAME-BEHAVIOR-RESTART
-    name: Restart
+    name: RestartPlaying
     input:
       grain: one_restart_request
     output:
       grain: one_accepted_or_ignored_result
     rules:
-      - "只有 GameOver 或 Completed 接受重玩。"
-      - "接受後由 RestartGame Workflow 原子重設所有 Aggregate，Game 直接進入第一關 Playing。"
+      - "只有 GameOver 或 Completed 接受重玩並切換為 Playing。"

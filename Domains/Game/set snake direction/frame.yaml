@@ -1,0 +1,26 @@
+schema_version: 3
+spec_kind: problem_frame
+id: V3-FRAME-GAME-SET-SNAKE-DIRECTION
+frame:
+  name: set-snake-direction
+  type: RBF
+  bounded_context: snake-game
+  requirement: "玩家的一次方向要求只更新下一個移動 Tick 使用的有效方向。"
+problem_domains:
+  - name: Player
+    kind: biddable
+  - name: SnakeGame
+    kind: designed
+shared_phenomena:
+  - name: request
+    source: Player
+    receiver: SnakeGame
+  - name: state_changed
+    source: SnakeGame
+    receiver: Player
+world_facts:
+  - id: V3-FRAME-FACT-SET-SNAKE-DIRECTION
+    fact: "接受非反向方向並拒絕相對於目前有效方向的直接反向要求。"
+frame_concerns:
+  - id: V3-FRAME-CONCERN-SET-SNAKE-DIRECTION
+    concern: "下一個移動 Tick 使用最後一個已接受方向。"

@@ -1,0 +1,26 @@
+schema_version: 3
+spec_kind: problem_frame
+id: V3-FRAME-GAME-START-SECOND-LEVEL
+frame:
+  name: start-second-level
+  type: RBF
+  bounded_context: snake-game
+  requirement: "玩家在第二關待開始畫面按下開始後，第二關立即進入遊玩狀態。"
+problem_domains:
+  - name: Player
+    kind: biddable
+  - name: SnakeGame
+    kind: designed
+shared_phenomena:
+  - name: request
+    source: Player
+    receiver: SnakeGame
+  - name: state_changed
+    source: SnakeGame
+    receiver: Player
+world_facts:
+  - id: V3-FRAME-FACT-START-SECOND-LEVEL
+    fact: "將第二關設為 Playing，建立普通食物、特殊食物、第一個護盾與火焰。"
+frame_concerns:
+  - id: V3-FRAME-CONCERN-START-SECOND-LEVEL
+    concern: "第二關為 Playing，蛇長為 3 且護盾剩餘次數為 0。"

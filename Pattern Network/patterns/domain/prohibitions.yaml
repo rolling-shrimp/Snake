@@ -1,0 +1,70 @@
+schema_version: 3
+
+pattern_node:
+  id: domain
+  name: Domain
+
+prohibitions:
+  - id: V3-PN-DOM-PRO-001
+    title: "禁止外層專案參考"
+    description: "Domain 不得參考 Application、WinForms 或其他產品專案。"
+    severity: error
+    enforcement: automated
+    remediation: "移除 ProjectReference，將狀態、值與不變式保留在 Domain。"
+    exceptions: []
+
+  - id: V3-PN-DOM-PRO-002
+    title: "禁止 UI 與 I/O namespace"
+    description: "Domain 不得使用 Microsoft.Extensions.DependencyInjection、System.Windows.Forms、System.Drawing、System.IO 或 System.Net。"
+    severity: error
+    enforcement: automated
+    remediation: "以領域值取代框架型別，並由外層執行 I/O。"
+    exceptions: []
+
+  - id: V3-PN-DOM-PRO-003
+    title: "禁止非確定性來源"
+    description: "Domain 不得直接取得 DateTime.Now、DateTime.UtcNow、Guid.NewGuid、Environment 或 Random。"
+    severity: error
+    enforcement: automated
+    remediation: "由 Application UseCase 或外層 Port 取得值，再作為領域輸入傳入。"
+    exceptions: []
+
+  - id: V3-PN-DOM-PRO-004
+    title: "禁止公開 setter 與可變集合"
+    description: "Domain 屬性不得使用 public set/public init，承載不變式的集合不得由外層直接修改。"
+    severity: error
+    enforcement: automated
+    remediation: "以私人欄位保存狀態，透過會驗證完整狀態的狹窄方法提交變更。"
+    exceptions: []
+
+  - id: V3-PN-DOM-PRO-005
+    title: "禁止重複 Application UseCase 行為"
+    description: "Domain 不得再宣告 Snake.Move、Game.ProcessTick 或其他與 Application UseCase 同名且擁有相同完整敘事的公開入口。"
+    severity: error
+    enforcement: manual
+    remediation: "完整領域敘事留在同名 Application UseCase；Domain 只保留狀態與維持不變式所需的狹窄操作。"
+    exceptions: []
+
+  - id: V3-PN-DOM-PRO-006
+    title: "禁止 Domain UseCase 與流程編排"
+    description: "Domain 不得宣告名稱以 UseCase 結尾的類別，也不得安排多個 Application UseCase 的順序。"
+    severity: error
+    enforcement: automated
+    remediation: "UseCase 放在 Application；UI 事件的執行順序放在 WinForms GameForm。"
+    exceptions: []
+
+  - id: V3-PN-DOM-PRO-007
+    title: "禁止無需求的識別類別"
+    description: "規格未宣告 identity 時，Domain 不得建立名稱以 Id 結尾的 class。"
+    severity: error
+    enforcement: automated
+    remediation: "移除識別類別與相關欄位，透過 Game Aggregate 的直接擁有關係存取物件。"
+    exceptions: []
+
+  - id: V3-PN-DOM-PRO-008
+    title: "禁止 Domain Enum 散落"
+    description: "Domain enum 不得位於 Enums 以外的目錄。"
+    severity: error
+    enforcement: automated
+    remediation: "將 enum 移到 Domain/Enums，維持一個 enum 一個同名檔案。"
+    exceptions: []

@@ -1,0 +1,89 @@
+schema_version: 3
+
+gate:
+  id: V3-PN-INFRASTRUCTURE-GATE
+  pattern_node_id: infrastructure
+  project_name_formula: "{solution_name}.{pattern_node_name}"
+
+checks:
+  - id: V3-PN-INF-GATE-001
+    checker: project_identity
+    mode: blocking
+    severity: error
+    rule_refs:
+      - V3-PN-NAME-001
+    parameters:
+      solution_folder: Core
+      target_framework: net8.0
+      use_windows_forms: false
+      required_package_references:
+        - Microsoft.Extensions.DependencyInjection.Abstractions@8.0.1
+
+  - id: V3-PN-INF-GATE-002
+    checker: project_references
+    mode: blocking
+    severity: error
+    rule_refs:
+      - V3-PN-ARCH-001
+      - V3-PN-INF-PRO-001
+    parameters:
+      required_pattern_nodes:
+        - Application
+      forbidden_pattern_nodes:
+        - Domain
+        - WinForms
+
+  - id: V3-PN-INF-GATE-003
+    checker: csharp_global_rules
+    mode: blocking
+    severity: error
+    rule_refs:
+      - V3-PN-CS-CLASS-001
+      - V3-PN-CS-CLASS-002
+      - V3-PN-CS-FILE-001
+      - V3-PN-CS-FIELD-001
+      - V3-PN-CS-FIELD-002
+      - V3-PN-CS-CONST-001
+      - V3-PN-CS-NAME-001
+      - V3-PN-CS-NAMESPACE-001
+      - V3-PN-CS-DI-001
+      - V3-PN-CS-DI-002
+      - V3-PN-CS-DI-003
+      - V3-PN-CS-METHOD-001
+      - V3-PN-CS-FLOW-001
+
+  - id: V3-PN-INF-GATE-004
+    checker: dependency_injection
+    mode: blocking
+    severity: error
+    rule_refs:
+      - V3-PN-INF-001
+      - V3-PN-INF-002
+      - V3-PN-INF-PRO-002
+    parameters:
+      registration_file: DependencyInjection.cs
+      registration_method: AddInfrastructure
+      repository_interface: IGameRepository
+      repository_implementation: GameRepository
+      repository_lifetime: singleton
+
+  - id: V3-PN-INF-GATE-005
+    checker: forbidden_namespaces
+    mode: blocking
+    severity: error
+    rule_refs:
+      - V3-PN-INF-004
+      - V3-PN-INF-PRO-003
+    parameters:
+      namespaces:
+        - Microsoft.EntityFrameworkCore
+        - System.Data
+
+  - id: V3-PN-INF-GATE-006
+    checker: manual_review
+    mode: audit
+    severity: warning
+    rule_refs:
+      - V3-PN-INF-003
+      - V3-PN-INF-PRO-004
+

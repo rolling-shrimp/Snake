@@ -1,0 +1,32 @@
+schema_version: 3
+spec_kind: domain_contract
+id: V3-DOMAIN-GAME-UPDATE-THIRD-LEVEL-DOOR-STATE
+domain: UpdateThirdLevelDoorState
+frame_ref: V3-FRAME-GAME-UPDATE-THIRD-LEVEL-DOOR-STATE
+aggregate_refs:
+  - V3-AGG-DOORMAZE-DOORMAZE
+  - V3-AGG-GAME-GAME
+  - V3-AGG-SNAKE-SNAKE
+use_case: UpdateThirdLevelDoorState
+input:
+  grain: one_ui_or_tick_request
+  owner: GameForm
+  type: none
+output:
+  grain: no_return_value
+  owner: UpdateThirdLevelDoorStateUseCase
+  type: none
+preconditions:
+  - id: V3-DOMAIN-UPDATE-THIRD-LEVEL-DOOR-STATE-PRE
+    rule: "目前為第三關 Playing。"
+rules:
+  - id: V3-DOMAIN-UPDATE-THIRD-LEVEL-DOOR-STATE-RULE
+    rule: "每 6 秒切換門狀態，關閉前 2 秒標示閃爍；蛇占用門格時延後關閉。"
+postconditions:
+  - id: V3-DOMAIN-UPDATE-THIRD-LEVEL-DOOR-STATE-POST
+    rule: "門狀態與閃爍狀態符合目前週期且不會關在蛇身上。"
+invariants:
+  - id: V3-DOMAIN-UPDATE-THIRD-LEVEL-DOOR-STATE-INV
+    rule: "所有狀態更新必須維持所引用 Aggregate 的不變式。"
+no_op:
+  - "前置條件不成立時不修改遊戲狀態。"

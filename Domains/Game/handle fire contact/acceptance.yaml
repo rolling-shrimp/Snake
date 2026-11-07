@@ -1,0 +1,15 @@
+schema_version: 3
+spec_kind: acceptance_contract
+id: V3-ACCEPT-GAME-HANDLE-FIRE-CONTACT
+contract_ref: V3-DOMAIN-GAME-HANDLE-FIRE-CONTACT
+scenarios:
+  - id: V3-SCN-HANDLE-FIRE-CONTACT
+    title: "蛇頭碰到火焰時，火焰消失且蛇長減少 2 格。"
+    given:
+      precondition: "目前為第二或第三關 Playing，且蛇頭接觸火焰。"
+    when:
+      operation: HandleFireContact
+      call_count: 1
+    then:
+      postcondition: "火焰已移除，蛇長或致命事件狀態符合受擊前長度。"
+    evidence: [behavioral, invariant]

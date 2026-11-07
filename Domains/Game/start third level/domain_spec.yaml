@@ -1,0 +1,38 @@
+schema_version: 3
+spec_kind: domain_contract
+id: V3-DOMAIN-GAME-START-THIRD-LEVEL
+domain: StartThirdLevel
+frame_ref: V3-FRAME-GAME-START-THIRD-LEVEL
+aggregate_refs:
+  - V3-AGG-GAME-GAME
+  - V3-AGG-LEVEL-LEVEL
+  - V3-AGG-BOARD-BOARD
+  - V3-AGG-SNAKE-SNAKE
+  - V3-AGG-FOOD-FOOD
+  - V3-AGG-SHIELD-SHIELD
+  - V3-AGG-FIRE-FIRE
+  - V3-AGG-BOMB-BOMB
+  - V3-AGG-DOORMAZE-DOORMAZE
+use_case: StartThirdLevel
+input:
+  grain: one_ui_or_tick_request
+  owner: GameForm
+  type: none
+output:
+  grain: no_return_value
+  owner: StartThirdLevelUseCase
+  type: none
+preconditions:
+  - id: V3-DOMAIN-START-THIRD-LEVEL-PRE
+    rule: "目前畫面為第三關 Ready。"
+rules:
+  - id: V3-DOMAIN-START-THIRD-LEVEL-RULE
+    rule: "將第三關設為 Playing，建立本關物件並啟動門的切換狀態。"
+postconditions:
+  - id: V3-DOMAIN-START-THIRD-LEVEL-POST
+    rule: "第三關為 Playing，蛇長為 3、進度為 6% 且門狀態可見。"
+invariants:
+  - id: V3-DOMAIN-START-THIRD-LEVEL-INV
+    rule: "所有狀態更新必須維持所引用 Aggregate 的不變式。"
+no_op:
+  - "前置條件不成立時不修改遊戲狀態。"

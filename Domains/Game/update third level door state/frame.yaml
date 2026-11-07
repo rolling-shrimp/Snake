@@ -1,0 +1,26 @@
+schema_version: 3
+spec_kind: problem_frame
+id: V3-FRAME-GAME-UPDATE-THIRD-LEVEL-DOOR-STATE
+frame:
+  name: update-third-level-door-state
+  type: RBF
+  bounded_context: snake-game
+  requirement: "第三關遊玩時，門依固定節奏切換並在關閉前閃爍。"
+problem_domains:
+  - name: Player
+    kind: biddable
+  - name: SnakeGame
+    kind: designed
+shared_phenomena:
+  - name: request
+    source: Player
+    receiver: SnakeGame
+  - name: state_changed
+    source: SnakeGame
+    receiver: Player
+world_facts:
+  - id: V3-FRAME-FACT-UPDATE-THIRD-LEVEL-DOOR-STATE
+    fact: "每 6 秒切換門狀態，關閉前 2 秒標示閃爍；蛇占用門格時延後關閉。"
+frame_concerns:
+  - id: V3-FRAME-CONCERN-UPDATE-THIRD-LEVEL-DOOR-STATE
+    concern: "門狀態與閃爍狀態符合目前週期且不會關在蛇身上。"

@@ -1,0 +1,23 @@
+schema_version: 3
+spec_kind: problem_frame
+id: V3-FRAME-GAME-HANDLE-BOMB-CONTACT
+frame:
+  name: handle-bomb-contact
+  type: RBF
+  bounded_context: snake-game
+  requirement: "第三關蛇頭碰到炸彈時，炸彈消失並立即形成致命事件。"
+problem_domains:
+  - name: SnakeHead
+    kind: causal
+  - name: SnakeGame
+    kind: designed
+shared_phenomena:
+  - name: contact_detected
+    source: SnakeHead
+    receiver: SnakeGame
+world_facts:
+  - id: V3-FRAME-FACT-HANDLE-BOMB-CONTACT
+    fact: "炸彈接觸不直接決定 Game Over，而是記錄致命事件供護盾保命與結束流程處理。"
+frame_concerns:
+  - id: V3-FRAME-CONCERN-HANDLE-BOMB-CONTACT
+    concern: "炸彈已移除且目前 Tick 存在炸彈致命事件。"

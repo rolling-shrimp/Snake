@@ -301,7 +301,7 @@ public class GateApplicationTests
     }
 
     [Fact]
-    public void CheckCodeWritesTextAndJsonResults()
+    public void CheckCodeWritesPassingTextAndJsonResults()
     {
         using TemporarySolution solution = new TemporarySolution("SampleGame");
         string jsonPath = Path.Combine(Path.GetTempPath(), $"pattern-network-report-{Guid.NewGuid():N}.json");
@@ -334,10 +334,8 @@ public class GateApplicationTests
             JsonElement auditCheck = Assert.Single(
                 report.RootElement.GetProperty("checks").EnumerateArray(),
                 check => check.GetProperty("mode").GetString() == "audit");
-            Assert.Equal("fail", auditCheck.GetProperty("status").GetString());
-            Assert.Contains(
-                report.RootElement.GetProperty("issues").EnumerateArray(),
-                issue => issue.GetProperty("ruleId").GetString() == "V3-PN-UC-PRO-006");
+            Assert.Equal("pass", auditCheck.GetProperty("status").GetString());
+            Assert.Empty(report.RootElement.GetProperty("issues").EnumerateArray());
         }
         finally
         {
@@ -383,7 +381,10 @@ public class GateApplicationTests
     public void CheckCodeReturnsConfigurationExitCodeWhenTargetProjectIsMissing()
     {
         using TemporarySolution solution = new TemporarySolution("SampleGame");
-        Directory.Delete(Path.Combine(Path.GetDirectoryName(solution.SolutionPath)!, "SampleGame.Entities"), true);
+        Directory.Delete(Path.Combine(
+            Path.GetDirectoryName(solution.SolutionPath)!,
+            "Core",
+            "SampleGame.Domain"), true);
         GateApplication application = new GateApplication();
         StringWriter output = new StringWriter();
         StringWriter error = new StringWriter();

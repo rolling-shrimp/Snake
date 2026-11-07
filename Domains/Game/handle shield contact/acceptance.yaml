@@ -1,0 +1,15 @@
+schema_version: 3
+spec_kind: acceptance_contract
+id: V3-ACCEPT-GAME-HANDLE-SHIELD-CONTACT
+contract_ref: V3-DOMAIN-GAME-HANDLE-SHIELD-CONTACT
+scenarios:
+  - id: V3-SCN-HANDLE-SHIELD-CONTACT
+    title: "蛇頭接觸護盾時，護盾消失且剩餘保命次數增加 1。"
+    given:
+      precondition: "目前為第二或第三關 Playing，且蛇頭接觸目前護盾。"
+    when:
+      operation: HandleShieldContact
+      call_count: 1
+    then:
+      postcondition: "保命次數增加 1，護盾出現紀錄與待補狀態正確。"
+    evidence: [behavioral, invariant]

@@ -1,0 +1,31 @@
+schema_version: 3
+spec_kind: technical_contract
+id: V3-TECH-GAME-HANDLE-BOMB-CONTACT
+operation: HandleBombContact
+domain_ref: V3-DOMAIN-GAME-HANDLE-BOMB-CONTACT
+input:
+  type: none
+  fields: []
+output:
+  type: none
+  fields: []
+ports:
+  - name: IGameRepository
+    owner: Snake.Application
+    implementation_owner: Snake.Infrastructure
+implementation_binding:
+  project: Snake.Application
+  directory: _HandleBombContactUseCase
+  class: HandleBombContactUseCase
+  method: HandleBombContact
+  parameters: []
+  return_type: void
+dependency_injection:
+  registration_file: DependencyInjection.cs
+  registration_method: AddApplication
+  lifetime: transient
+  interface_required: false
+dto:
+  required: false
+  reason: "接觸來源由共享遊戲狀態判定，不建立空輸入或輸出 DTO。"
+

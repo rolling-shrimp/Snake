@@ -6,60 +6,77 @@ pattern_node:
 
 prohibitions:
   - id: V3-PN-UI-PRO-001
-    title: "禁止直接參考 Entities"
-    description: "WinForms 只能直接參考 UseCases，不得直接參考 Entities。"
+    title: "禁止直接參考 Domain"
+    description: "WinForms 只能直接參考 Application 與 Infrastructure，不得直接參考 Domain 或使用 Domain type。"
     severity: error
     enforcement: automated
-    remediation: "改由 Use Case 的 Command、Query 與 Result 傳遞資料。"
+    remediation: "由 Application UseCase 提供自然結果或必要 DTO。"
     exceptions: []
 
   - id: V3-PN-UI-PRO-002
-    title: "禁止 Presenter 綁定控制項"
-    description: "Presenter 不得繼承或保存 Form、Control、Button、Timer 等 WinForms 型別。"
+    title: "禁止意義不明的 UI 角色"
+    description: "不得建立 GameExecutor、GameRender、Presenter、IGameView、GameController、GameFlow、GamePlayFlow、Helper、Renderer、Display 或 ViewModel 架構層。"
     severity: error
     enforcement: automated
-    remediation: "Presenter 依賴 View Interface，Form 負責控制項細節。"
+    remediation: "UI 事件、UseCase 順序與必要畫面更新都由 GameForm 直接擁有。"
     exceptions: []
 
   - id: V3-PN-UI-PRO-003
-    title: "禁止 UI 業務判定"
-    description: "Form、Presenter 與 ViewModel 不得計算蛇長、碰撞、得分、關卡或其他領域結果。"
+    title: "禁止 UI 計算領域結果"
+    description: "GameForm 不得自行計算蛇長、碰撞、物件效果、護盾、通關或其他領域結果。"
     severity: error
     enforcement: manual
-    remediation: "把判定放入 Entities，流程協調放入 UseCases。"
+    remediation: "由對應 Application UseCase 完成領域敘事，UI 只執行順序與顯示結果。"
     exceptions: []
 
   - id: V3-PN-UI-PRO-004
-    title: "禁止手寫 partial"
-    description: "除框架產生檔外，手寫類別不得宣告 partial。"
+    title: "禁止無配對 Designer 的手寫 partial"
+    description: "除同一個 GameForm 的 GameForm*.cs、配對的 *.Designer.cs 與框架產生檔外，手寫類別不得宣告 partial。"
     severity: error
     enforcement: automated
-    remediation: "移除手寫 partial；Designer 內容保留在產生檔。"
+    remediation: "一般類別使用普通 public class；只有 WinForms Designer 配對類別使用 partial。"
     exceptions:
+      - "GameForm*.cs"
       - "*.Designer.cs"
       - "*.g.cs"
       - "*.g.i.cs"
 
   - id: V3-PN-UI-PRO-005
-    title: "禁止 Presenter 編排多個業務步驟"
-    description: "同一 UI 事件不得由 Presenter 依 Session 狀態選擇並依序呼叫多個 Use Case 或 Domain step。"
-    severity: warning
+    title: "禁止把 UI 流程移出 GameForm"
+    description: "不得建立 GameExecutor、Controller 或其他物件替 GameForm 編排 UI 事件的 UseCase 順序。"
+    severity: error
     enforcement: automated
-    remediation: "改呼叫一個完整 Application Workflow Method，並直接處理其 Result。"
+    remediation: "讓 GameForm 直接透過 constructor injection 取得 UseCase，並在事件方法中保留可見順序。"
     exceptions: []
 
   - id: V3-PN-UI-PRO-006
-    title: "禁止 Renderer 擁有 Timer 與部分畫面提交"
-    description: "Renderer 不得控制 Timer，也不得先清空畫面再逐項建立相同內容。"
-    severity: warning
-    enforcement: manual
-    remediation: "分離事件來源與 Renderer，使用完整 ViewModel 進行一次可見提交。"
+    title: "禁止每個 Tick 整體重建或重畫"
+    description: "GameForm 不得在每個 Tick 清空 Controls、重建版面、呼叫 ResumeLayout(true) 或重畫全部棋盤格。"
+    severity: error
+    enforcement: automated
+    remediation: "控制項與棋盤格建立一次；比對前後 GameScreenDTO，只更新變動的值與棋盤格。"
     exceptions: []
 
   - id: V3-PN-UI-PRO-007
-    title: "禁止只以 KeyDown 或平行路徑派送導覽鍵輸入"
-    description: "已宣告的方向或導覽鍵不得只依賴 KeyDown，也不得同時由 ProcessCmdKey 與其他鍵盤事件重複派送。"
+    title: "禁止自訂類別使用 Control 角色名稱"
+    description: "產品手寫 UI 類別不得以 Control、Presenter、Controller、View、ViewModel、Renderer 或 Display 結尾；框架型別名稱不受此限。"
     severity: error
     enforcement: automated
-    remediation: "在 Form.ProcessCmdKey 建立唯一輸入轉換路徑；宣告鍵派送一次後回傳 true，其餘輸入交回 WinForms。"
+    remediation: "UI 行為留在 GameForm 的清楚命名私人方法中。"
+    exceptions: []
+
+  - id: V3-PN-UI-PRO-008
+    title: "禁止繞過 DI 容器"
+    description: "Program.Main 不得直接 new UseCase 或 GameForm；其他類別不得注入 IServiceProvider 或自行解析服務。"
+    severity: error
+    enforcement: automated
+    remediation: "在 ServiceCollection 完成註冊，只在 Program.Main 解析 GameForm。"
+    exceptions: []
+
+  - id: V3-PN-UI-PRO-009
+    title: "禁止 Tick 累積補跑"
+    description: "GameForm 不得使用累積毫秒、while/for 補跑多次移動，或在一次 Timer Tick 呼叫多次 MoveSnakeUseCase。"
+    severity: error
+    enforcement: automated
+    remediation: "Timer 固定 250ms；每次 Tick 只執行一次 MoveSnakeUseCase。"
     exceptions: []

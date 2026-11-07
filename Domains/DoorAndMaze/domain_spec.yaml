@@ -3,9 +3,6 @@ spec_kind: aggregate_contract
 id: V3-AGG-DOORMAZE-DOORMAZE
 aggregate: DoorAndMaze
 state:
-  - name: door_and_maze_id
-    type: DoorAndMazeId
-    required: true
   - name: wall_cells
     type: List<GridPosition>
     required: true
@@ -13,15 +10,8 @@ state:
     type: List<Door>
     required: true
 value_objects:
-  - name: DoorAndMazeId
-    kind: opaque_identity
-  - name: DoorId
-    kind: opaque_identity
   - name: Door
     fields:
-      - name: door_id
-        type: DoorId
-        required: true
       - name: position
         type: GridPosition
         required: true
@@ -38,9 +28,6 @@ value_objects:
         required: true
       - name: kind
         type: DoorTimedEventKind
-        required: true
-      - name: door_id
-        type: DoorId
         required: true
 enums:
   - name: DoorPhase
@@ -112,5 +99,5 @@ behaviors:
     output:
       grain: one_empty_maze_and_door_state
     rules:
-      - "清除 wall_cells 與 doors，但保留 DoorAndMaze identity。"
+      - "清除 wall_cells 與 doors。"
       - "重玩後第一關不得保留第三關門事件或計時基準。"

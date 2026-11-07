@@ -3,15 +3,10 @@ spec_kind: aggregate_contract
 id: V3-AGG-LEVEL-LEVEL
 aggregate: Level
 state:
-  - name: level_id
-    type: LevelId
-    required: true
   - name: number
     type: LevelNumber
     required: true
 value_objects:
-  - name: LevelId
-    kind: opaque_identity
   - name: LevelPolicy
     fields:
       - name: target_length

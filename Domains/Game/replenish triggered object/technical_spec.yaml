@@ -1,0 +1,34 @@
+schema_version: 3
+spec_kind: technical_contract
+id: V3-TECH-GAME-REPLENISH-TRIGGERED-OBJECT
+operation: ReplenishTriggeredObject
+domain_ref: V3-DOMAIN-GAME-REPLENISH-TRIGGERED-OBJECT
+input:
+  type: none
+  fields: []
+output:
+  type: none
+  fields: []
+ports:
+  - name: IGameRepository
+    owner: Snake.Application
+    implementation_owner: Snake.Infrastructure
+  - name: ISpawnPositionSelector
+    owner: Snake.Application
+    implementation_owner: Snake.WinForms
+implementation_binding:
+  project: Snake.Application
+  directory: _ReplenishTriggeredObjectUseCase
+  class: ReplenishTriggeredObjectUseCase
+  method: ReplenishTriggeredObject
+  parameters: []
+  return_type: void
+dependency_injection:
+  registration_file: DependencyInjection.cs
+  registration_method: AddApplication
+  lifetime: transient
+  interface_required: false
+dto:
+  required: false
+  reason: "此 Use Case 沒有跨層多欄位輸入，也不需要回傳資料。"
+

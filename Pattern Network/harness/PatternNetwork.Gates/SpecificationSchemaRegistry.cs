@@ -32,6 +32,24 @@ public class SpecificationSchemaRegistry
                     CreateField("invariants", false, SpecificationFieldNodeType.Sequence),
                     CreateField("behaviors", false, SpecificationFieldNodeType.Sequence)
                 }),
+            ["domain_contract"] = CreateDefinition(
+                "domain_contract",
+                SpecificationKind.DomainContract,
+                new List<SpecificationFieldDefinition>
+                {
+                    CreateField("domain", true, SpecificationFieldNodeType.Scalar),
+                    CreateField("frame_ref", false, SpecificationFieldNodeType.Scalar),
+                    CreateField("aggregate_refs", false, SpecificationFieldNodeType.Sequence),
+                    CreateField("use_case", false, SpecificationFieldNodeType.Scalar),
+                    CreateField("input", false, SpecificationFieldNodeType.Mapping),
+                    CreateField("output", false, SpecificationFieldNodeType.Mapping),
+                    CreateField("preconditions", false, SpecificationFieldNodeType.Sequence),
+                    CreateField("rules", false, SpecificationFieldNodeType.Sequence),
+                    CreateField("postconditions", false, SpecificationFieldNodeType.Sequence),
+                    CreateField("invariants", false, SpecificationFieldNodeType.Sequence),
+                    CreateField("failures", false, SpecificationFieldNodeType.Sequence),
+                    CreateField("no_op", false, SpecificationFieldNodeType.Sequence)
+                }),
             ["workflow_contract"] = CreateDefinition(
                 "workflow_contract",
                 SpecificationKind.WorkflowContract,
@@ -58,7 +76,8 @@ public class SpecificationSchemaRegistry
                 new List<SpecificationFieldDefinition>
                 {
                     CreateField("operation", true, SpecificationFieldNodeType.Scalar),
-                    CreateField("workflow_ref", true, SpecificationFieldNodeType.Scalar),
+                    CreateField("workflow_ref", false, SpecificationFieldNodeType.Scalar),
+                    CreateField("domain_ref", false, SpecificationFieldNodeType.Scalar),
                     CreateField("technical_ref", false, SpecificationFieldNodeType.Scalar),
                     CreateField("input", false, SpecificationFieldNodeType.Mapping),
                     CreateField("output", false, SpecificationFieldNodeType.Mapping),
@@ -66,7 +85,9 @@ public class SpecificationSchemaRegistry
                     CreateField("ports", false, SpecificationFieldNodeType.Sequence),
                     CreateField("error_mappings", false, SpecificationFieldNodeType.Sequence),
                     CreateField("domain_mappings", false, SpecificationFieldNodeType.Sequence),
-                    CreateField("implementation_binding", false, SpecificationFieldNodeType.Mapping)
+                    CreateField("implementation_binding", false, SpecificationFieldNodeType.Mapping),
+                    CreateField("dependency_injection", false, SpecificationFieldNodeType.Mapping),
+                    CreateField("dto", false, SpecificationFieldNodeType.Mapping)
                 }),
             ["acceptance_contract"] = CreateDefinition(
                 "acceptance_contract",
@@ -87,6 +108,7 @@ public class SpecificationSchemaRegistry
                     CreateField("state_refs", false, SpecificationFieldNodeType.Sequence),
                     CreateField("transitions", false, SpecificationFieldNodeType.Sequence),
                     CreateField("workflow_refs", false, SpecificationFieldNodeType.Sequence),
+                    CreateField("domain_contract_refs", false, SpecificationFieldNodeType.Sequence),
                     CreateField("terminal_states", false, SpecificationFieldNodeType.Sequence)
                 }),
             ["presentation_state"] = CreateDefinition(
@@ -124,6 +146,7 @@ public class SpecificationSchemaRegistry
                     CreateField("catalog", true, SpecificationFieldNodeType.Scalar),
                     CreateField("frames", false, SpecificationFieldNodeType.Sequence),
                     CreateField("aggregates", false, SpecificationFieldNodeType.Sequence),
+                    CreateField("domain_contracts", false, SpecificationFieldNodeType.Sequence),
                     CreateField("workflows", false, SpecificationFieldNodeType.Sequence),
                     CreateField("technical_contracts", false, SpecificationFieldNodeType.Sequence),
                     CreateField("acceptance_contracts", false, SpecificationFieldNodeType.Sequence),

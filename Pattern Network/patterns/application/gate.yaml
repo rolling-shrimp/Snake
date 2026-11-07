@@ -1,0 +1,135 @@
+schema_version: 3
+
+gate:
+  id: V3-PN-APPLICATION-GATE
+  pattern_node_id: application
+  project_name_formula: "{solution_name}.{pattern_node_name}"
+
+checks:
+  - id: V3-PN-UC-GATE-001
+    checker: project_identity
+    mode: blocking
+    severity: error
+    rule_refs:
+      - V3-PN-NAME-001
+    parameters:
+      solution_folder: Core
+      target_framework: net8.0
+      use_windows_forms: false
+      required_package_references:
+        - Microsoft.Extensions.DependencyInjection.Abstractions@8.0.1
+
+  - id: V3-PN-UC-GATE-002
+    checker: project_references
+    mode: blocking
+    severity: error
+    rule_refs:
+      - V3-PN-ARCH-001
+      - V3-PN-UC-PRO-001
+    parameters:
+      required_pattern_nodes:
+        - Domain
+      forbidden_pattern_nodes:
+        - WinForms
+
+  - id: V3-PN-UC-GATE-003
+    checker: csharp_global_rules
+    mode: blocking
+    severity: error
+    rule_refs:
+      - V3-PN-CS-CLASS-001
+      - V3-PN-CS-CLASS-002
+      - V3-PN-CS-FILE-001
+      - V3-PN-CS-FIELD-001
+      - V3-PN-CS-FIELD-002
+      - V3-PN-CS-CONST-001
+      - V3-PN-CS-NAME-001
+      - V3-PN-CS-NAMESPACE-001
+      - V3-PN-CS-DI-001
+      - V3-PN-CS-DI-002
+      - V3-PN-CS-DI-003
+      - V3-PN-CS-METHOD-001
+      - V3-PN-CS-FLOW-001
+
+  - id: V3-PN-UC-GATE-004
+    checker: forbidden_namespaces
+    mode: blocking
+    severity: error
+    rule_refs:
+      - V3-PN-UC-PRO-002
+    parameters:
+      namespaces:
+        - System.Windows.Forms
+        - System.Drawing
+
+  - id: V3-PN-UC-GATE-005
+    checker: application_use_case_contracts
+    mode: blocking
+    severity: error
+    rule_refs:
+      - V3-PN-UC-001
+      - V3-PN-UC-002
+      - V3-PN-UC-003
+      - V3-PN-UC-006
+      - V3-PN-UC-007
+      - V3-PN-UC-PRO-003
+      - V3-PN-UC-PRO-004
+      - V3-PN-UC-PRO-006
+      - V3-PN-UC-PRO-007
+
+  - id: V3-PN-UC-GATE-006
+    checker: use_case_entity_exposure
+    mode: blocking
+    severity: error
+    rule_refs:
+      - V3-PN-UC-004
+      - V3-PN-UC-PRO-005
+
+  - id: V3-PN-UC-GATE-007
+    checker: dependency_injection
+    mode: blocking
+    severity: error
+    rule_refs:
+      - V3-PN-CS-DI-001
+      - V3-PN-CS-DI-002
+      - V3-PN-CS-DI-003
+      - V3-PN-UC-008
+      - V3-PN-UC-010
+      - V3-PN-UC-PRO-008
+      - V3-PN-UC-PRO-011
+    parameters:
+      registration_file: DependencyInjection.cs
+      registration_method: AddApplication
+      use_case_lifetime: transient
+      concrete_use_case_registration: true
+
+  - id: V3-PN-UC-GATE-008
+    checker: application_feature_layout
+    mode: blocking
+    severity: error
+    rule_refs:
+      - V3-PN-UC-003
+      - V3-PN-UC-009
+      - V3-PN-UC-010
+      - V3-PN-UC-011
+      - V3-PN-UC-PRO-009
+      - V3-PN-UC-PRO-010
+      - V3-PN-UC-PRO-011
+    parameters:
+      feature_directory_format: _{operation}UseCase
+      use_case_file_format: "{operation}UseCase.cs"
+      dto_directory: Dto
+      enum_directory: Enums
+      dto_directory_required: false
+      interface_directory_required: false
+      dto_type_suffix: DTO
+      repository_directory: Repositories
+      current_game_repository: IGameRepository
+
+  - id: V3-PN-UC-GATE-009
+    checker: manual_review
+    mode: audit
+    severity: warning
+    rule_refs:
+      - V3-PN-UC-001
+      - V3-PN-UC-005

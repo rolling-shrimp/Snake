@@ -6,14 +6,14 @@ namespace PatternNetwork.Gates;
 
 public class SemanticGateInspector
 {
-    public List<GateIssue> InspectUseCaseContracts(
-        PatternNodeDefinition useCaseNode,
+    public List<GateIssue> InspectApplicationContracts(
+        PatternNodeDefinition applicationNode,
         string solutionPath,
-        string entitiesProjectDirectory,
-        string useCasesProjectDirectory)
+        string domainProjectDirectory,
+        string applicationProjectDirectory)
     {
         List<GateIssue> issues = new List<GateIssue>();
-        if (!useCaseNode.Checks.Any(check => string.Equals(check.Checker, "use_case_entity_exposure", StringComparison.Ordinal)))
+        if (!applicationNode.Checks.Any(check => string.Equals(check.Checker, "use_case_entity_exposure", StringComparison.Ordinal)))
         {
             return issues;
         }
@@ -21,57 +21,57 @@ public class SemanticGateInspector
         try
         {
             List<MetadataReference> platformReferences = LoadPlatformReferences();
-            List<SyntaxTree> entitySyntaxTrees = LoadSyntaxTrees(entitiesProjectDirectory);
-            CSharpCompilation entityCompilation = CSharpCompilation.Create(
-                "PatternNetwork.Entities.SemanticInput",
-                entitySyntaxTrees,
+            List<SyntaxTree> domainSyntaxTrees = LoadSyntaxTrees(domainProjectDirectory);
+            CSharpCompilation domainCompilation = CSharpCompilation.Create(
+                "PatternNetwork.Domain.SemanticInput",
+                domainSyntaxTrees,
                 platformReferences,
                 new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
-            List<MetadataReference> useCaseReferences = new List<MetadataReference>(platformReferences)
+            List<MetadataReference> applicationReferences = new List<MetadataReference>(platformReferences)
             {
-                entityCompilation.ToMetadataReference()
+                domainCompilation.ToMetadataReference()
             };
-            List<SyntaxTree> useCaseSyntaxTrees = LoadSyntaxTrees(useCasesProjectDirectory);
-            CSharpCompilation useCaseCompilation = CSharpCompilation.Create(
-                "PatternNetwork.UseCases.SemanticInput",
-                useCaseSyntaxTrees,
-                useCaseReferences,
+            List<SyntaxTree> applicationSyntaxTrees = LoadSyntaxTrees(applicationProjectDirectory);
+            CSharpCompilation applicationCompilation = CSharpCompilation.Create(
+                "PatternNetwork.Application.SemanticInput",
+                applicationSyntaxTrees,
+                applicationReferences,
                 new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
             ProjectNamePolicy projectNamePolicy = new ProjectNamePolicy();
-            string entitiesNamespace = projectNamePolicy.GetProjectName(solutionPath, "Entities");
-            foreach (SyntaxTree syntaxTree in useCaseSyntaxTrees)
+            string domainNamespace = projectNamePolicy.GetProjectName(solutionPath, "Domain");
+            foreach (SyntaxTree syntaxTree in applicationSyntaxTrees)
             {
-                SemanticModel semanticModel = useCaseCompilation.GetSemanticModel(syntaxTree, true);
+                SemanticModel semanticModel = applicationCompilation.GetSemanticModel(syntaxTree, true);
                 CompilationUnitSyntax root = syntaxTree.GetCompilationUnitRoot();
                 foreach (ClassDeclarationSyntax contractClass in root.DescendantNodes().OfType<ClassDeclarationSyntax>().Where(IsPublicContractClass))
                 {
-                    ValidatePublicContractMembers(useCaseNode, semanticModel, contractClass, entitiesNamespace, issues);
+                    ValidatePublicContractMembers(applicationNode, semanticModel, contractClass, domainNamespace, issues);
                 }
             }
         }
         catch (Exception exception)
         {
-            issues.Add(new GateIssue("V3-PN-SEMANTIC-ANALYSIS", useCaseNode.Id, useCasesProjectDirectory, null, $"Use Case 語意分析失敗：{exception.Message}", "error"));
+            issues.Add(new GateIssue("V3-PN-SEMANTIC-ANALYSIS", applicationNode.Id, applicationProjectDirectory, null, $"Application 語意分析失敗：{exception.Message}", "error"));
         }
 
         return issues;
     }
 
     private void ValidatePublicContractMembers(
-        PatternNodeDefinition useCaseNode,
+        PatternNodeDefinition applicationNode,
         SemanticModel semanticModel,
         ClassDeclarationSyntax contractClass,
-        string entitiesNamespace,
+        string domainNamespace,
         List<GateIssue> issues)
     {
         foreach (PropertyDeclarationSyntax property in contractClass.Members.OfType<PropertyDeclarationSyntax>().Where(member => member.Modifiers.Any(SyntaxKind.PublicKeyword)))
         {
             IPropertySymbol? propertySymbol = semanticModel.GetDeclaredSymbol(property);
-            if (propertySymbol != null && ContainsEntitiesType(propertySymbol.Type, entitiesNamespace))
+            if (propertySymbol != null && ContainsDomainType(propertySymbol.Type, domainNamespace))
             {
-                AddIssue(issues, useCaseNode.Id, property, $"公開契約 {contractClass.Identifier.ValueText}.{property.Identifier.ValueText} 不得暴露 Entities 型別 {propertySymbol.Type.ToDisplayString()}。 ");
+                AddIssue(issues, applicationNode.Id, property, $"公開契約 {contractClass.Identifier.ValueText}.{property.Identifier.ValueText} 不得暴露 Domain 型別 {propertySymbol.Type.ToDisplayString()}。 ");
             }
         }
 
@@ -80,9 +80,9 @@ public class SemanticGateInspector
             foreach (VariableDeclaratorSyntax variable in field.Declaration.Variables)
             {
                 IFieldSymbol? fieldSymbol = semanticModel.GetDeclaredSymbol(variable) as IFieldSymbol;
-                if (fieldSymbol != null && ContainsEntitiesType(fieldSymbol.Type, entitiesNamespace))
+                if (fieldSymbol != null && ContainsDomainType(fieldSymbol.Type, domainNamespace))
                 {
-                    AddIssue(issues, useCaseNode.Id, variable, $"公開契約 {contractClass.Identifier.ValueText}.{variable.Identifier.ValueText} 不得暴露 Entities 型別 {fieldSymbol.Type.ToDisplayString()}。 ");
+                    AddIssue(issues, applicationNode.Id, variable, $"公開契約 {contractClass.Identifier.ValueText}.{variable.Identifier.ValueText} 不得暴露 Domain 型別 {fieldSymbol.Type.ToDisplayString()}。 ");
                 }
             }
         }
@@ -97,9 +97,9 @@ public class SemanticGateInspector
 
             foreach (IParameterSymbol parameter in constructorSymbol.Parameters)
             {
-                if (ContainsEntitiesType(parameter.Type, entitiesNamespace))
+                if (ContainsDomainType(parameter.Type, domainNamespace))
                 {
-                    AddIssue(issues, useCaseNode.Id, constructor, $"公開契約建構式參數 {parameter.Name} 不得暴露 Entities 型別 {parameter.Type.ToDisplayString()}。 ");
+                    AddIssue(issues, applicationNode.Id, constructor, $"公開契約建構式參數 {parameter.Name} 不得暴露 Domain 型別 {parameter.Type.ToDisplayString()}。 ");
                 }
             }
         }
@@ -114,25 +114,25 @@ public class SemanticGateInspector
                 || className.EndsWith("Result", StringComparison.Ordinal));
     }
 
-    private bool ContainsEntitiesType(ITypeSymbol typeSymbol, string entitiesNamespace)
+    private bool ContainsDomainType(ITypeSymbol typeSymbol, string domainNamespace)
     {
         if (typeSymbol is IArrayTypeSymbol arrayType)
         {
-            return ContainsEntitiesType(arrayType.ElementType, entitiesNamespace);
+            return ContainsDomainType(arrayType.ElementType, domainNamespace);
         }
 
         if (typeSymbol is INamedTypeSymbol namedType)
         {
             string containingNamespace = namedType.ContainingNamespace.ToDisplayString();
-            if (string.Equals(containingNamespace, entitiesNamespace, StringComparison.Ordinal)
-                || containingNamespace.StartsWith($"{entitiesNamespace}.", StringComparison.Ordinal))
+            if (string.Equals(containingNamespace, domainNamespace, StringComparison.Ordinal)
+                || containingNamespace.StartsWith($"{domainNamespace}.", StringComparison.Ordinal))
             {
                 return true;
             }
 
             foreach (ITypeSymbol typeArgument in namedType.TypeArguments)
             {
-                if (ContainsEntitiesType(typeArgument, entitiesNamespace))
+                if (ContainsDomainType(typeArgument, domainNamespace))
                 {
                     return true;
                 }

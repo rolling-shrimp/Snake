@@ -1,0 +1,21 @@
+schema_version: 3
+spec_kind: problem_frame
+id: V3-FRAME-GAME-HANDLE-WALL-COLLISION
+frame:
+  name: handle-wall-collision
+  type: RBF
+  bounded_context: snake-game
+  requirement: "第三關蛇下一格撞到外牆或迷宮牆時形成致命事件。"
+problem_domains:
+  - name: SnakeGame
+    kind: designed
+shared_phenomena:
+  - name: tick_state_evaluated
+    source: SnakeGame
+    receiver: SnakeGame
+world_facts:
+  - id: V3-FRAME-FACT-HANDLE-WALL-COLLISION
+    fact: "第一、二關邊界使用環繞位置；第三關牆格不可提交並記錄牆壁碰撞。"
+frame_concerns:
+  - id: V3-FRAME-CONCERN-HANDLE-WALL-COLLISION
+    concern: "蛇位置未進入牆格，且目前 Tick 存在牆壁碰撞致命事件。"

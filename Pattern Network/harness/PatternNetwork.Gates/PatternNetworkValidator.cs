@@ -9,13 +9,18 @@ public class PatternNetworkValidator
         string fullNetworkPath = Path.GetFullPath(networkPath);
         List<GateIssue> issues = new List<GateIssue>();
         List<PatternNodeDefinition> patternNodes = new List<PatternNodeDefinition>();
-        PatternNetworkDefinition definition = new PatternNetworkDefinition(fullNetworkPath, patternNodes);
+        VerificationProjectDefinition verificationProject = new VerificationProjectDefinition();
+        PatternNetworkDefinition definition = new PatternNetworkDefinition(
+            fullNetworkPath,
+            patternNodes,
+            verificationProject);
 
         try
         {
             string rootDoctrinePath = Path.Combine(fullNetworkPath, "doctrine.yaml");
             YamlMappingNode rootDoctrine = LoadDocument(rootDoctrinePath);
             ValidateSchemaVersion(rootDoctrine, rootDoctrinePath);
+            LoadVerificationProject(rootDoctrine, rootDoctrinePath, verificationProject);
 
             HashSet<string> ruleIds = new HashSet<string>(StringComparer.Ordinal);
             HashSet<string> allIds = new HashSet<string>(StringComparer.Ordinal);
@@ -100,9 +105,11 @@ public class PatternNetworkValidator
             Id = patternNodeId,
             Name = patternNodeName,
             DirectoryPath = patternDirectory,
+            SolutionFolder = GetScalar(project, "solution_folder", doctrinePath),
             TargetFramework = GetScalar(project, "target_framework", doctrinePath),
             UseWindowsForms = bool.Parse(GetScalar(project, "use_windows_forms", doctrinePath)),
             AllowedProjectReferences = GetScalarList(project, "allowed_project_references", doctrinePath),
+            RequiredPackageReferences = LoadRequiredPackageReferences(project, doctrinePath),
             Checks = LoadChecks(gate, gatePath, allIds, issues)
         };
         ValidateGateConfiguration(definition, gatePath, issues);
@@ -114,13 +121,26 @@ public class PatternNetworkValidator
     {
         GateCheckDefinition? identityCheck = patternNode.Checks.FirstOrDefault(check => string.Equals(check.Checker, "project_identity", StringComparison.Ordinal));
         if (identityCheck == null
+            || !identityCheck.ScalarParameters.TryGetValue("solution_folder", out string? solutionFolder)
             || !identityCheck.ScalarParameters.TryGetValue("target_framework", out string? targetFramework)
             || !identityCheck.ScalarParameters.TryGetValue("use_windows_forms", out string? useWindowsFormsText)
             || !bool.TryParse(useWindowsFormsText, out bool useWindowsForms)
+            || !string.Equals(solutionFolder, patternNode.SolutionFolder, StringComparison.Ordinal)
             || !string.Equals(targetFramework, patternNode.TargetFramework, StringComparison.Ordinal)
             || useWindowsForms != patternNode.UseWindowsForms)
         {
             issues.Add(new GateIssue("V3-PN-CONFIG-GATE-DRIFT", patternNode.Id, gatePath, null, "project_identity 參數必須與節點 doctrine 的 project 設定一致。", "error"));
+        }
+
+        List<string> expectedPackages = patternNode.RequiredPackageReferences
+            .OrderBy(item => item.Key, StringComparer.Ordinal)
+            .Select(item => $"{item.Key}@{item.Value}")
+            .ToList();
+        if (identityCheck == null
+            || !identityCheck.ListParameters.TryGetValue("required_package_references", out List<string>? requiredPackages)
+            || !requiredPackages.OrderBy(value => value, StringComparer.Ordinal).SequenceEqual(expectedPackages, StringComparer.Ordinal))
+        {
+            issues.Add(new GateIssue("V3-PN-CONFIG-GATE-DRIFT", patternNode.Id, gatePath, null, "project_identity 的 required_package_references 必須與 doctrine 一致。", "error"));
         }
 
         GateCheckDefinition? referenceCheck = patternNode.Checks.FirstOrDefault(check => string.Equals(check.Checker, "project_references", StringComparison.Ordinal));
@@ -172,12 +192,14 @@ public class PatternNetworkValidator
             "project_references",
             "csharp_global_rules",
             "forbidden_namespaces",
-            "entity_boundaries",
-            "application_workflow_contracts",
+            "domain_state_boundaries",
+            "application_use_case_contracts",
             "use_case_entity_exposure",
-            "winforms_boundaries",
-            "presentation_workflow_boundaries",
-            "top_level_program",
+            "winforms_roles",
+            "game_form_boundaries",
+            "winforms_program",
+            "dependency_injection",
+            "application_feature_layout",
             "manual_review"
         };
         List<GateCheckDefinition> checks = new List<GateCheckDefinition>();
@@ -271,6 +293,52 @@ public class PatternNetworkValidator
         }
     }
 
+    private void LoadVerificationProject(
+        YamlMappingNode rootDoctrine,
+        string doctrinePath,
+        VerificationProjectDefinition verificationProject)
+    {
+        YamlMappingNode architecture = GetMapping(rootDoctrine, "architecture", doctrinePath);
+        YamlMappingNode verification = GetMapping(architecture, "verification_project", doctrinePath);
+        verificationProject.Name = GetScalar(verification, "name", doctrinePath);
+        verificationProject.SolutionFolder = GetScalar(verification, "solution_folder", doctrinePath);
+        verificationProject.TargetFramework = GetScalar(verification, "target_framework", doctrinePath);
+        verificationProject.UseWindowsForms = bool.Parse(GetScalar(verification, "use_windows_forms", doctrinePath));
+        verificationProject.RequiredProjectReferences = GetScalarList(
+            verification,
+            "required_project_references",
+            doctrinePath);
+    }
+
+    private Dictionary<string, string> LoadRequiredPackageReferences(
+        YamlMappingNode project,
+        string doctrinePath)
+    {
+        Dictionary<string, string> packages = new Dictionary<string, string>(StringComparer.Ordinal);
+        if (!TryGetNode(project, "required_package_references", out YamlNode? packagesNode))
+        {
+            return packages;
+        }
+
+        if (packagesNode is not YamlSequenceNode packagesSequence)
+        {
+            throw new InvalidDataException($"required_package_references 必須是陣列：{doctrinePath}");
+        }
+
+        foreach (YamlNode packageNode in packagesSequence)
+        {
+            YamlMappingNode package = RequireMapping(packageNode, doctrinePath, "required_package_references");
+            string name = GetScalar(package, "name", doctrinePath);
+            string version = GetScalar(package, "version", doctrinePath);
+            if (!packages.TryAdd(name, version))
+            {
+                throw new InvalidDataException($"required_package_references 名稱重複：{name}；{doctrinePath}");
+            }
+        }
+
+        return packages;
+    }
+
     private void ValidateTemplate(string templatePath, string patternNodeId, List<GateIssue> issues)
     {
         string templateText = File.ReadAllText(templatePath);
@@ -279,9 +347,10 @@ public class PatternNetworkValidator
             issues.Add(new GateIssue("V3-PN-CONFIG-TEMPLATE", patternNodeId, templatePath, null, "template.cs.j2 必須使用 namespace_name 變數。", "error"));
         }
 
-        if (!templateText.Contains("public class", StringComparison.Ordinal))
+        if (!templateText.Contains("public class", StringComparison.Ordinal)
+            && !templateText.Contains("public partial class", StringComparison.Ordinal))
         {
-            issues.Add(new GateIssue("V3-PN-CONFIG-TEMPLATE", patternNodeId, templatePath, null, "template.cs.j2 必須產生一個 public class。", "error"));
+            issues.Add(new GateIssue("V3-PN-CONFIG-TEMPLATE", patternNodeId, templatePath, null, "template.cs.j2 必須產生一個 public class 或 public partial class。", "error"));
         }
     }
 

@@ -13,8 +13,11 @@ checks:
     rule_refs:
       - V3-PN-NAME-001
     parameters:
+      solution_folder: App
       target_framework: net8.0-windows
       use_windows_forms: true
+      required_package_references:
+        - Microsoft.Extensions.DependencyInjection@8.0.1
 
   - id: V3-PN-UI-GATE-002
     checker: project_references
@@ -22,13 +25,14 @@ checks:
     severity: error
     rule_refs:
       - V3-PN-ARCH-001
-      - V3-PN-UI-003
+      - V3-PN-UI-005
       - V3-PN-UI-PRO-001
     parameters:
       required_pattern_nodes:
-        - UseCases
+        - Application
+        - Infrastructure
       forbidden_pattern_nodes:
-        - Entities
+        - Domain
 
   - id: V3-PN-UI-GATE-003
     checker: csharp_global_rules
@@ -42,55 +46,98 @@ checks:
       - V3-PN-CS-FIELD-002
       - V3-PN-CS-CONST-001
       - V3-PN-CS-NAME-001
+      - V3-PN-CS-NAMESPACE-001
       - V3-PN-CS-DI-001
+      - V3-PN-CS-DI-002
+      - V3-PN-CS-DI-003
       - V3-PN-CS-METHOD-001
       - V3-PN-CS-FLOW-001
 
   - id: V3-PN-UI-GATE-004
-    checker: winforms_boundaries
+    checker: winforms_roles
     mode: blocking
     severity: error
     rule_refs:
+      - V3-PN-UI-001
       - V3-PN-UI-002
       - V3-PN-UI-003
-      - V3-PN-UI-006
-      - V3-PN-UI-008
+      - V3-PN-UI-004
       - V3-PN-UI-PRO-002
-      - V3-PN-UI-PRO-004
       - V3-PN-UI-PRO-007
     parameters:
-      direction_dispatch_event: DirectionRequested
-      direction_value_type: Direction
-      declared_direction_keys:
-        - Up
-        - Down
-        - Left
-        - Right
+      form_class: GameForm
+      forbidden_role_names:
+        - GameExecutor
+        - GameRender
+        - IGameView
+      forbidden_role_suffixes:
+        - Control
+        - Presenter
+        - Controller
+        - View
+        - ViewModel
+        - Renderer
+        - Display
 
   - id: V3-PN-UI-GATE-005
-    checker: top_level_program
+    checker: game_form_boundaries
+    mode: blocking
+    severity: error
+    rule_refs:
+      - V3-PN-UI-003
+      - V3-PN-UI-009
+      - V3-PN-UI-PRO-003
+      - V3-PN-UI-PRO-005
+      - V3-PN-UI-PRO-009
+    parameters:
+      form_class: GameForm
+      move_use_case: MoveSnakeUseCase
+      move_calls_per_tick: 1
+      accumulated_time_allowed: false
+      catch_up_loop_allowed: false
+      changed_cells_only: true
+      forbidden_types:
+        - GameExecutor
+        - GameRender
+
+  - id: V3-PN-UI-GATE-007
+    checker: winforms_program
     mode: blocking
     severity: error
     rule_refs:
       - V3-PN-CS-ENTRY-001
-      - V3-PN-UI-005
+      - V3-PN-UI-006
+      - V3-PN-UI-010
+      - V3-PN-UI-PRO-008
+    parameters:
+      composition_root: Program.cs
+      entry_class: Program
+      entry_method: Main
+      sta_thread_required: true
+      application_registration_method: AddApplication
+      infrastructure_registration_method: AddInfrastructure
 
-  - id: V3-PN-UI-GATE-006
-    checker: presentation_workflow_boundaries
-    mode: audit
-    severity: warning
+  - id: V3-PN-UI-GATE-008
+    checker: dependency_injection
+    mode: blocking
+    severity: error
     rule_refs:
-      - V3-PN-UI-004
-      - V3-PN-UI-007
-      - V3-PN-UI-PRO-003
-      - V3-PN-UI-PRO-005
-      - V3-PN-UI-PRO-006
+      - V3-PN-CS-DI-002
+      - V3-PN-CS-DI-003
+      - V3-PN-UI-010
+      - V3-PN-UI-PRO-008
+    parameters:
+      composition_root: Program.cs
+      application_registration_method: AddApplication
+      infrastructure_registration_method: AddInfrastructure
+      required_transient_types:
+        - GameForm
 
-  - id: V3-PN-UI-GATE-007
+  - id: V3-PN-UI-GATE-009
     checker: manual_review
     mode: audit
     severity: warning
     rule_refs:
-      - V3-PN-UI-001
-      - V3-PN-UI-007
-      - V3-PN-UI-PRO-006
+      - V3-PN-UI-002
+      - V3-PN-UI-004
+      - V3-PN-UI-PRO-003

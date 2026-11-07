@@ -1,0 +1,39 @@
+schema_version: 3
+
+pattern_node:
+  id: infrastructure
+  name: Infrastructure
+
+prohibitions:
+  - id: V3-PN-INF-PRO-001
+    title: "禁止錯誤的專案參考"
+    description: "Infrastructure 只能參考 Application，不得直接參考 WinForms 或其他產品專案。"
+    severity: error
+    enforcement: automated
+    remediation: "依賴 Application 的 Port；UI composition 留在 WinForms。"
+    exceptions: []
+
+  - id: V3-PN-INF-PRO-002
+    title: "禁止 transient 遊戲 Repository"
+    description: "IGameRepository/GameRepository 不得使用 transient 或 scoped 註冊，否則不同 UseCase 會取得不同遊戲狀態。"
+    severity: error
+    enforcement: automated
+    remediation: "在 AddInfrastructure 使用 AddSingleton<IGameRepository, GameRepository>()。"
+    exceptions: []
+
+  - id: V3-PN-INF-PRO-003
+    title: "禁止未要求的資料庫設計"
+    description: "沒有持久化需求時，不得加入 Entity Framework、DbContext、SQL、CRUD Repository 或資料庫識別欄位。"
+    severity: error
+    enforcement: automated
+    remediation: "以簡單的 in-memory GameRepository 保存目前 Game。"
+    exceptions: []
+
+  - id: V3-PN-INF-PRO-004
+    title: "禁止 Infrastructure 業務流程"
+    description: "Infrastructure 不得宣告 UseCase、GameExecutor、GameRender 或領域判斷方法。"
+    severity: error
+    enforcement: manual
+    remediation: "UseCase 留在 Application；狀態與不變式留在 Domain；事件順序與顯示留在 WinForms。"
+    exceptions: []
+

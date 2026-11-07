@@ -1,80 +1,55 @@
 schema_version: 3
 
 custom_checks:
-  - check_id: SNAKE-CODE-APPLICATION-WORKFLOW-STRUCTURE
-    checker: csharp_application_workflow_structure
-    mode: audit
-    description: "偵測公開葉節點 UseCase class／單一 Execute 結構是否仍取代完整 Application Workflow。"
+  - check_id: SNAKE-CODE-APPLICATION-USE-CASE-STRUCTURE
+    checker: csharp_application_use_case_structure
+    mode: blocking
+    description: "檢查每個 technical operation 是否各自具有同名 UseCase 目錄、class 與自然方法，是否注入 IGameRepository，以及 DTO/Enum 是否分別位於所屬 Dto/Enums 目錄。"
     scope:
-      - Snake.UseCases
+      - Core/Snake.Application
     rule_refs:
       - V3-PN-UC-002
+      - V3-PN-UC-007
       - V3-PN-UC-008
-      - V3-PN-UC-PRO-006
+      - V3-PN-UC-009
+      - V3-PN-UC-010
+      - V3-PN-UC-011
     misfit_refs:
       - SNAKE-MISFIT-USECASE-STRUCTURE
-
-  - check_id: SNAKE-CODE-PRESENTER-WORKFLOW-OWNERSHIP
-    checker: csharp_presenter_workflow_ownership
-    mode: audit
-    description: "偵測 Presenter 是否讀取 Session 並在單一 UI 事件內依序呼叫多個業務步驟。"
-    scope:
-      - Snake.WinForms/GamePresenter.cs
-    rule_refs:
-      - V3-PN-UC-007
-      - V3-PN-UI-004
-      - V3-PN-UI-PRO-003
-      - V3-PN-UI-PRO-005
-    misfit_refs:
-      - SNAKE-MISFIT-TICK-OWNER
 
   - check_id: SNAKE-CODE-MOVEMENT-TOPOLOGY
     checker: csharp_snake_movement_topology
     mode: audit
-    description: "檢查移動計畫、尾格碰撞語意、蛇身連續性與 +1／+2 成長政策。"
+    description: "檢查一次移動、尾格碰撞語意、蛇身連續性與 +1／+2 成長政策。"
     scope:
-      - Snake.Entities/Snake.cs
-      - Snake.Entities/Board.cs
-      - Snake.UseCases/SnakeGameApplicationService.cs
-      - Snake.Test/SnakeMovementPlanTests.cs
+      - Core/Snake.Domain/Snake.cs
+      - Core/Snake.Domain/Board.cs
+      - Core/Snake.Application/_MoveSnakeUseCase/MoveSnakeUseCase.cs
+      - Test/Snake.Test/MoveSnakeUseCaseTests.cs
     contract_refs:
-      - V3-AGG-SNAKE-SNAKE
-      - V3-WF-GAME-PROCESS-TICK
+      - V3-DOMAIN-GAME-MOVE-SNAKE
+      - V3-ACCEPT-GAME-MOVE-SNAKE
     misfit_refs:
       - SNAKE-MISFIT-MOVEMENT-TOPOLOGY
 
-  - check_id: SNAKE-CODE-RENDER-STABILITY
-    checker: csharp_render_stability
-    mode: audit
-    description: "偵測 renderer 是否清空後重建未變更控制項，並追蹤一次完整畫面提交的 runtime 證據。"
-    scope:
-      - Snake.WinForms/GameForm.cs
-    rule_refs:
-      - V3-PN-UI-007
-      - V3-PN-UI-PRO-006
-    contract_refs:
-      - V3-PRES-WF-GAME-RENDER-SCREEN
-    misfit_refs:
-      - SNAKE-MISFIT-UI-REBUILD
-
 manual_reviews:
-  - review_id: SNAKE-REVIEW-TICK-ATOMICITY
+  - review_id: SNAKE-REVIEW-TICK-GRANULARITY
     mode: audit
     status: pass
     reviewer: codex
-    description: "確認 ProcessGameTick 重構後只提交一次最終狀態，失敗時不留下部分效果。"
+    description: "確認一個 WinForms Timer Tick 只推進一格，不讀取或累積經過時間，也不以迴圈補跑。"
     contract_refs:
-      - V3-WF-GAME-PROCESS-TICK
+      - V3-JOURNEY-GAME-PLAY
+      - V3-DOMAIN-GAME-MOVE-SNAKE
+      - V3-ACCEPT-GAME-MOVE-SNAKE
     required_evidence:
       - code_review
       - behavioral
-      - invariant
       - temporal
     evidence:
-      - "SnakeGameSession.Load/TryCommit 使用版本化完整快照與 compare-and-swap。"
-      - "ProcessGameTick 只在所有 due events 完成後呼叫一次 TryCommit。"
-      - "SnakeGameApplicationServiceTests 覆蓋多事件補跑、特殊食物回滾、時間倒退、死亡互斥、通關停止補物件與門事件順序。"
-      - "SnakeMovementPlanTests 覆蓋尾格排除、+2 固定候選順序與連續性拒絕。"
+      - "GameForm 唯一 Timer 的 Interval 固定為 250ms；OnGameTimerTick 只呼叫一次 ExecuteGameTick。"
+      - "GameForm.ExecuteGameTick 沒有 elapsed、Stopwatch、DateTime 或補跑迴圈，且只呼叫一次 MoveSnakeUseCase.MoveSnake。"
+      - "MoveSnakeUseCaseTests.MoveSnake_MovesExactlyOneCell 與 NewArchitectureTests.GameFormTick_MovesSnakeExactlyOneCell 均通過。"
     misfit_refs:
       - SNAKE-MISFIT-TICK-OWNER
       - SNAKE-MISFIT-MOVEMENT-TOPOLOGY
@@ -83,14 +58,18 @@ manual_reviews:
     mode: audit
     status: pending
     reviewer: unassigned
-    description: "以連續 tick 與相同畫面重複 render 的 runtime UI 證據確認沒有空白、半完成布局或可見閃爍。"
+    description: "自動測試已驗證固定控制項與局部棋盤格更新；仍待實機長時間連續遊玩確認肉眼不可見閃爍。"
     contract_refs:
       - V3-PRES-WF-GAME-RENDER-SCREEN
       - V3-ACCEPT-GAME-RENDER-SCREEN
     required_evidence:
       - runtime_ui
       - temporal
-    evidence: []
+    evidence:
+      - "GameFormAndRenderTests.RepeatedScreenApplication_PreservesBoardAndRuleControlIdentity 在 STA WinForms 上通過。"
+      - "GameForm 建立固定 100 個棋盤格，ApplyScreen 比對 HasCellChanged 後只重畫變動格位。"
+      - "GameForm.ApplyScreen 不清空 Controls、不重建版面，也不呼叫 ResumeLayout(true)。"
+      - "尚未完成實機長時間連續 Tick 的人工肉眼審查。"
     misfit_refs:
       - SNAKE-MISFIT-UI-REBUILD
 
@@ -98,21 +77,20 @@ manual_reviews:
     mode: audit
     status: pass
     reviewer: codex
-    description: "確認方向鍵在真實 WinForms 訊息預處理與任一子控制項焦點下只派送一次，且下一個到期 Tick 使用已提交方向。"
+    description: "確認四個方向鍵在 Form 子控制項具有邏輯焦點時各派送一次，且下一個 Tick 使用已接受方向。"
     contract_refs:
       - V3-PRES-WF-GAME-HANDLE-DIRECTION-INPUT
       - V3-ACCEPT-GAME-HANDLE-DIRECTION-INPUT
-      - V3-WF-GAME-SET-SNAKE-DIRECTION
-      - V3-WF-GAME-PROCESS-TICK
+      - V3-DOMAIN-GAME-SET-SNAKE-DIRECTION
+      - V3-ACCEPT-GAME-SET-SNAKE-DIRECTION
     required_evidence:
       - runtime_ui
       - behavioral
       - temporal
     evidence:
-      - "GameFormRenderingTests 透過可見 GameForm、具有焦點的開始按鈕與 PreProcessMessage，驗證 Up、Down、Left、Right 各派送一次對應 DirectionRequested。"
-      - "SnakeGameApplicationServiceTests 驗證 queued Down 由下一個 250ms Tick 使用，current_direction 更新為 Down 且 queued_direction 清空。"
-      - "實際啟動 Snake.WinForms、開始第一關並送出 Down 後，後續畫面顯示蛇由水平移動轉為垂直向下移動。"
-      - "blocking winforms_boundaries Gate 與 PatternNetwork.Gates.Tests 全部通過。"
+      - "GameFormAndRenderTests 以具有邏輯焦點的開始按鈕呼叫 PreProcessMessage，驗證 Up、Down、Left、Right 各派送一次。"
+      - "GameFormBehaviorTests.SetSnakeDirection_IsUsedByTheNextSingleTick 驗證下一個 Tick 使用方向 DTO。"
+      - "blocking winforms Gate 與 PatternNetwork.Gates.Tests 均通過。"
     misfit_refs:
       - SNAKE-MISFIT-ARROW-KEY-DELIVERY
 
@@ -120,90 +98,81 @@ residual_misfits:
   - misfit_id: SNAKE-MISFIT-USECASE-STRUCTURE
     status: resolved
     severity: high
-    title: "公開葉節點 Use Case 已由完整 Application Workflow 取代"
-    observed: "SnakeGameApplicationService 公開五個完整 Workflow method；舊 38 個 ...UseCase.Execute() 類別及其專用 Port、DTO 與 Reactor 已刪除。"
-    expected: "由內聚的 Application Service 公開 StartCurrentLevel、SetSnakeDirection、ProcessGameTick、RestartGame 與 GetCurrentScreen workflow method；內部 step 不再是公開 Use Case。"
+    title: "每個領域敘事已由獨立 UseCase 實作"
+    observed: "Application 依 21 個 technical operation 建立 21 個獨立 _{Operation}UseCase 目錄與具體 class；DTO/Enums 分開存放；UseCase 皆注入 IGameRepository 取得 Infrastructure singleton 保存的 Domain Game，沒有 GameState 複本。"
+    expected: "use_case.md 的一個可執行敘事對應一個同名 UseCase class 與自然方法；不使用集中式 ProcessGameTick、空 Command／Result 包裝或 Application GameState。"
     affected_paths:
-      - Snake.UseCases/SnakeGameApplicationService.cs
-      - Snake.UseCases/ISnakeGameApplicationService.cs
+      - Core/Snake.Application
+      - Core/Snake.Application/DependencyInjection.cs
+      - Core/Snake.Application/Repositories/IGameRepository.cs
+      - Core/Snake.Infrastructure/Repositories/_Game/GameRepository.cs
+      - Core/Snake.Infrastructure/DependencyInjection.cs
     contract_refs:
-      - V3-WF-GAME-START-CURRENT-LEVEL
-      - V3-WF-GAME-SET-SNAKE-DIRECTION
-      - V3-WF-GAME-PROCESS-TICK
-      - V3-WF-GAME-RESTART
-      - V3-WF-GAME-GET-CURRENT-SCREEN
+      - V3-JOURNEY-GAME-PLAY
     check_refs:
-      - SNAKE-CODE-APPLICATION-WORKFLOW-STRUCTURE
+      - SNAKE-CODE-APPLICATION-USE-CASE-STRUCTURE
 
   - misfit_id: SNAKE-MISFIT-TICK-OWNER
     status: resolved
     severity: critical
-    title: "Tick 商業順序已移交 Application Workflow"
-    observed: "GamePresenter 的每個 UI event 只呼叫一個 Application Service method；ProcessGameTick 擁有事件排序、碰撞、效果、死亡／保命、通關、補物件、一次提交與最終畫面。"
-    expected: "每個 Timer tick 只呼叫一次 ProcessGameTick；workflow 擁有完整順序、互斥分支、回滾與單次提交，Presenter 只套用 Result。"
+    title: "Tick 順序由 GameForm 明確編排"
+    observed: "GameForm 提供固定 250ms 事件來源，並依 journey 順序直接呼叫透過 DI 取得的 Use Case，每次只移動一格。"
+    expected: "GameForm 擁有 Timer 與 Use Case 順序，不累積時間、不補跑多格，Use Case 不互相注入。"
     affected_paths:
-      - Snake.WinForms/GamePresenter.cs
-      - Snake.UseCases/SnakeGameApplicationService.cs
+      - App/Snake.WinForms/GameForm.cs
     contract_refs:
-      - V3-WF-GAME-PROCESS-TICK
-      - V3-TECH-GAME-PROCESS-TICK
-      - V3-ACCEPT-GAME-PROCESS-TICK
+      - V3-JOURNEY-GAME-PLAY
+      - V3-ACCEPT-GAME-MOVE-SNAKE
     check_refs:
-      - SNAKE-CODE-PRESENTER-WORKFLOW-OWNERSHIP
-      - SNAKE-REVIEW-TICK-ATOMICITY
+      - SNAKE-REVIEW-TICK-GRANULARITY
 
   - misfit_id: SNAKE-MISFIT-MOVEMENT-TOPOLOGY
     status: resolved
     severity: critical
-    title: "蛇移動、尾格碰撞與成長拓樸已符合 v3"
-    observed: "Snake.PlanMovement 先依 growth_delta 建立完整計畫；一般移動排除離開尾格，+1 保留舊尾，+2 依直後、左、右選擇，CommitMovement 與 ResetSafely 強制唯一且連續。"
-    expected: "先依接觸物決定 growth_delta，再建立 SnakeMovementPlan；一般移動碰撞集合排除舊尾格，成長時保留；所有狀態保持有序連續，+2 依直後、左、右選合法尾端格，失敗時整個 Tick 回滾。"
+    title: "蛇移動、尾格碰撞與成長拓樸符合規格"
+    observed: "Snake.PlanMovement 依 growth delta 建立完整計畫；MoveSnakeUseCase 每次只提交一個計畫，ReplaceBodyCells 強制唯一且連續。"
+    expected: "一般移動排除離開尾格，成長時保留；所有狀態保持有序連續，+2 沒有合法延伸格時不得提交不合法蛇身。"
     affected_paths:
-      - Snake.Entities/Snake.cs
-      - Snake.Entities/Board.cs
-      - Snake.UseCases/SnakeGameApplicationService.cs
-      - Snake.Test/SnakeMovementPlanTests.cs
+      - Core/Snake.Domain/Snake.cs
+      - Core/Snake.Domain/Board.cs
+      - Core/Snake.Application/_MoveSnakeUseCase/MoveSnakeUseCase.cs
+      - Test/Snake.Test/MoveSnakeUseCaseTests.cs
     contract_refs:
-      - V3-AGG-SNAKE-SNAKE
-      - V3-WF-GAME-PROCESS-TICK
-      - V3-ACCEPT-GAME-PROCESS-TICK
+      - V3-DOMAIN-GAME-MOVE-SNAKE
+      - V3-ACCEPT-GAME-MOVE-SNAKE
     check_refs:
       - SNAKE-CODE-MOVEMENT-TOPOLOGY
-      - SNAKE-REVIEW-TICK-ATOMICITY
+      - SNAKE-REVIEW-TICK-GRANULARITY
 
   - misfit_id: SNAKE-MISFIT-UI-REBUILD
     status: resolved
     severity: high
-    title: "GameForm 已改為完整畫面提交與穩定控制項"
-    observed: "GameForm.RenderGameScreen 重用 Board 與規則 Label，未呼叫 Controls.Clear；Presenter 先套用 RuntimeDirective，再只提交一個 GameScreenOutput。可見閃爍仍由獨立 runtime UI review 追蹤。"
-    expected: "一個 UI event 套用一次 RuntimeDirective 並呼叫一次 RenderGameScreen；未變更控制項保持穩定 identity，全部差異完成後才做一次可見提交，Renderer 與 Timer event source 分離。"
+    title: "GameForm 使用固定控制項局部更新畫面"
+    observed: "GameForm 重用 100 個棋盤格、規則 Label 與其他控制項；ApplyScreen 只更新值有變化的控制項與格位。"
+    expected: "相同畫面重複套用時控制項 identity 穩定，每個 Tick 不重建版面且只重畫實際變動格位。"
     affected_paths:
-      - Snake.WinForms/GameForm.cs
-      - Snake.WinForms/GamePresenter.cs
+      - App/Snake.WinForms/GameForm.Rendering.cs
+      - Test/Snake.Test/GameFormAndRenderTests.cs
     contract_refs:
       - V3-PRES-WF-GAME-RENDER-SCREEN
       - V3-ACCEPT-GAME-RENDER-SCREEN
     check_refs:
-      - SNAKE-CODE-RENDER-STABILITY
       - SNAKE-REVIEW-UI-FLICKER
 
   - misfit_id: SNAKE-MISFIT-ARROW-KEY-DELIVERY
     status: resolved
     severity: high
-    title: "方向鍵在 WinForms 控制項導覽前未交付給遊戲"
-    observed: "GameForm.ProcessCmdKey 在控制項導覽前映射四個方向鍵並只派送一次 DirectionRequested；未宣告輸入交回 WinForms。自動測試與實際視窗均證明下一個到期 Tick 使用已接受方向。"
-    expected: "Up、Down、Left、Right 必須由 ProcessCmdKey 在控制項導覽前各映射成一次 DirectionRequested；焦點不得影響交付，下一個到期 Tick 必須消費已接受方向。"
+    title: "方向鍵在控制項導覽前交付給遊戲"
+    observed: "GameForm.ProcessCmdKey 將四個方向鍵直接映射成 SnakeDirectionDTO 並只派送一次；未宣告輸入交回 WinForms。"
+    expected: "焦點不得影響方向交付，且下一個固定 Tick 必須消費已接受方向。"
     affected_paths:
-      - Snake.WinForms/GameForm.cs
-      - Snake.Test/GameFormRenderingTests.cs
-      - Snake.Test/SnakeGameApplicationServiceTests.cs
+      - App/Snake.WinForms/GameForm.cs
+      - Core/Snake.Application/_SetSnakeDirectionUseCase
+      - Test/Snake.Test/GameFormAndRenderTests.cs
+      - Test/Snake.Test/GameFormBehaviorTests.cs
     contract_refs:
       - V3-PRES-WF-GAME-HANDLE-DIRECTION-INPUT
       - V3-ACCEPT-GAME-HANDLE-DIRECTION-INPUT
-      - V3-WF-GAME-SET-SNAKE-DIRECTION
-      - V3-ACCEPT-GAME-SET-SNAKE-DIRECTION
-      - V3-WF-GAME-PROCESS-TICK
-      - V3-ACCEPT-GAME-PROCESS-TICK
+      - V3-DOMAIN-GAME-SET-SNAKE-DIRECTION
     check_refs:
-      - V3-PN-UI-GATE-004
       - SNAKE-REVIEW-DIRECTION-INPUT-DELIVERY

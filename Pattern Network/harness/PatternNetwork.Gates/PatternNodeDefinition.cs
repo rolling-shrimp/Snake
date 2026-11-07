@@ -5,6 +5,7 @@ public class PatternNodeDefinition
     public PatternNodeDefinition()
     {
         AllowedProjectReferences = new List<string>();
+        RequiredPackageReferences = new Dictionary<string, string>(StringComparer.Ordinal);
         Checks = new List<GateCheckDefinition>();
     }
 
@@ -14,11 +15,15 @@ public class PatternNodeDefinition
 
     public string DirectoryPath { get; set; } = string.Empty;
 
+    public string SolutionFolder { get; set; } = string.Empty;
+
     public string TargetFramework { get; set; } = string.Empty;
 
     public bool UseWindowsForms { get; set; }
 
     public List<string> AllowedProjectReferences { get; set; }
+
+    public Dictionary<string, string> RequiredPackageReferences { get; set; }
 
     public List<GateCheckDefinition> Checks { get; set; }
 }

@@ -1,0 +1,23 @@
+schema_version: 3
+spec_kind: problem_frame
+id: V3-FRAME-GAME-HANDLE-FIRE-CONTACT
+frame:
+  name: handle-fire-contact
+  type: RBF
+  bounded_context: snake-game
+  requirement: "蛇頭碰到火焰時，火焰消失且蛇長減少 2 格。"
+problem_domains:
+  - name: SnakeHead
+    kind: causal
+  - name: SnakeGame
+    kind: designed
+shared_phenomena:
+  - name: contact_detected
+    source: SnakeHead
+    receiver: SnakeGame
+world_facts:
+  - id: V3-FRAME-FACT-HANDLE-FIRE-CONTACT
+    fact: "非致命減長直接提交；減長至 0 以下時記錄致命事件，交由護盾保命或結束流程處理。"
+frame_concerns:
+  - id: V3-FRAME-CONCERN-HANDLE-FIRE-CONTACT
+    concern: "火焰已移除，蛇長或致命事件狀態符合受擊前長度。"

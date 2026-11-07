@@ -2,19 +2,19 @@ schema_version: 3
 spec_kind: presentation_workflow
 id: V3-PRES-WF-GAME-RENDER-SCREEN
 workflow: RenderGameScreen
-technical_ref: V3-TECH-GAME-GET-CURRENT-SCREEN
+technical_ref: V3-TECH-GAME-GET-GAME-SCREEN
 input:
-  model: GameScreenOutput
-  grain: one_complete_immutable_screen
-  owner: application_workflow_result
+  model: GameScreenDTO
+  grain: one_complete_game_screen
+  owner: GetGameScreenUseCase
   rules:
-    - "輸入必須已包含完整 Board、頭到尾 SnakeBody、物件、牆、門、LevelStatus、提示、ResultCard 與 AvailableActions。"
-    - "Renderer 不得再讀取 Entity、Session 或其他 Use Case 結果補齊資料。"
+    - "GameScreenDTO 必須包含棋盤、蛇、物件、關卡、進度、規則、結果與可用操作。"
 output:
-  grain: one_atomic_rendered_screen
+  grain: changed_ui_controls_and_board_cells
+  owner: GameForm
   guarantees:
-    - "可見畫面完整對應單一 GameScreenOutput。"
-    - "同一畫面種類的穩定控制項身分不因重複 render 改變。"
+    - "GameForm 只使用一份 GameScreenDTO 判斷本次需要更新的畫面內容。"
+    - "重複套用畫面不清空、不重建未變更控制項，也不讓未變更棋盤格重畫。"
 state_refs:
   - V3-PRES-STATE-GAME-FIRST-LEVEL-READY
   - V3-PRES-STATE-GAME-FIRST-LEVEL-PLAYING
@@ -25,27 +25,16 @@ state_refs:
   - V3-PRES-STATE-GAME-GAME-OVER
   - V3-PRES-STATE-GAME-GAME-COMPLETED
 render_policy:
-  state_selection: exactly_one_by_screen_kind
-  control_identity: preserve_semantic_control_identity
-  board_update: create_once_then_reuse
-  layout_update: apply_while_hidden_then_commit_once
-  visibility: apply_required_and_forbidden_atomically
-  idempotence: same_input_preserves_controls_and_visible_result
+  owner: GameForm
+  method: ApplyScreen
+  board_update: create_once_then_update_changed_cells
+  visibility: update_only_when_value_changes
 runtime_policy:
-  ui_event_boundary: one_application_workflow_call_per_event
-  result_application_order:
-    - get_complete_result
-    - apply_runtime_directive
-    - render_game_screen_once
-  timer_ownership: event_source_only_renderer_forbidden
-  forbidden_dependencies:
-    - ApplicationService
-    - UseCase
-    - GameSession
-    - Entity
-  forbidden_behaviors:
-    - session_driven_orchestration
-    - follow_up_workflow_to_complete_result
-    - intermediate_state_rendering
-    - clear_and_rebuild_unchanged_controls
+  event_owner: GameForm
+  use_case_order_owner: GameForm
+  timer_interval_ms: 250
+  move_calls_per_tick: 1
+  accumulated_time_allowed: false
+  catch_up_loop_allowed: false
+  forbidden_roles: [Presenter, IGameView, Controller, GameExecutor, GameRender, Renderer, ViewModel, Display, custom_Control]
 acceptance_ref: V3-ACCEPT-GAME-RENDER-SCREEN

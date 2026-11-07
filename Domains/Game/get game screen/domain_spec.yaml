@@ -1,0 +1,39 @@
+schema_version: 3
+spec_kind: domain_contract
+id: V3-DOMAIN-GAME-GET-GAME-SCREEN
+domain: GetGameScreen
+frame_ref: V3-FRAME-GAME-GET-GAME-SCREEN
+aggregate_refs:
+  - V3-AGG-GAME-GAME
+  - V3-AGG-LEVEL-LEVEL
+  - V3-AGG-BOARD-BOARD
+  - V3-AGG-SNAKE-SNAKE
+  - V3-AGG-FOOD-FOOD
+  - V3-AGG-SHIELD-SHIELD
+  - V3-AGG-FIRE-FIRE
+  - V3-AGG-BOMB-BOMB
+  - V3-AGG-DOORMAZE-DOORMAZE
+  - V3-AGG-GAMERESULT-GAMERESULT
+use_case: GetGameScreen
+input:
+  grain: one_ui_or_tick_request
+  owner: GameForm
+  type: none
+output:
+  grain: one_complete_game_screen
+  owner: GetGameScreenUseCase
+  type: GameScreenDTO
+preconditions:
+  - id: V3-DOMAIN-GET-GAME-SCREEN-PRE
+    rule: "遊戲狀態已完成目前 UI 事件所需的所有 Use Case。"
+rules:
+  - id: V3-DOMAIN-GET-GAME-SCREEN-RULE
+    rule: "由同一份已提交遊戲狀態建立棋盤、蛇、物件、關卡、進度、提示、結果與可用操作。"
+postconditions:
+  - id: V3-DOMAIN-GET-GAME-SCREEN-POST
+    rule: "回傳的 GameScreenDTO 足以讓 GameForm 比對前後狀態並只更新變動的控制項與棋盤格，不需要再查詢其他 Use Case。"
+invariants:
+  - id: V3-DOMAIN-GET-GAME-SCREEN-INV
+    rule: "公開結果與狀態修改必須來自同一份已提交領域狀態。"
+no_op:
+  - "前置條件不成立時不修改遊戲狀態。"

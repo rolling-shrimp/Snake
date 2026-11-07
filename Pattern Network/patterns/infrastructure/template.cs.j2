@@ -1,0 +1,19 @@
+using {{ application_namespace }}.Repositories;
+
+namespace {{ namespace_name }}
+{
+    public class {{ repository.name }}Repository : I{{ repository.name }}Repository
+    {
+        private {{ aggregate.type }} _{{ aggregate.name }};
+
+        public {{ repository.name }}Repository()
+        {
+            _{{ aggregate.name }} = new {{ aggregate.type }}();
+        }
+
+        public {{ aggregate.type }} GetCurrent{{ aggregate.type }}()
+        {
+            return _{{ aggregate.name }};
+        }
+    }
+}

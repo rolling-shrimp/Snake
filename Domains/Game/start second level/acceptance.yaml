@@ -1,0 +1,15 @@
+schema_version: 3
+spec_kind: acceptance_contract
+id: V3-ACCEPT-GAME-START-SECOND-LEVEL
+contract_ref: V3-DOMAIN-GAME-START-SECOND-LEVEL
+scenarios:
+  - id: V3-SCN-START-SECOND-LEVEL
+    title: "玩家在第二關待開始畫面按下開始後，第二關立即進入遊玩狀態。"
+    given:
+      precondition: "目前畫面為第二關 Ready。"
+    when:
+      operation: StartSecondLevel
+      call_count: 1
+    then:
+      postcondition: "第二關為 Playing，蛇長為 3 且護盾剩餘次數為 0。"
+    evidence: [behavioral, invariant]

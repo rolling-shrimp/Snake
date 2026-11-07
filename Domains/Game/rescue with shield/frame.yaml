@@ -1,0 +1,21 @@
+schema_version: 3
+spec_kind: problem_frame
+id: V3-FRAME-GAME-RESCUE-WITH-SHIELD
+frame:
+  name: rescue-with-shield
+  type: RBF
+  bounded_context: snake-game
+  requirement: "致命事件發生且仍有護盾時，消耗一次護盾並把完整蛇身安全安置。"
+problem_domains:
+  - name: SnakeGame
+    kind: designed
+shared_phenomena:
+  - name: tick_state_evaluated
+    source: SnakeGame
+    receiver: SnakeGame
+world_facts:
+  - id: V3-FRAME-FACT-RESCUE-WITH-SHIELD
+    fact: "保留受擊前蛇長，尋找可容納完整蛇身的安全位置，移開衝突物件並繼續目前關卡。"
+frame_concerns:
+  - id: V3-FRAME-CONCERN-RESCUE-WITH-SHIELD
+    concern: "保命次數減少 1，致命事件已清除，蛇位於安全起點且關卡繼續。"

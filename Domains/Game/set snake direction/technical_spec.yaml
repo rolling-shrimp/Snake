@@ -1,0 +1,31 @@
+schema_version: 3
+spec_kind: technical_contract
+id: V3-TECH-GAME-SET-SNAKE-DIRECTION
+operation: SetSnakeDirection
+domain_ref: V3-DOMAIN-GAME-SET-SNAKE-DIRECTION
+input:
+  type: SnakeDirectionDTO
+  fields: [x, y]
+output:
+  type: none
+  fields: []
+ports:
+  - name: IGameRepository
+    owner: Snake.Application
+    implementation_owner: Snake.Infrastructure
+implementation_binding:
+  project: Snake.Application
+  directory: _SetSnakeDirectionUseCase
+  class: SetSnakeDirectionUseCase
+  method: SetSnakeDirection
+  parameters: [SnakeDirectionDTO]
+  return_type: void
+dependency_injection:
+  registration_file: DependencyInjection.cs
+  registration_method: AddApplication
+  lifetime: transient
+  interface_required: false
+dto:
+  required: true
+  types: [SnakeDirectionDTO]
+

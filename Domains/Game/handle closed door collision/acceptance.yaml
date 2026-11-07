@@ -1,0 +1,15 @@
+schema_version: 3
+spec_kind: acceptance_contract
+id: V3-ACCEPT-GAME-HANDLE-CLOSED-DOOR-COLLISION
+contract_ref: V3-DOMAIN-GAME-HANDLE-CLOSED-DOOR-COLLISION
+scenarios:
+  - id: V3-SCN-HANDLE-CLOSED-DOOR-COLLISION
+    title: "第三關蛇下一格撞到關閉的門時形成致命事件。"
+    given:
+      precondition: "目前為第三關 Playing，且下一個蛇頭格為關閉的門。"
+    when:
+      operation: HandleClosedDoorCollision
+      call_count: 1
+    then:
+      postcondition: "蛇位置未進入關閉門格，且目前 Tick 存在關門碰撞致命事件。"
+    evidence: [behavioral, invariant]

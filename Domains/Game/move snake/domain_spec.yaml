@@ -1,0 +1,38 @@
+schema_version: 3
+spec_kind: domain_contract
+id: V3-DOMAIN-GAME-MOVE-SNAKE
+domain: MoveSnake
+frame_ref: V3-FRAME-GAME-MOVE-SNAKE
+use_case: MoveSnake
+input:
+  grain: one_accepted_snake_movement
+  owner: GameForm
+  values: []
+output:
+  grain: no_return_value
+  owner: MoveSnakeUseCase
+  type: none
+preconditions:
+  - id: V3-DOMAIN-MOVE-PRE-PLAYING
+    rule: "目前關卡必須為 Playing。"
+  - id: V3-DOMAIN-MOVE-PRE-LEGAL-NEXT-CELL
+    rule: "下一個蛇頭格已由前置判定確認可以提交，MoveSnake 不重複擁有碰撞處理流程。"
+rules:
+  - id: V3-DOMAIN-MOVE-RULE-DIRECTION
+    rule: "新蛇頭等於目前蛇頭加上目前有效方向的一格位移。"
+  - id: V3-DOMAIN-MOVE-RULE-BODY
+    rule: "新蛇頭加入蛇身最前端，未成長的一般移動移除一個舊尾格。"
+  - id: V3-DOMAIN-MOVE-RULE-ONE-STEP
+    rule: "一次 MoveSnake 呼叫只提交一次一格移動，不讀取或推算累積經過時間。"
+postconditions:
+  - id: V3-DOMAIN-MOVE-POST-HEAD
+    rule: "蛇頭位於原蛇頭沿有效方向相鄰的一格。"
+  - id: V3-DOMAIN-MOVE-POST-LENGTH
+    rule: "沒有成長效果時蛇長保持不變。"
+invariants:
+  - id: V3-DOMAIN-MOVE-INV-ORDERED
+    rule: "蛇身格位由蛇頭到蛇尾依序保存。"
+  - id: V3-DOMAIN-MOVE-INV-UNIQUE
+    rule: "成功提交後蛇身格位不得重複。"
+  - id: V3-DOMAIN-MOVE-INV-CONTIGUOUS
+    rule: "成功提交後每兩個相鄰蛇身格位的曼哈頓距離必須為一。"

@@ -1,0 +1,26 @@
+schema_version: 3
+spec_kind: problem_frame
+id: V3-FRAME-GAME-PREPARE-NEXT-LEVEL
+frame:
+  name: prepare-next-level
+  type: RIF
+  bounded_context: snake-game
+  requirement: "第一或第二關通過後，直接準備下一關的待開始狀態。"
+problem_domains:
+  - name: SnakeGame
+    kind: designed
+  - name: Player
+    kind: biddable
+shared_phenomena:
+  - name: use_case_requested
+    source: Player
+    receiver: SnakeGame
+  - name: result_observed
+    source: SnakeGame
+    receiver: Player
+world_facts:
+  - id: V3-FRAME-FACT-PREPARE-NEXT-LEVEL
+    fact: "下一關蛇長重設為 3，方向向右，護盾次數與出現紀錄清零，棋盤切換為該關配置。"
+frame_concerns:
+  - id: V3-FRAME-CONCERN-PREPARE-NEXT-LEVEL
+    concern: "下一關為 Ready，蛇位於安全起點並顯示正確起始進度。"

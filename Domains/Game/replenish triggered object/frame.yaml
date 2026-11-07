@@ -1,0 +1,26 @@
+schema_version: 3
+spec_kind: problem_frame
+id: V3-FRAME-GAME-REPLENISH-TRIGGERED-OBJECT
+frame:
+  name: replenish-triggered-object
+  type: RIF
+  bounded_context: snake-game
+  requirement: "觸發物件效果與終局判定完成後，在合法空格補上仍應存在的物件。"
+problem_domains:
+  - name: SnakeGame
+    kind: designed
+  - name: Player
+    kind: biddable
+shared_phenomena:
+  - name: use_case_requested
+    source: Player
+    receiver: SnakeGame
+  - name: result_observed
+    source: SnakeGame
+    receiver: Player
+world_facts:
+  - id: V3-FRAME-FACT-REPLENISH-TRIGGERED-OBJECT
+    fact: "只補本關允許且仍有配額的物件；沒有合法空格時保留待補狀態，不製造重疊位置。"
+frame_concerns:
+  - id: V3-FRAME-CONCERN-REPLENISH-TRIGGERED-OBJECT
+    concern: "每種應存在物件至多一個，或在無合法空格時保持待補。"

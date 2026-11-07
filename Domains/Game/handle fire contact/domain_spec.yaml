@@ -1,0 +1,34 @@
+schema_version: 3
+spec_kind: domain_contract
+id: V3-DOMAIN-GAME-HANDLE-FIRE-CONTACT
+domain: HandleFireContact
+frame_ref: V3-FRAME-GAME-HANDLE-FIRE-CONTACT
+aggregate_refs:
+  - V3-AGG-GAME-GAME
+  - V3-AGG-SNAKE-SNAKE
+  - V3-AGG-FIRE-FIRE
+  - V3-AGG-SHIELD-SHIELD
+  - V3-AGG-LEVEL-LEVEL
+use_case: HandleFireContact
+input:
+  grain: current_snake_head_contact
+  owner: GameForm
+  type: none
+output:
+  grain: no_return_value
+  owner: HandleFireContactUseCase
+  type: none
+preconditions:
+  - id: V3-DOMAIN-HANDLE-FIRE-CONTACT-PRE
+    rule: "目前為第二或第三關 Playing，且蛇頭接觸火焰。"
+rules:
+  - id: V3-DOMAIN-HANDLE-FIRE-CONTACT-RULE
+    rule: "非致命減長直接提交；減長至 0 以下時記錄致命事件，交由護盾保命或結束流程處理。"
+postconditions:
+  - id: V3-DOMAIN-HANDLE-FIRE-CONTACT-POST
+    rule: "火焰已移除，蛇長或致命事件狀態符合受擊前長度。"
+invariants:
+  - id: V3-DOMAIN-HANDLE-FIRE-CONTACT-INV
+    rule: "同一物件接觸在同一 Tick 最多套用一次效果。"
+no_op:
+  - "蛇頭未接觸此類物件時不修改狀態。"

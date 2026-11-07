@@ -13,7 +13,9 @@ public class PatternNetworkValidatorTests
         PatternNetworkValidationResult result = validator.Validate(networkPath);
 
         Assert.True(result.IsValid, string.Join(Environment.NewLine, result.Issues.Select(issue => issue.Message)));
-        Assert.Equal(new[] { "Entities", "UseCases", "WinForms" }, result.Definition.PatternNodes.Select(node => node.Name));
+        Assert.Equal(new[] { "Application", "Domain", "Infrastructure", "WinForms" }, result.Definition.PatternNodes.Select(node => node.Name));
+        Assert.Equal("Test", result.Definition.VerificationProject.SolutionFolder);
+        Assert.Equal("Test", result.Definition.VerificationProject.Name);
     }
 
     [Fact]
@@ -26,7 +28,7 @@ public class PatternNetworkValidatorTests
         try
         {
             CopyDirectory(sourcePath, temporaryPath);
-            string gatePath = Path.Combine(temporaryPath, "patterns", "entities", "gate.yaml");
+            string gatePath = Path.Combine(temporaryPath, "patterns", "domain", "gate.yaml");
             string gateText = File.ReadAllText(gatePath);
             File.WriteAllText(gatePath, gateText.Replace("V3-PN-NAME-001", "V3-PN-UNKNOWN-001", StringComparison.Ordinal));
             PatternNetworkValidator validator = new PatternNetworkValidator();
@@ -52,7 +54,7 @@ public class PatternNetworkValidatorTests
         try
         {
             CopyDirectory(sourcePath, temporaryPath);
-            string gatePath = Path.Combine(temporaryPath, "patterns", "entities", "gate.yaml");
+            string gatePath = Path.Combine(temporaryPath, "patterns", "domain", "gate.yaml");
             string gateText = File.ReadAllText(gatePath);
             File.WriteAllText(gatePath, gateText.Replace("target_framework: net8.0", "target_framework: net9.0", StringComparison.Ordinal));
             PatternNetworkValidator validator = new PatternNetworkValidator();
@@ -98,19 +100,32 @@ public class PatternNetworkValidatorTests
     }
 
     [Fact]
-    public void ValidateLoadsApplicationWorkflowChecksAsAudit()
+    public void ValidateLoadsUseCaseAndUiRoleChecksAsBlocking()
     {
         PatternNetworkValidator validator = new PatternNetworkValidator();
 
         PatternNetworkValidationResult result = validator.Validate(FindPatternNetworkPath());
 
-        PatternNodeDefinition useCases = Assert.Single(
+        PatternNodeDefinition application = Assert.Single(
             result.Definition.PatternNodes,
-            node => node.Id == "use-cases");
-        GateCheckDefinition workflowCheck = Assert.Single(
-            useCases.Checks,
-            check => check.Checker == "application_workflow_contracts");
-        Assert.Equal(VerificationMode.Audit, workflowCheck.Mode);
+            node => node.Id == "application");
+        GateCheckDefinition useCaseCheck = Assert.Single(
+            application.Checks,
+            check => check.Checker == "application_use_case_contracts");
+        PatternNodeDefinition winForms = Assert.Single(
+            result.Definition.PatternNodes,
+            node => node.Id == "winforms");
+        Assert.Contains(winForms.Checks, check => check.Checker == "winforms_roles");
+        Assert.Contains(winForms.Checks, check => check.Checker == "game_form_boundaries");
+        Assert.Contains(winForms.Checks, check => check.Checker == "winforms_program");
+        PatternNodeDefinition infrastructure = Assert.Single(
+            result.Definition.PatternNodes,
+            node => node.Id == "infrastructure");
+        GateCheckDefinition infrastructureDependencyInjection = Assert.Single(
+            infrastructure.Checks,
+            check => check.Checker == "dependency_injection");
+        Assert.Equal("AddInfrastructure", infrastructureDependencyInjection.ScalarParameters["registration_method"]);
+        Assert.Equal(VerificationMode.Blocking, useCaseCheck.Mode);
     }
 
     private string FindPatternNetworkPath()

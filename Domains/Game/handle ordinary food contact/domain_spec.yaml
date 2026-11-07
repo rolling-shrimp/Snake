@@ -1,0 +1,33 @@
+schema_version: 3
+spec_kind: domain_contract
+id: V3-DOMAIN-GAME-HANDLE-ORDINARY-FOOD-CONTACT
+domain: HandleOrdinaryFoodContact
+frame_ref: V3-FRAME-GAME-HANDLE-ORDINARY-FOOD-CONTACT
+aggregate_refs:
+  - V3-AGG-GAME-GAME
+  - V3-AGG-SNAKE-SNAKE
+  - V3-AGG-FOOD-FOOD
+  - V3-AGG-LEVEL-LEVEL
+use_case: HandleOrdinaryFoodContact
+input:
+  grain: current_snake_head_contact
+  owner: GameForm
+  type: none
+output:
+  grain: no_return_value
+  owner: HandleOrdinaryFoodContactUseCase
+  type: none
+preconditions:
+  - id: V3-DOMAIN-HANDLE-ORDINARY-FOOD-CONTACT-PRE
+    rule: "目前關卡為 Playing，且蛇頭接觸普通食物。"
+rules:
+  - id: V3-DOMAIN-HANDLE-ORDINARY-FOOD-CONTACT-RULE
+    rule: "只在蛇頭位於普通食物格時套用一次 +1 成長並標記該食物需要補充。"
+postconditions:
+  - id: V3-DOMAIN-HANDLE-ORDINARY-FOOD-CONTACT-POST
+    rule: "蛇長增加 1，食物已移除，進度依新蛇長更新。"
+invariants:
+  - id: V3-DOMAIN-HANDLE-ORDINARY-FOOD-CONTACT-INV
+    rule: "同一物件接觸在同一 Tick 最多套用一次效果。"
+no_op:
+  - "蛇頭未接觸此類物件時不修改狀態。"

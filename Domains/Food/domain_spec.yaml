@@ -3,9 +3,6 @@ spec_kind: aggregate_contract
 id: V3-AGG-FOOD-FOOD
 aggregate: Food
 state:
-  - name: food_id
-    type: FoodId
-    required: true
   - name: active_items
     type: List<FoodItem>
     required: true
@@ -15,15 +12,8 @@ state:
     required: true
     uniqueness: true
 value_objects:
-  - name: FoodId
-    kind: opaque_identity
-  - name: FoodItemId
-    kind: opaque_identity
   - name: FoodItem
     fields:
-      - name: food_item_id
-        type: FoodItemId
-        required: true
       - name: type
         type: FoodType
         required: true
@@ -32,9 +22,6 @@ value_objects:
         required: true
   - name: FoodContact
     fields:
-      - name: food_item_id
-        type: FoodItemId
-        required: true
       - name: growth_delta
         type: integer
         required: true
@@ -82,7 +69,7 @@ behaviors:
     output:
       grain: one_new_food_item
     rules:
-      - "每次建立 FoodItem 都使用新的 FoodItemId。"
+      - "每種 FoodType 同時最多保留一個 FoodItem。"
       - "沒有合法格位時只保留唯一 pending type，不得重疊產生。"
   - id: V3-FOOD-BEHAVIOR-REPLENISH
     name: Replenish
@@ -100,4 +87,4 @@ behaviors:
     output:
       grain: one_empty_food_state
     rules:
-      - "清除所有 active_items 與 pending_types，但保留 Food identity。"
+      - "清除所有 active_items 與 pending_types。"

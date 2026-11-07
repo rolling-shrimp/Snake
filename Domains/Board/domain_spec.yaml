@@ -3,9 +3,6 @@ spec_kind: aggregate_contract
 id: V3-AGG-BOARD-BOARD
 aggregate: Board
 state:
-  - name: board_id
-    type: BoardId
-    required: true
   - name: rows
     type: integer
     required: true
@@ -15,8 +12,6 @@ state:
     required: true
     fixed_value: 10
 value_objects:
-  - name: BoardId
-    kind: opaque_identity
   - name: GridPosition
     fields:
       - name: x

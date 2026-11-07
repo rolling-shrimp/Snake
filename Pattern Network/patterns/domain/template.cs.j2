@@ -1,0 +1,25 @@
+namespace {{ namespace_name }}
+{
+    public class {{ domain_type.name }}
+    {
+{% for field in fields %}
+        private {{ field.type }} _{{ field.name }};
+{% endfor %}
+
+        public {{ domain_type.name }}({{ constructor_parameters }})
+        {
+{{ constructor_body | indent(12, true) }}
+        }
+
+{% for property in properties %}
+        public {{ property.type }} {{ property.name }} => _{{ property.field_name }};
+{% endfor %}
+
+{% for state_change in state_changes %}
+        public {{ state_change.return_type }} {{ state_change.name }}({{ state_change.parameters }})
+        {
+{{ state_change.body | indent(12, true) }}
+        }
+{% endfor %}
+    }
+}

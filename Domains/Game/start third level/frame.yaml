@@ -1,0 +1,26 @@
+schema_version: 3
+spec_kind: problem_frame
+id: V3-FRAME-GAME-START-THIRD-LEVEL
+frame:
+  name: start-third-level
+  type: RBF
+  bounded_context: snake-game
+  requirement: "玩家在第三關待開始畫面按下開始後，第三關迷宮立即進入遊玩狀態。"
+problem_domains:
+  - name: Player
+    kind: biddable
+  - name: SnakeGame
+    kind: designed
+shared_phenomena:
+  - name: request
+    source: Player
+    receiver: SnakeGame
+  - name: state_changed
+    source: SnakeGame
+    receiver: Player
+world_facts:
+  - id: V3-FRAME-FACT-START-THIRD-LEVEL
+    fact: "將第三關設為 Playing，建立本關物件並啟動門的切換狀態。"
+frame_concerns:
+  - id: V3-FRAME-CONCERN-START-THIRD-LEVEL
+    concern: "第三關為 Playing，蛇長為 3、進度為 6% 且門狀態可見。"

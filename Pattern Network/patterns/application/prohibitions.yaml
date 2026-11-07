@@ -1,0 +1,94 @@
+schema_version: 3
+
+pattern_node:
+  id: application
+  name: Application
+
+prohibitions:
+  - id: V3-PN-UC-PRO-001
+    title: "禁止外層專案參考"
+    description: "Application 不得參考 WinForms 或其他外層產品專案。"
+    severity: error
+    enforcement: automated
+    remediation: "將 UI 事件順序與顯示留在 WinForms；Application 只保留獨立 UseCase。"
+    exceptions: []
+
+  - id: V3-PN-UC-PRO-002
+    title: "禁止 UI framework"
+    description: "Application 不得使用 System.Windows.Forms 或 System.Drawing。"
+    severity: error
+    enforcement: automated
+    remediation: "以自然型別或必要 DTO 表達 Application 契約。"
+    exceptions: []
+
+  - id: V3-PN-UC-PRO-003
+    title: "禁止空殼輸入輸出型別"
+    description: "沒有實際欄位時不得建立 Command、Query、Request、Response、Result、Outcome 或 RspDTO 作為格式包裝。"
+    severity: error
+    enforcement: automated
+    remediation: "無輸入就使用無參數方法；無輸出就使用 void；單一結果直接回傳自然型別。"
+    exceptions: []
+
+  - id: V3-PN-UC-PRO-004
+    title: "禁止無角色 DTO"
+    description: "DTO 不得只為成對 Req/Rsp、統一命名或包裝單一值而建立，也不得集中存放於跨 UseCase 的共用 Dto 資料夾。"
+    severity: error
+    enforcement: automated
+    remediation: "刪除不必要 DTO；必要 DTO 放回擁有它的 UseCase/Dto 目錄並使用具體資料名稱。"
+    exceptions: []
+
+  - id: V3-PN-UC-PRO-005
+    title: "禁止 UI 契約直接暴露 Domain"
+    description: "Application 對 WinForms 的公開輸入輸出不得直接使用 Domain 類別或可變集合。"
+    severity: error
+    enforcement: automated
+    remediation: "建立符合實際畫面輸入或輸出粒度的 Application DTO。"
+    exceptions: []
+
+  - id: V3-PN-UC-PRO-006
+    title: "禁止 UseCase 串接 UseCase"
+    description: "UseCase 不得注入、建立或呼叫另一個 UseCase。"
+    severity: error
+    enforcement: automated
+    remediation: "把 WinForms 事件的 UseCase 呼叫順序留在 GameForm。"
+    exceptions: []
+
+  - id: V3-PN-UC-PRO-007
+    title: "禁止大型 ApplicationService 與多行為 UseCase"
+    description: "Application 不得以 ApplicationService、ProcessGameTickUseCase 或單一 UseCase 集中承載多個 use_case.md 敘事。"
+    severity: error
+    enforcement: automated
+    remediation: "依每個獨立敘事建立同名 UseCase class 與一個公開行為方法。"
+    exceptions: []
+
+  - id: V3-PN-UC-PRO-008
+    title: "禁止 Service Locator 與直接建立協作者"
+    description: "UseCase 不得注入 IServiceProvider、呼叫 GetService/GetRequiredService，或直接 new Domain state、Repository、Port 或其他 UseCase。"
+    severity: error
+    enforcement: automated
+    remediation: "以 constructor injection 取得依賴，並在 DependencyInjection.AddApplication 集中註冊。"
+    exceptions: []
+
+  - id: V3-PN-UC-PRO-009
+    title: "禁止 Application 保存第二份遊戲狀態"
+    description: "Application 不得建立 GameState、_GameState 目錄或其他與 Domain Game 重複的狀態容器。"
+    severity: error
+    enforcement: automated
+    remediation: "狀態回到 Domain Game；UseCase 透過 IGameRepository 取得 Infrastructure 保存的目前 Game。"
+    exceptions: []
+
+  - id: V3-PN-UC-PRO-010
+    title: "禁止混放 DTO 與 Enum"
+    description: "Dto 目錄不得放 enum；Enums 目錄不得放 DTO class 或其他 class；enum 不得放在 UseCase 根目錄。"
+    severity: error
+    enforcement: automated
+    remediation: "將 DTO 與 enum 分別移到該 UseCase 的 Dto 與 Enums 同層目錄。"
+    exceptions: []
+
+  - id: V3-PN-UC-PRO-011
+    title: "禁止 Repository 具體實作留在 Application"
+    description: "Application 只能擁有 IGameRepository 契約，不得實作 GameRepository 或決定 singleton 生命週期。"
+    severity: error
+    enforcement: automated
+    remediation: "把實作放到 Infrastructure/Repositories/_Game，並由 AddInfrastructure 註冊。"
+    exceptions: []

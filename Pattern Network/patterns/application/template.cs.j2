@@ -1,0 +1,19 @@
+namespace {{ namespace_name }}
+{
+    public class {{ operation.name }}UseCase
+    {
+{% for dependency in dependencies %}
+        private {{ dependency.type }} _{{ dependency.name }};
+{% endfor %}
+
+        public {{ operation.name }}UseCase({{ constructor_parameters }})
+        {
+{{ constructor_body | indent(12, true) }}
+        }
+
+        public {{ operation.return_type }} {{ operation.method_name }}({{ operation.parameters }})
+        {
+{{ operation.body | indent(12, true) }}
+        }
+    }
+}

@@ -3,9 +3,6 @@ spec_kind: aggregate_contract
 id: V3-AGG-SNAKE-SNAKE
 aggregate: Snake
 state:
-  - name: snake_id
-    type: SnakeId
-    required: true
   - name: body_cells
     type: List<GridPosition>
     required: true
@@ -17,8 +14,6 @@ state:
     type: Direction
     required: false
 value_objects:
-  - name: SnakeId
-    kind: opaque_identity
   - name: SnakeMovementPlan
     fields:
       - name: next_head

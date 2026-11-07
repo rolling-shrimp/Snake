@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <RootNamespace>Snake.Test</RootNamespace>
+    <AssemblyName>Snake.Test</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+    <PackageReference Include="xunit" Version="2.5.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Core\Snake.Domain\Snake.Domain.csproj" />
+    <ProjectReference Include="..\..\Core\Snake.Application\Snake.Application.csproj" />
+    <ProjectReference Include="..\..\Core\Snake.Infrastructure\Snake.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\App\Snake.WinForms\Snake.WinForms.csproj" />
+  </ItemGroup>
+</Project>

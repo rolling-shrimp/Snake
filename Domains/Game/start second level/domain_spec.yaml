@@ -1,0 +1,36 @@
+schema_version: 3
+spec_kind: domain_contract
+id: V3-DOMAIN-GAME-START-SECOND-LEVEL
+domain: StartSecondLevel
+frame_ref: V3-FRAME-GAME-START-SECOND-LEVEL
+aggregate_refs:
+  - V3-AGG-GAME-GAME
+  - V3-AGG-LEVEL-LEVEL
+  - V3-AGG-BOARD-BOARD
+  - V3-AGG-SNAKE-SNAKE
+  - V3-AGG-FOOD-FOOD
+  - V3-AGG-SHIELD-SHIELD
+  - V3-AGG-FIRE-FIRE
+use_case: StartSecondLevel
+input:
+  grain: one_ui_or_tick_request
+  owner: GameForm
+  type: none
+output:
+  grain: no_return_value
+  owner: StartSecondLevelUseCase
+  type: none
+preconditions:
+  - id: V3-DOMAIN-START-SECOND-LEVEL-PRE
+    rule: "目前畫面為第二關 Ready。"
+rules:
+  - id: V3-DOMAIN-START-SECOND-LEVEL-RULE
+    rule: "將第二關設為 Playing，建立普通食物、特殊食物、第一個護盾與火焰。"
+postconditions:
+  - id: V3-DOMAIN-START-SECOND-LEVEL-POST
+    rule: "第二關為 Playing，蛇長為 3 且護盾剩餘次數為 0。"
+invariants:
+  - id: V3-DOMAIN-START-SECOND-LEVEL-INV
+    rule: "所有狀態更新必須維持所引用 Aggregate 的不變式。"
+no_op:
+  - "前置條件不成立時不修改遊戲狀態。"

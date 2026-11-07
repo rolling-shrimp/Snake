@@ -9,8 +9,9 @@ public class PresentationContractValidator
     private const string RenderAcceptanceId = "V3-ACCEPT-GAME-RENDER-SCREEN";
     private const string DirectionInputWorkflowId = "V3-PRES-WF-GAME-HANDLE-DIRECTION-INPUT";
     private const string DirectionInputAcceptanceId = "V3-ACCEPT-GAME-HANDLE-DIRECTION-INPUT";
-    private const string SetSnakeDirectionWorkflowId = "V3-WF-GAME-SET-SNAKE-DIRECTION";
-    private const string ProcessGameTickWorkflowId = "V3-WF-GAME-PROCESS-TICK";
+    private const string SetSnakeDirectionTechnicalId = "V3-TECH-GAME-SET-SNAKE-DIRECTION";
+    private const string GetGameScreenTechnicalId = "V3-TECH-GAME-GET-GAME-SCREEN";
+    private const string GetGameScreenDomainId = "V3-DOMAIN-GAME-GET-GAME-SCREEN";
 
     public PresentationContractValidationResult Validate(string domainsPath, string projectRoot)
     {
@@ -159,6 +160,13 @@ public class PresentationContractValidator
             workflowPath,
             "PRES-RENDER-WORKFLOW",
             issues);
+        ValidateScalarValue(
+            workflow,
+            "technical_ref",
+            GetGameScreenTechnicalId,
+            workflowPath,
+            "PRES-RENDER-WORKFLOW",
+            issues);
 
         List<string> stateRefs = ReadScalarList(
             workflow,
@@ -177,15 +185,16 @@ public class PresentationContractValidator
         YamlMappingNode? input = ReadMapping(workflow, "input", workflowPath, "PRES-RENDER-GRAIN", issues);
         if (input is not null)
         {
-            ValidateScalarValue(input, "model", "GameScreenOutput", workflowPath, "PRES-RENDER-GRAIN", issues);
-            ValidateScalarValue(input, "grain", "one_complete_immutable_screen", workflowPath, "PRES-RENDER-GRAIN", issues);
-            ValidateScalarValue(input, "owner", "application_workflow_result", workflowPath, "PRES-RENDER-GRAIN", issues);
+            ValidateScalarValue(input, "model", "GameScreenDTO", workflowPath, "PRES-RENDER-GRAIN", issues);
+            ValidateScalarValue(input, "grain", "one_complete_game_screen", workflowPath, "PRES-RENDER-GRAIN", issues);
+            ValidateScalarValue(input, "owner", "GetGameScreenUseCase", workflowPath, "PRES-RENDER-GRAIN", issues);
         }
 
         YamlMappingNode? output = ReadMapping(workflow, "output", workflowPath, "PRES-RENDER-GRAIN", issues);
         if (output is not null)
         {
-            ValidateScalarValue(output, "grain", "one_atomic_rendered_screen", workflowPath, "PRES-RENDER-GRAIN", issues);
+            ValidateScalarValue(output, "grain", "changed_ui_controls_and_board_cells", workflowPath, "PRES-RENDER-GRAIN", issues);
+            ValidateScalarValue(output, "owner", "GameForm", workflowPath, "PRES-RENDER-GRAIN", issues);
         }
 
         YamlMappingNode? renderPolicy = ReadMapping(
@@ -198,12 +207,10 @@ public class PresentationContractValidator
         {
             Dictionary<string, string> expectedRenderPolicy = new Dictionary<string, string>(StringComparer.Ordinal)
             {
-                ["state_selection"] = "exactly_one_by_screen_kind",
-                ["control_identity"] = "preserve_semantic_control_identity",
-                ["board_update"] = "create_once_then_reuse",
-                ["layout_update"] = "apply_while_hidden_then_commit_once",
-                ["visibility"] = "apply_required_and_forbidden_atomically",
-                ["idempotence"] = "same_input_preserves_controls_and_visible_result"
+                ["owner"] = "GameForm",
+                ["method"] = "ApplyScreen",
+                ["board_update"] = "create_once_then_update_changed_cells",
+                ["visibility"] = "update_only_when_value_changes"
             };
             foreach (KeyValuePair<string, string> policy in expectedRenderPolicy)
             {
@@ -225,61 +232,48 @@ public class PresentationContractValidator
             issues);
         if (runtimePolicy is not null)
         {
-            ValidateScalarValue(
-                runtimePolicy,
-                "ui_event_boundary",
-                "one_application_workflow_call_per_event",
-                workflowPath,
-                "PRES-RUNTIME-POLICY",
-                issues);
-            ValidateScalarValue(
-                runtimePolicy,
-                "timer_ownership",
-                "event_source_only_renderer_forbidden",
-                workflowPath,
-                "PRES-RUNTIME-POLICY",
-                issues);
-            ValidateExactSequence(
-                ReadScalarList(
+            Dictionary<string, string> expectedRuntimePolicy = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["event_owner"] = "GameForm",
+                ["use_case_order_owner"] = "GameForm",
+                ["timer_interval_ms"] = "250",
+                ["move_calls_per_tick"] = "1",
+                ["accumulated_time_allowed"] = "false",
+                ["catch_up_loop_allowed"] = "false"
+            };
+            foreach (KeyValuePair<string, string> policy in expectedRuntimePolicy)
+            {
+                ValidateScalarValue(
                     runtimePolicy,
-                    "result_application_order",
+                    policy.Key,
+                    policy.Value,
                     workflowPath,
                     "PRES-RUNTIME-POLICY",
-                    issues),
-                new[] { "get_complete_result", "apply_runtime_directive", "render_game_screen_once" },
-                "PRES-RUNTIME-POLICY",
-                workflowPath,
-                "UI 套用 Result 的順序不正確",
-                issues);
+                    issues);
+            }
+
             ValidateExactSet(
                 ReadScalarList(
                     runtimePolicy,
-                    "forbidden_dependencies",
-                    workflowPath,
-                    "PRES-RUNTIME-POLICY",
-                    issues),
-                new[] { "ApplicationService", "UseCase", "GameSession", "Entity" },
-                "PRES-RUNTIME-POLICY",
-                workflowPath,
-                "Renderer 的禁止依賴集合不完整",
-                issues);
-            ValidateExactSet(
-                ReadScalarList(
-                    runtimePolicy,
-                    "forbidden_behaviors",
+                    "forbidden_roles",
                     workflowPath,
                     "PRES-RUNTIME-POLICY",
                     issues),
                 new[]
                 {
-                    "session_driven_orchestration",
-                    "follow_up_workflow_to_complete_result",
-                    "intermediate_state_rendering",
-                    "clear_and_rebuild_unchanged_controls"
+                    "Presenter",
+                    "IGameView",
+                    "Controller",
+                    "GameExecutor",
+                    "GameRender",
+                    "Renderer",
+                    "ViewModel",
+                    "Display",
+                    "custom_Control"
                 },
                 "PRES-RUNTIME-POLICY",
                 workflowPath,
-                "Renderer 的禁止行為集合不完整",
+                "UI 的禁止角色集合不完整",
                 issues);
         }
 
@@ -306,8 +300,8 @@ public class PresentationContractValidator
             issues);
         ValidateScalarValue(
             workflow,
-            "workflow_ref",
-            SetSnakeDirectionWorkflowId,
+            "technical_ref",
+            SetSnakeDirectionTechnicalId,
             workflowPath,
             "PRES-DIRECTION-WORKFLOW",
             issues);
@@ -323,14 +317,14 @@ public class PresentationContractValidator
             ValidateScalarValue(
                 input,
                 "grain",
-                "one_declared_direction_command_key_message",
+                "one_direction_key_message",
                 workflowPath,
                 "PRES-DIRECTION-GRAIN",
                 issues);
             ValidateScalarValue(
                 input,
                 "owner",
-                "winforms_message_preprocessing",
+                "GameForm",
                 workflowPath,
                 "PRES-DIRECTION-GRAIN",
                 issues);
@@ -346,8 +340,22 @@ public class PresentationContractValidator
         {
             ValidateScalarValue(
                 output,
+                "model",
+                "SnakeDirectionDTO",
+                workflowPath,
+                "PRES-DIRECTION-GRAIN",
+                issues);
+            ValidateScalarValue(
+                output,
                 "grain",
                 "one_direction_request",
+                workflowPath,
+                "PRES-DIRECTION-GRAIN",
+                issues);
+            ValidateScalarValue(
+                output,
+                "owner",
+                "GameForm",
                 workflowPath,
                 "PRES-DIRECTION-GRAIN",
                 issues);
@@ -363,11 +371,10 @@ public class PresentationContractValidator
         {
             Dictionary<string, string> expectedRuntimePolicy = new Dictionary<string, string>(StringComparer.Ordinal)
             {
-                ["delivery_stage"] = "process_cmd_key_before_control_navigation",
-                ["focus_scope"] = "form_and_descendant_controls",
-                ["dispatch_count"] = "exactly_once_per_declared_key_message",
-                ["handled_result"] = "true_for_declared_direction_keys",
-                ["undeclared_input"] = "delegate_to_base_winforms"
+                ["delivery_stage"] = "ProcessCmdKey",
+                ["focus_independent"] = "true",
+                ["dispatch_count"] = "exactly_once",
+                ["parallel_key_down_path_allowed"] = "false"
             };
             foreach (KeyValuePair<string, string> policy in expectedRuntimePolicy)
             {
@@ -388,18 +395,7 @@ public class PresentationContractValidator
                 issues);
             if (directionMapping is not null)
             {
-                ValidateExactScalarMapping(
-                    directionMapping,
-                    new Dictionary<string, string>(StringComparer.Ordinal)
-                    {
-                        ["Up"] = "Up",
-                        ["Down"] = "Down",
-                        ["Left"] = "Left",
-                        ["Right"] = "Right"
-                    },
-                    workflowPath,
-                    "PRES-DIRECTION-MAPPING",
-                    issues);
+                ValidateDirectionVectorMapping(directionMapping, workflowPath, issues);
             }
         }
 
@@ -469,7 +465,7 @@ public class PresentationContractValidator
             ValidateScalarValue(
                 relation,
                 "target_ref",
-                ProcessGameTickWorkflowId,
+                GetGameScreenDomainId,
                 statePath,
                 "PRES-APPLICATION-OUTPUT",
                 issues);
@@ -717,36 +713,46 @@ public class PresentationContractValidator
         }
     }
 
-    private void ValidateExactScalarMapping(
-        YamlMappingNode actual,
-        Dictionary<string, string> expected,
+    private void ValidateDirectionVectorMapping(
+        YamlMappingNode directionMapping,
         string path,
-        string ruleId,
         List<GateIssue> issues)
     {
-        Dictionary<string, string> actualValues = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (KeyValuePair<YamlNode, YamlNode> child in actual.Children)
+        Dictionary<string, string> expectedVectors = new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            if (child.Key is not YamlScalarNode key
-                || string.IsNullOrWhiteSpace(key.Value)
-                || child.Value is not YamlScalarNode value
-                || string.IsNullOrWhiteSpace(value.Value))
-            {
-                issues.Add(CreateIssue(ruleId, path, "direction_mapping 的鍵和值都必須是非空 scalar。"));
-                continue;
-            }
+            ["Up"] = "0,-1",
+            ["Down"] = "0,1",
+            ["Left"] = "-1,0",
+            ["Right"] = "1,0"
+        };
+        HashSet<string> actualKeys = directionMapping.Children.Keys
+            .OfType<YamlScalarNode>()
+            .Where(key => !string.IsNullOrWhiteSpace(key.Value))
+            .Select(key => key.Value!)
+            .ToHashSet(StringComparer.Ordinal);
 
-            actualValues[key.Value] = value.Value;
-        }
-
-        if (actualValues.Count != expected.Count
-            || expected.Any(pair => !actualValues.TryGetValue(pair.Key, out string? value)
-                || !string.Equals(value, pair.Value, StringComparison.Ordinal)))
+        if (!actualKeys.SetEquals(expectedVectors.Keys))
         {
             issues.Add(CreateIssue(
-                ruleId,
+                "PRES-DIRECTION-MAPPING",
                 path,
-                "direction_mapping 必須恰好包含 Up、Down、Left、Right 的同名映射。"));
+                "direction_mapping 必須恰好包含 Up、Down、Left、Right。"));
+            return;
+        }
+
+        foreach (KeyValuePair<string, string> expectedVector in expectedVectors)
+        {
+            if (!directionMapping.Children.TryGetValue(
+                    new YamlScalarNode(expectedVector.Key),
+                    out YamlNode? vectorNode)
+                || vectorNode is not YamlMappingNode vector
+                || $"{ReadScalar(vector, "x")},{ReadScalar(vector, "y")}" != expectedVector.Value)
+            {
+                issues.Add(CreateIssue(
+                    "PRES-DIRECTION-MAPPING",
+                    path,
+                    $"{expectedVector.Key} 必須映射到向量 {expectedVector.Value}。"));
+            }
         }
     }
 

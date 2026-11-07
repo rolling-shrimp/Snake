@@ -1,0 +1,21 @@
+schema_version: 3
+spec_kind: problem_frame
+id: V3-FRAME-GAME-HANDLE-SELF-COLLISION
+frame:
+  name: handle-self-collision
+  type: RBF
+  bounded_context: snake-game
+  requirement: "蛇下一格撞到自身時形成致命事件，且不提交重疊蛇身。"
+problem_domains:
+  - name: SnakeGame
+    kind: designed
+shared_phenomena:
+  - name: tick_state_evaluated
+    source: SnakeGame
+    receiver: SnakeGame
+world_facts:
+  - id: V3-FRAME-FACT-HANDLE-SELF-COLLISION
+    fact: "在移動提交前辨識自身碰撞並記錄死亡原因，舊蛇身保持有效。"
+frame_concerns:
+  - id: V3-FRAME-CONCERN-HANDLE-SELF-COLLISION
+    concern: "蛇身沒有重疊，且目前 Tick 存在自身碰撞致命事件。"

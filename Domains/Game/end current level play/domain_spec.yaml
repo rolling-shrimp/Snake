@@ -1,0 +1,32 @@
+schema_version: 3
+spec_kind: domain_contract
+id: V3-DOMAIN-GAME-END-CURRENT-LEVEL-PLAY
+domain: EndCurrentLevelPlay
+frame_ref: V3-FRAME-GAME-END-CURRENT-LEVEL-PLAY
+aggregate_refs:
+  - V3-AGG-GAME-GAME
+  - V3-AGG-LEVEL-LEVEL
+  - V3-AGG-GAMERESULT-GAMERESULT
+use_case: EndCurrentLevelPlay
+input:
+  grain: one_ui_or_tick_request
+  owner: GameForm
+  type: none
+output:
+  grain: no_return_value
+  owner: EndCurrentLevelPlayUseCase
+  type: none
+preconditions:
+  - id: V3-DOMAIN-END-CURRENT-LEVEL-PLAY-PRE
+    rule: "目前關卡已標記通過，或存在尚未被護盾處理的致命事件。"
+rules:
+  - id: V3-DOMAIN-END-CURRENT-LEVEL-PLAY-RULE
+    rule: "通過時保存成績；無護盾死亡時設定 Game Over；兩者皆停止目前關卡 runtime。"
+postconditions:
+  - id: V3-DOMAIN-END-CURRENT-LEVEL-PLAY-POST
+    rule: "目前關卡不再 Playing，最終蛇長與結果已保存。"
+invariants:
+  - id: V3-DOMAIN-END-CURRENT-LEVEL-PLAY-INV
+    rule: "公開結果與狀態修改必須來自同一份已提交領域狀態。"
+no_op:
+  - "前置條件不成立時不修改遊戲狀態。"

@@ -14,48 +14,38 @@ public class CSharpSnakeMovementTopologyChecker : IGateChecker
     public GateCheckResult Check(SpecificationInventory inventory)
     {
         ArgumentNullException.ThrowIfNull(inventory);
-        string snakePath = Path.Combine(_projectRoot, "Snake.Entities", "Snake.cs");
-        string boardPath = Path.Combine(_projectRoot, "Snake.Entities", "Board.cs");
-        string servicePath = Path.Combine(_projectRoot, "Snake.UseCases", "SnakeGameApplicationService.cs");
-        string testsPath = Path.Combine(_projectRoot, "Snake.Test", "SnakeMovementPlanTests.cs");
+        string snakePath = Path.Combine(_projectRoot, "Core", "Snake.Domain", "Snake.cs");
+        string useCasePath = Path.Combine(
+            _projectRoot,
+            "Core",
+            "Snake.Application",
+            "_MoveSnakeUseCase",
+            "MoveSnakeUseCase.cs");
+        string testsPath = Path.Combine(_projectRoot, "Test", "Snake.Test", "MoveSnakeUseCaseTests.cs");
         List<GateIssue> issues = new List<GateIssue>();
         RequireTokens(
             snakePath,
             new List<string>
             {
-                "PlanMovement(",
-                "CommitMovement(",
-                "ResetSafely(",
-                "Take(_bodyCells.Count - 1)",
-                "growthDelta == 2"
-            },
-            issues);
-        RequireTokens(
-            boardPath,
-            new List<string>
-            {
                 "IsContinuous(",
-                "GetTailExtensionCandidates(",
-                "FindSafeBody("
+                "ReplaceBodyCells("
             },
             issues);
         RequireTokens(
-            servicePath,
+            useCasePath,
             new List<string>
             {
-                "FoodType.Ordinary => 1",
-                "FoodType.Special => 2",
-                "PlanMovement(",
-                "CommitMovement("
+                "class MoveSnakeUseCase",
+                "void MoveSnake(",
+                "ReplaceBodyCells("
             },
             issues);
         RequireTokens(
             testsPath,
             new List<string>
             {
-                "PlanMovement_ExcludesDepartingTailFromNormalMoveCollisionCells",
-                "PlanMovement_SelectsFirstLegalSpecialFoodTailCandidate",
-                "CommitMovement_RejectsAPlanWhoseBodyIsNotContinuous"
+                "MoveSnake_MovesExactlyOneCell",
+                "MoveSnake_PreservesOrderedUniqueContinuousBody"
             },
             issues);
 
@@ -64,9 +54,8 @@ public class CSharpSnakeMovementTopologyChecker : IGateChecker
             string snakeSource = File.ReadAllText(snakePath);
             List<string> forbiddenMutators = new List<string>
             {
-                "public void MoveTo(",
-                "public void Grow(",
-                "public void Reset("
+                "public void Move(",
+                "class MoveSnakeUseCase"
             };
             foreach (string mutator in forbiddenMutators)
             {
@@ -76,7 +65,23 @@ public class CSharpSnakeMovementTopologyChecker : IGateChecker
                     issues.Add(CreateIssue(
                         snakePath,
                         GetLine(snakeSource, index),
-                        $"舊蛇身 mutation 會繞過移動計畫契約：{mutator}。"));
+                        $"Domain 不得重複擁有完整 MoveSnake Use Case：{mutator}。"));
+                }
+            }
+        }
+
+        if (File.Exists(useCasePath))
+        {
+            string useCaseSource = File.ReadAllText(useCasePath);
+            foreach (string forbiddenToken in new[] { "DateTime", "Stopwatch", "while (", "for (" })
+            {
+                int index = useCaseSource.IndexOf(forbiddenToken, StringComparison.Ordinal);
+                if (index >= 0)
+                {
+                    issues.Add(CreateIssue(
+                        useCasePath,
+                        GetLine(useCaseSource, index),
+                        $"MoveSnakeUseCase 一次呼叫不得使用累積時間或迴圈補跑：{forbiddenToken}。"));
                 }
             }
         }
@@ -88,15 +93,14 @@ public class CSharpSnakeMovementTopologyChecker : IGateChecker
             new List<string>(),
             new List<string>
             {
-                "V3-SCN-TICK-MOVE-INTO-LEAVING-TAIL",
-                "V3-SCN-TICK-ORDINARY-FOOD-GROWTH",
-                "V3-SCN-TICK-SPECIAL-FOOD-CANDIDATE-ORDER",
-                "V3-SCN-TICK-SPECIAL-FOOD-ATOMIC-ROLLBACK"
+                "V3-SCN-MOVE-SNAKE-RIGHT-ONCE",
+                "V3-SCN-MOVE-SNAKE-NO-CATCH-UP",
+                "V3-SCN-MOVE-SNAKE-PRESERVES-TOPOLOGY"
             },
             new List<string>
             {
                 $"aggregate:{snakePath}",
-                $"board:{boardPath}",
+                $"use-case:{useCasePath}",
                 $"behavioral-tests:{testsPath}"
             },
             issues);

@@ -3,30 +3,14 @@ spec_kind: journey_contract
 id: V3-JOURNEY-GAME-PLAY
 journey: PlayGame
 states:
-  - id: V3-JOURNEY-STATE-FIRST-READY
-    screen_ref: V3-PRES-STATE-GAME-FIRST-LEVEL-READY
-    round_state: active
-  - id: V3-JOURNEY-STATE-FIRST-PLAYING
-    screen_ref: V3-PRES-STATE-GAME-FIRST-LEVEL-PLAYING
-    round_state: active
-  - id: V3-JOURNEY-STATE-SECOND-READY
-    screen_ref: V3-PRES-STATE-GAME-SECOND-LEVEL-READY
-    round_state: active
-  - id: V3-JOURNEY-STATE-SECOND-PLAYING
-    screen_ref: V3-PRES-STATE-GAME-SECOND-LEVEL-PLAYING
-    round_state: active
-  - id: V3-JOURNEY-STATE-THIRD-READY
-    screen_ref: V3-PRES-STATE-GAME-THIRD-LEVEL-READY
-    round_state: active
-  - id: V3-JOURNEY-STATE-THIRD-PLAYING
-    screen_ref: V3-PRES-STATE-GAME-THIRD-LEVEL-PLAYING
-    round_state: active
-  - id: V3-JOURNEY-STATE-GAME-OVER
-    screen_ref: V3-PRES-STATE-GAME-GAME-OVER
-    round_state: terminal
-  - id: V3-JOURNEY-STATE-GAME-COMPLETED
-    screen_ref: V3-PRES-STATE-GAME-GAME-COMPLETED
-    round_state: terminal
+  - { id: FirstLevelReady, round_state: active }
+  - { id: FirstLevelPlaying, round_state: active }
+  - { id: SecondLevelReady, round_state: active }
+  - { id: SecondLevelPlaying, round_state: active }
+  - { id: ThirdLevelReady, round_state: active }
+  - { id: ThirdLevelPlaying, round_state: active }
+  - { id: GameOver, round_state: terminal }
+  - { id: GameCompleted, round_state: terminal }
 state_refs:
   - V3-PRES-STATE-GAME-FIRST-LEVEL-READY
   - V3-PRES-STATE-GAME-FIRST-LEVEL-PLAYING
@@ -37,48 +21,69 @@ state_refs:
   - V3-PRES-STATE-GAME-GAME-OVER
   - V3-PRES-STATE-GAME-GAME-COMPLETED
 transitions:
-  - id: V3-JOURNEY-TRANSITION-START-LEVEL
-    from: [FirstLevelReady, SecondLevelReady, ThirdLevelReady]
-    workflow_ref: V3-WF-GAME-START-CURRENT-LEVEL
-    to: [FirstLevelPlaying, SecondLevelPlaying, ThirdLevelPlaying]
+  - id: V3-JOURNEY-TRANSITION-START-FIRST
+    from: FirstLevelReady
+    domain_ref: V3-DOMAIN-GAME-START-FIRST-LEVEL
+    to: FirstLevelPlaying
+  - id: V3-JOURNEY-TRANSITION-START-SECOND
+    from: SecondLevelReady
+    domain_ref: V3-DOMAIN-GAME-START-SECOND-LEVEL
+    to: SecondLevelPlaying
+  - id: V3-JOURNEY-TRANSITION-START-THIRD
+    from: ThirdLevelReady
+    domain_ref: V3-DOMAIN-GAME-START-THIRD-LEVEL
+    to: ThirdLevelPlaying
   - id: V3-JOURNEY-TRANSITION-DIRECTION
     from: [FirstLevelPlaying, SecondLevelPlaying, ThirdLevelPlaying]
-    workflow_ref: V3-WF-GAME-SET-SNAKE-DIRECTION
+    domain_ref: V3-DOMAIN-GAME-SET-SNAKE-DIRECTION
     to: same_playing_state
-  - id: V3-JOURNEY-TRANSITION-TICK-CONTINUE
+  - id: V3-JOURNEY-TRANSITION-TICK
     from: [FirstLevelPlaying, SecondLevelPlaying, ThirdLevelPlaying]
-    workflow_ref: V3-WF-GAME-PROCESS-TICK
-    to: same_playing_state
-  - id: V3-JOURNEY-TRANSITION-FIRST-PASSED
-    from: [FirstLevelPlaying]
-    workflow_ref: V3-WF-GAME-PROCESS-TICK
-    to: [SecondLevelReady]
-  - id: V3-JOURNEY-TRANSITION-SECOND-PASSED
-    from: [SecondLevelPlaying]
-    workflow_ref: V3-WF-GAME-PROCESS-TICK
-    to: [ThirdLevelReady]
-  - id: V3-JOURNEY-TRANSITION-THIRD-PASSED
-    from: [ThirdLevelPlaying]
-    workflow_ref: V3-WF-GAME-PROCESS-TICK
-    to: [GameCompleted]
-  - id: V3-JOURNEY-TRANSITION-DEATH
-    from: [FirstLevelPlaying, SecondLevelPlaying, ThirdLevelPlaying]
-    workflow_ref: V3-WF-GAME-PROCESS-TICK
-    to: [GameOver]
+    owner: GameForm
+    use_case_order:
+      - UpdateThirdLevelDoorState
+      - HandleSelfCollision
+      - HandleWallCollision
+      - HandleClosedDoorCollision
+      - MoveSnake
+      - HandleOrdinaryFoodContact
+      - HandleSpecialFoodContact
+      - HandleShieldContact
+      - HandleFireContact
+      - HandleBombContact
+      - RescueWithShield
+      - EvaluateLevelCompletion
+      - EndCurrentLevelPlay
+      - PrepareNextLevel
+      - ReplenishTriggeredObject
+      - GetGameScreen
+    to: [same_playing_state, next_level_ready, GameOver, GameCompleted]
   - id: V3-JOURNEY-TRANSITION-RESTART
     from: [GameOver, GameCompleted]
-    workflow_ref: V3-WF-GAME-RESTART
-    to: [FirstLevelPlaying]
-  - id: V3-JOURNEY-TRANSITION-OBSERVE
-    from: any_state
-    workflow_ref: V3-WF-GAME-GET-CURRENT-SCREEN
-    to: same_state
-workflow_refs:
-  - V3-WF-GAME-START-CURRENT-LEVEL
-  - V3-WF-GAME-SET-SNAKE-DIRECTION
-  - V3-WF-GAME-PROCESS-TICK
-  - V3-WF-GAME-RESTART
-  - V3-WF-GAME-GET-CURRENT-SCREEN
+    domain_ref: V3-DOMAIN-GAME-RESTART-GAME
+    to: FirstLevelPlaying
+domain_contract_refs:
+  - V3-DOMAIN-GAME-START-FIRST-LEVEL
+  - V3-DOMAIN-GAME-START-SECOND-LEVEL
+  - V3-DOMAIN-GAME-START-THIRD-LEVEL
+  - V3-DOMAIN-GAME-SET-SNAKE-DIRECTION
+  - V3-DOMAIN-GAME-UPDATE-THIRD-LEVEL-DOOR-STATE
+  - V3-DOMAIN-GAME-MOVE-SNAKE
+  - V3-DOMAIN-GAME-HANDLE-ORDINARY-FOOD-CONTACT
+  - V3-DOMAIN-GAME-HANDLE-SPECIAL-FOOD-CONTACT
+  - V3-DOMAIN-GAME-HANDLE-SHIELD-CONTACT
+  - V3-DOMAIN-GAME-HANDLE-FIRE-CONTACT
+  - V3-DOMAIN-GAME-HANDLE-BOMB-CONTACT
+  - V3-DOMAIN-GAME-HANDLE-SELF-COLLISION
+  - V3-DOMAIN-GAME-HANDLE-WALL-COLLISION
+  - V3-DOMAIN-GAME-HANDLE-CLOSED-DOOR-COLLISION
+  - V3-DOMAIN-GAME-RESCUE-WITH-SHIELD
+  - V3-DOMAIN-GAME-EVALUATE-LEVEL-COMPLETION
+  - V3-DOMAIN-GAME-END-CURRENT-LEVEL-PLAY
+  - V3-DOMAIN-GAME-PREPARE-NEXT-LEVEL
+  - V3-DOMAIN-GAME-REPLENISH-TRIGGERED-OBJECT
+  - V3-DOMAIN-GAME-RESTART-GAME
+  - V3-DOMAIN-GAME-GET-GAME-SCREEN
 terminal_states:
   - GameOver
   - GameCompleted

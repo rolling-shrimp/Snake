@@ -1,0 +1,26 @@
+schema_version: 3
+spec_kind: problem_frame
+id: V3-FRAME-GAME-RESTART-GAME
+frame:
+  name: restart-game
+  type: RIF
+  bounded_context: snake-game
+  requirement: "玩家在 Game Over 或完成第三關後按下重玩，直接重新開始第一關。"
+problem_domains:
+  - name: SnakeGame
+    kind: designed
+  - name: Player
+    kind: biddable
+shared_phenomena:
+  - name: use_case_requested
+    source: Player
+    receiver: SnakeGame
+  - name: result_observed
+    source: SnakeGame
+    receiver: Player
+world_facts:
+  - id: V3-FRAME-FACT-RESTART-GAME
+    fact: "清除整輪結果、物件、蛇長與護盾紀錄，重新建立第一關 Playing 狀態及普通食物。"
+frame_concerns:
+  - id: V3-FRAME-CONCERN-RESTART-GAME
+    concern: "第一關為 Playing，蛇長為 3、進度為 15%，普通食物已準備。"

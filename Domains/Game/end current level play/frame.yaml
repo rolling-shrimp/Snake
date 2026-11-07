@@ -1,0 +1,26 @@
+schema_version: 3
+spec_kind: problem_frame
+id: V3-FRAME-GAME-END-CURRENT-LEVEL-PLAY
+frame:
+  name: end-current-level-play
+  type: RIF
+  bounded_context: snake-game
+  requirement: "關卡通過或無護盾死亡後，停止目前關卡的移動、操作與物件產生。"
+problem_domains:
+  - name: SnakeGame
+    kind: designed
+  - name: Player
+    kind: biddable
+shared_phenomena:
+  - name: use_case_requested
+    source: Player
+    receiver: SnakeGame
+  - name: result_observed
+    source: SnakeGame
+    receiver: Player
+world_facts:
+  - id: V3-FRAME-FACT-END-CURRENT-LEVEL-PLAY
+    fact: "通過時保存成績；無護盾死亡時設定 Game Over；兩者皆停止目前關卡 runtime。"
+frame_concerns:
+  - id: V3-FRAME-CONCERN-END-CURRENT-LEVEL-PLAY
+    concern: "目前關卡不再 Playing，最終蛇長與結果已保存。"

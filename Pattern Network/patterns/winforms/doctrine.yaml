@@ -11,70 +11,85 @@ pattern_node:
   role: outer_ui
 
 project:
+  solution_folder: App
   target_framework: net8.0-windows
   use_windows_forms: true
   allowed_project_references:
-    - UseCases
+    - Application
+    - Infrastructure
+  required_package_references:
+    - name: Microsoft.Extensions.DependencyInjection
+      version: 8.0.1
 
 responsibility:
   owns:
-    - form
-    - view_interface
-    - presenter
-    - view_model
+    - game_form
     - input_event_mapping
-    - atomic_renderer
     - timer_event_source
+    - use_case_execution_order
+    - changed_ui_rendering
     - composition_root
     - outer_port_implementation
   excludes:
     - domain_invariant
-    - application_business_decision
-    - direct_entity_access
+    - domain_calculation
+    - direct_domain_access
+    - application_use_case_implementation
 
 contract:
-  input_grain: keyboard_mouse_or_timer_event
-  output_grain: atomic_rendered_screen
+  input_grain: one_keyboard_mouse_button_or_timer_event
+  output_grain: changed_ui_controls_and_board_cells
   owner: WinForms
-  presentation_pattern: passive_view_presenter
+  ui_roles:
+    form: GameForm
 
 rules:
   - id: V3-PN-UI-001
-    title: "Form 是 Passive View"
-    statement: "Form 只把 WinForms 事件轉送給 Presenter，並依 ViewModel 更新控制項或繪圖。"
-    enforcement: manual
+    title: "WinForms 使用一個明確 UI 角色"
+    statement: "遊戲 UI 由 GameForm 擁有；不得為套用模式額外建立 GameExecutor、GameRender、Presenter、IGameView、Controller、Renderer、Display 或 ViewModel 層。"
+    enforcement: automated
 
   - id: V3-PN-UI-002
-    title: "Presenter 不依賴 WinForms 控制項"
-    statement: "Presenter 只能依賴 View Interface 與 Use Case，不得繼承或保存 Form、Control。"
+    title: "GameForm 擁有 WinForms 事件與 UseCase 順序"
+    statement: "GameForm 接收 Timer、方向鍵、開始與重玩事件，並依事件直接呼叫透過 constructor injection 取得的 Application UseCase；GameForm 不計算領域結果。"
     enforcement: automated
 
   - id: V3-PN-UI-003
-    title: "UI 不直接使用 Entities"
-    statement: "WinForms 不得直接參考 Entities 專案或以 Entity 作為 UI 契約。"
+    title: "GameForm 直接顯示 Application DTO"
+    statement: "GameForm 只依 GameScreenDTO 建立及更新 WinForms 控制項，不直接讀取 Domain，也不建立 Presenter、Renderer 或其他 UI 中介角色。"
     enforcement: automated
 
   - id: V3-PN-UI-004
-    title: "一個 UI 事件只呼叫一個完整 Workflow"
-    statement: "Presenter 對每個 UI 事件只呼叫一個完整 Application Workflow Method，再機械式套用 RuntimeDirective 與完整畫面輸出。"
-    enforcement: manual
+    title: "GameForm 只更新變動的畫面內容"
+    statement: "GameForm 建立棋盤格與狀態控制項一次；後續畫面套用只更新值有變化的控制項及棋盤格，不得每個 Tick 清空控制項、重建整個版面或重畫全部棋盤。"
+    enforcement: automated
 
   - id: V3-PN-UI-005
-    title: "Program 是 Composition Root"
-    statement: "Program.cs 使用頂層陳述式建立實作、Use Case、Presenter 與 Form 的依賴關係。"
+    title: "UI 不直接使用 Domain"
+    statement: "WinForms 不得直接參考 Domain 專案或以 Domain type 作為 UI 契約；GameForm 只使用 Application 公開型別。"
     enforcement: automated
 
   - id: V3-PN-UI-006
-    title: "Designer 產生碼例外"
-    statement: "Visual Studio 產生的 *.Designer.cs 可以使用 partial；手寫 Presenter、ViewModel 與其他類別仍遵守根層規則。"
+    title: "Program 是 Composition Root"
+    statement: "Program.cs 使用 ChiaTech 形式的 internal static class Program、[STAThread] 與 static void Main()；Main 建立 ServiceCollection、呼叫 AddApplication 與 AddInfrastructure、註冊 GameForm 與外層 adapter，最後解析 GameForm。"
     enforcement: automated
 
   - id: V3-PN-UI-007
-    title: "Renderer 與事件來源分離"
-    statement: "Renderer 只提交完整畫面，不得啟停 Timer、呼叫 UseCases、執行商業判斷或重建未變更的控制項樹。"
-    enforcement: manual
+    title: "WinForms Form partial 例外"
+    statement: "同一個 GameForm 可以依職責分散在 GameForm*.cs 並使用 partial；這些檔案仍只形成一個 GameForm 物件，其他手寫類別遵守根層普通 public class 規則。"
+    enforcement: automated
 
   - id: V3-PN-UI-008
-    title: "導覽鍵輸入必須在控制項導覽前交付"
-    statement: "Form 宣告為輸入的方向或導覽鍵必須由 ProcessCmdKey 優先轉成單一 Presentation 事件，且不受子控制項焦點影響。"
+    title: "方向鍵只有一條輸入路徑"
+    statement: "GameForm 由 ProcessCmdKey 優先將 Up、Down、Left、Right 轉成一個方向輸入，且同一按鍵不得再由 KeyDown 重複派送。"
+    enforcement: automated
+
+  - id: V3-PN-UI-009
+    title: "一次 Timer Tick 只前進一格"
+    statement: "GameForm 每個 250ms Timer Tick 依固定順序直接呼叫 UseCase，且只呼叫一次 MoveSnakeUseCase；不得傳遞累積時間、迴圈補跑或在一次 UI Tick 內重複移動。"
+    enforcement: automated
+
+  - id: V3-PN-UI-010
+    title: "WinForms 物件由 DI 建立"
+    statement: "GameForm 與外層 adapter 由 Microsoft DI container 建立；GameForm 的 UseCase 依賴全部透過 constructor injection；只有 Program.Main 可以解析 root object。"
     enforcement: automated

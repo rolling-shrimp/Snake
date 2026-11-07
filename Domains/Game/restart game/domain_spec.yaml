@@ -1,0 +1,35 @@
+schema_version: 3
+spec_kind: domain_contract
+id: V3-DOMAIN-GAME-RESTART-GAME
+domain: RestartGame
+frame_ref: V3-FRAME-GAME-RESTART-GAME
+aggregate_refs:
+  - V3-AGG-GAME-GAME
+  - V3-AGG-LEVEL-LEVEL
+  - V3-AGG-BOARD-BOARD
+  - V3-AGG-SNAKE-SNAKE
+  - V3-AGG-SHIELD-SHIELD
+  - V3-AGG-GAMERESULT-GAMERESULT
+use_case: RestartGame
+input:
+  grain: one_ui_or_tick_request
+  owner: GameForm
+  type: none
+output:
+  grain: no_return_value
+  owner: RestartGameUseCase
+  type: none
+preconditions:
+  - id: V3-DOMAIN-RESTART-GAME-PRE
+    rule: "目前為 Game Over 或 Game Completed。"
+rules:
+  - id: V3-DOMAIN-RESTART-GAME-RULE
+    rule: "清除整輪結果、物件、蛇長與護盾紀錄，重新建立第一關 Playing 狀態及普通食物。"
+postconditions:
+  - id: V3-DOMAIN-RESTART-GAME-POST
+    rule: "第一關為 Playing，蛇長為 3、進度為 15%，普通食物已準備。"
+invariants:
+  - id: V3-DOMAIN-RESTART-GAME-INV
+    rule: "公開結果與狀態修改必須來自同一份已提交領域狀態。"
+no_op:
+  - "前置條件不成立時不修改遊戲狀態。"

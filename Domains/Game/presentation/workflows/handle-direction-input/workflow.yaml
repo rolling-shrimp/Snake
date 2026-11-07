@@ -2,30 +2,27 @@ schema_version: 3
 spec_kind: presentation_workflow
 id: V3-PRES-WF-GAME-HANDLE-DIRECTION-INPUT
 workflow: HandleDirectionInput
-workflow_ref: V3-WF-GAME-SET-SNAKE-DIRECTION
+technical_ref: V3-TECH-GAME-SET-SNAKE-DIRECTION
 input:
   model: WinFormsCommandKeyMessage
-  grain: one_declared_direction_command_key_message
-  owner: winforms_message_preprocessing
+  grain: one_direction_key_message
+  owner: GameForm
   rules:
-    - "宣告的方向鍵恰好為 Up、Down、Left、Right。"
-    - "輸入必須在控制項導覽前交給 Form。"
+    - "Up、Down、Left、Right 由 ProcessCmdKey 在控制項導覽前處理。"
 output:
-  model: DirectionRequestedEventArgs
+  model: SnakeDirectionDTO
   grain: one_direction_request
-  owner: presentation_input_adapter
+  owner: GameForm
   guarantees:
-    - "每個宣告方向鍵訊息恰好送出一次對應方向要求。"
-    - "輸出只包含 Direction，不包含焦點、KeyData 或控制項狀態。"
+    - "每個方向鍵訊息只呼叫一次 SetSnakeDirectionUseCase。"
 runtime_policy:
-  delivery_stage: process_cmd_key_before_control_navigation
-  focus_scope: form_and_descendant_controls
-  dispatch_count: exactly_once_per_declared_key_message
-  handled_result: true_for_declared_direction_keys
-  undeclared_input: delegate_to_base_winforms
+  delivery_stage: ProcessCmdKey
+  focus_independent: true
+  dispatch_count: exactly_once
+  parallel_key_down_path_allowed: false
   direction_mapping:
-    Up: Up
-    Down: Down
-    Left: Left
-    Right: Right
+    Up: { x: 0, y: -1 }
+    Down: { x: 0, y: 1 }
+    Left: { x: -1, y: 0 }
+    Right: { x: 1, y: 0 }
 acceptance_ref: V3-ACCEPT-GAME-HANDLE-DIRECTION-INPUT

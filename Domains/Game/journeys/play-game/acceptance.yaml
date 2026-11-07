@@ -6,116 +6,42 @@ scenarios:
   - id: V3-SCN-JOURNEY-COMPLETE-THREE-LEVELS
     title: "玩家依序完成三關"
     given:
-      initial_screen: FirstLevelReady
+      state: FirstLevelReady
     when:
-      workflow_sequence:
-        - StartCurrentLevel
-        - ProcessGameTick_until_first_level_passed
-        - StartCurrentLevel
-        - ProcessGameTick_until_second_level_passed
-        - StartCurrentLevel
-        - ProcessGameTick_until_third_level_passed
+      use_case_sequence:
+        - StartFirstLevel
+        - Tick_until_first_level_passed
+        - PrepareNextLevel
+        - StartSecondLevel
+        - Tick_until_second_level_passed
+        - PrepareNextLevel
+        - StartThirdLevel
+        - Tick_until_third_level_passed
     then:
-      screen_sequence_contains:
-        - FirstLevelPlaying
-        - SecondLevelReady
-        - SecondLevelPlaying
-        - ThirdLevelReady
-        - ThirdLevelPlaying
-        - GameCompleted
-      level_order: [1, 2, 3]
-      skipped_levels: []
-    evidence: [behavioral]
-  - id: V3-SCN-JOURNEY-DIRECTION-DURING-PLAY
-    title: "實體方向鍵經 Presentation Workflow 影響下一次移動"
-    given:
-      screen: SecondLevelPlaying
-      focused_control: any_form_descendant
-    when:
-      event_sequence:
-        - physical_direction_key_message
-        - HandleDirectionInput
-        - SetSnakeDirection
-        - ProcessGameTick
-    then:
-      direction_requested_count: 1
-      direction_applied_by_next_movement: true
-      direction_workflow_moved_snake: false
-      screen_remains_valid: true
-    evidence: [behavioral, invariant, runtime_ui]
-  - id: V3-SCN-JOURNEY-SHIELD-CONTINUES-ROUND
-    title: "護盾保命後留在同一關 Playing"
-    given:
-      screen: ThirdLevelPlaying
-      remaining_shield_charges: 1
-      next_tick_contains_death_event: true
-    when:
-      workflow: ProcessGameTick
-    then:
-      screen: ThirdLevelPlaying
-      shield_rescued: true
-      start_current_level_required: false
-    evidence: [behavioral, invariant]
+      state: GameCompleted
+      replay_available: true
+    evidence: [behavioral, journey]
   - id: V3-SCN-JOURNEY-DEATH-AND-RESTART
-    title: "死亡後重玩直接進入第一關 Playing"
+    title: "沒有護盾的死亡事件結束遊戲並可重玩"
     given:
-      any_playing_level: true
-      unrescued_death_occurs: true
+      state: any_playing_level
+      shield_count: 0
     when:
-      workflow_sequence: [ProcessGameTick, RestartGame]
+      use_case_sequence: [EndCurrentLevelPlay, GetGameScreen, RestartGame]
     then:
-      intermediate_screen: GameOver
-      final_screen: FirstLevelPlaying
-      first_level_ready_shown_after_restart: false
-      old_round_state_cleared: true
-    evidence: [behavioral]
-  - id: V3-SCN-JOURNEY-COMPLETED-AND-RESTART
-    title: "完成整輪後可開始全新一輪"
+      state: FirstLevelPlaying
+      snake_length: 3
+    evidence: [behavioral, journey]
+  - id: V3-SCN-JOURNEY-TICK-ONE-MOVE
+    title: "一個 UI Timer Tick 只移動一次"
     given:
-      screen: GameCompleted
+      state: any_playing_level
+      timer_interval_ms: 250
     when:
-      workflow: RestartGame
+      owner: GameForm
+      method: OnGameTimerTick
+      call_count: 1
     then:
-      screen: FirstLevelPlaying
-      result_history_count: 0
-      runtime_directive: StartOrReset
-    evidence: [behavioral]
-  - id: V3-SCN-JOURNEY-OBSERVE-ANY-STATE
-    title: "任一狀態都可純查詢目前畫面"
-    given:
-      each_screen_kind_once: true
-    when:
-      workflow: GetCurrentScreen
-    then:
-      same_screen_kind_returned: true
-      domain_state_unchanged: true
-      runtime_directive: Unchanged
-    evidence: [behavioral, invariant]
-  - id: V3-SCN-JOURNEY-ONE-WORKFLOW-PER-UI-EVENT
-    title: "每個 UI event 只進入一個公開 workflow"
-    given:
-      events: [StartButtonClick, DirectionRequested, TimerTick, RestartButtonClick, ScreenQuery]
-    when:
-      ui_events_dispatched: true
-    then:
-      workflow_calls_per_event: 1
-      ui_business_orchestration: false
-      renders_per_result: 1
-    evidence: [static, runtime_ui]
-evidence_requirements:
-  - type: behavioral
-    required: true
-    provider: journey_checker_or_test_suite
-    rule: "必須證明完整三關、死亡、保命與重玩路徑。"
-  - type: invariant
-    required: true
-    provider: aggregate_checker_or_test_suite
-    rule: "必須證明跨 workflow 後仍維持 Aggregate invariant。"
-  - type: static
-    required: true
-    provider: architecture_checker
-    rule: "必須證明 UI event 不串接多個 Application Workflow。"
-  - type: runtime_ui
-    required: true
-    provider: ui_runtime_checker_or_manual_reviewer
-    rule: "必須證明每個 Result 只造成一次完整渲染；產品尚未重構前可為 Audit pending。"
+      MoveSnake_call_count: 1
+      catch_up_loop_used: false
+    evidence: [behavioral, temporal]

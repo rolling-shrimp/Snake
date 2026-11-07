@@ -1,0 +1,15 @@
+schema_version: 3
+spec_kind: acceptance_contract
+id: V3-ACCEPT-GAME-START-FIRST-LEVEL
+contract_ref: V3-DOMAIN-GAME-START-FIRST-LEVEL
+scenarios:
+  - id: V3-SCN-START-FIRST-LEVEL
+    title: "玩家在第一關待開始畫面按下開始後，第一關立即進入遊玩狀態。"
+    given:
+      precondition: "目前畫面為第一關 Ready。"
+    when:
+      operation: StartFirstLevel
+      call_count: 1
+    then:
+      postcondition: "第一關為 Playing，蛇長為 3 且普通食物已準備。"
+    evidence: [behavioral, invariant]

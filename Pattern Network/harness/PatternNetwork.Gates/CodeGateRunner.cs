@@ -1,4 +1,5 @@
 using System.Xml.Linq;
+using System.Text.RegularExpressions;
 
 namespace PatternNetwork.Gates;
 
@@ -60,7 +61,7 @@ public class CodeGateRunner
                 continue;
             }
 
-            string projectDirectory = Path.Combine(solutionDirectory, projectName);
+            string projectDirectory = Path.Combine(solutionDirectory, patternNode.SolutionFolder, projectName);
             string projectPath = Path.Combine(projectDirectory, $"{projectName}.csproj");
             if (!File.Exists(projectPath))
             {
@@ -69,25 +70,46 @@ public class CodeGateRunner
                 continue;
             }
 
-            ValidateSolutionEntry(solutionText, fullSolutionPath, projectName, issues, patternNode);
+            ValidateSolutionEntry(
+                solutionText,
+                fullSolutionPath,
+                projectName,
+                patternNode.SolutionFolder,
+                issues,
+                patternNode);
             ValidateProject(projectPath, projectName, fullSolutionPath, patternNode, issues, ref hasConfigurationError);
             CSharpGateInspector inspector = new CSharpGateInspector();
             issues.AddRange(inspector.Inspect(patternNode, projectDirectory));
         }
 
-        PatternNodeDefinition? selectedUseCaseNode = selectedNodes.FirstOrDefault(node => string.Equals(node.Id, "use-cases", StringComparison.Ordinal));
-        PatternNodeDefinition? entitiesNode = validationResult.Definition.PatternNodes.FirstOrDefault(node => string.Equals(node.Id, "entities", StringComparison.Ordinal));
-        if (selectedUseCaseNode != null && entitiesNode != null)
+        PatternNodeDefinition? selectedApplicationNode = selectedNodes.FirstOrDefault(node => string.Equals(node.Id, "application", StringComparison.Ordinal));
+        PatternNodeDefinition? domainNode = validationResult.Definition.PatternNodes.FirstOrDefault(node => string.Equals(node.Id, "domain", StringComparison.Ordinal));
+        if (selectedApplicationNode != null && domainNode != null)
         {
-            string entitiesProjectName = projectNamePolicy.GetProjectName(fullSolutionPath, entitiesNode.Name);
-            string useCasesProjectName = projectNamePolicy.GetProjectName(fullSolutionPath, selectedUseCaseNode.Name);
-            string entitiesProjectDirectory = Path.Combine(solutionDirectory, entitiesProjectName);
-            string useCasesProjectDirectory = Path.Combine(solutionDirectory, useCasesProjectName);
-            if (Directory.Exists(entitiesProjectDirectory) && Directory.Exists(useCasesProjectDirectory))
+            string domainProjectName = projectNamePolicy.GetProjectName(fullSolutionPath, domainNode.Name);
+            string applicationProjectName = projectNamePolicy.GetProjectName(fullSolutionPath, selectedApplicationNode.Name);
+            string domainProjectDirectory = Path.Combine(solutionDirectory, domainNode.SolutionFolder, domainProjectName);
+            string applicationProjectDirectory = Path.Combine(solutionDirectory, selectedApplicationNode.SolutionFolder, applicationProjectName);
+            if (Directory.Exists(domainProjectDirectory) && Directory.Exists(applicationProjectDirectory))
             {
                 SemanticGateInspector semanticInspector = new SemanticGateInspector();
-                issues.AddRange(semanticInspector.InspectUseCaseContracts(selectedUseCaseNode, fullSolutionPath, entitiesProjectDirectory, useCasesProjectDirectory));
+                issues.AddRange(semanticInspector.InspectApplicationContracts(
+                    selectedApplicationNode,
+                    fullSolutionPath,
+                    domainProjectDirectory,
+                    applicationProjectDirectory));
             }
+        }
+
+        if (string.IsNullOrWhiteSpace(nodeFilter))
+        {
+            ValidateVerificationProject(
+                validationResult.Definition.VerificationProject,
+                projectNamePolicy,
+                solutionText,
+                fullSolutionPath,
+                issues,
+                ref hasConfigurationError);
         }
 
         return CreateRunResult(SortIssues(issues), hasConfigurationError);
@@ -97,14 +119,24 @@ public class CodeGateRunner
         string solutionText,
         string solutionPath,
         string projectName,
+        string solutionFolder,
         List<GateIssue> issues,
         PatternNodeDefinition patternNode)
     {
-        string expectedEntry = $"= \"{projectName}\", \"{projectName}\\{projectName}.csproj\"";
+        string expectedEntry = $"= \"{projectName}\", \"{solutionFolder}\\{projectName}\\{projectName}.csproj\"";
         if (!solutionText.Contains(expectedEntry, StringComparison.Ordinal))
         {
             issues.Add(new GateIssue("V3-PN-NAME-001", patternNode.Id, solutionPath, null, $"Solution 必須以推導名稱與路徑包含專案 {projectName}。", "error"));
+            return;
         }
+
+        ValidateSolutionFolderNesting(
+            solutionText,
+            solutionPath,
+            projectName,
+            solutionFolder,
+            patternNode.Id,
+            issues);
     }
 
     private void ValidateProject(
@@ -162,6 +194,29 @@ public class CodeGateRunner
         {
             issues.Add(new GateIssue("V3-PN-NAME-001", patternNode.Id, projectPath, null, $"RootNamespace 必須等於推導名稱 {projectName}。", "error"));
         }
+
+        Dictionary<string, string> actualPackages = projectDocument.Descendants("PackageReference")
+            .Where(element => element.Attribute("Include") != null)
+            .ToDictionary(
+                element => element.Attribute("Include")!.Value,
+                element => element.Attribute("Version")?.Value
+                    ?? element.Elements("Version").Select(version => version.Value).FirstOrDefault()
+                    ?? string.Empty,
+                StringComparer.OrdinalIgnoreCase);
+        foreach (KeyValuePair<string, string> requiredPackage in patternNode.RequiredPackageReferences)
+        {
+            if (!actualPackages.TryGetValue(requiredPackage.Key, out string? actualVersion)
+                || !string.Equals(actualVersion, requiredPackage.Value, StringComparison.Ordinal))
+            {
+                issues.Add(new GateIssue(
+                    "V3-PN-ARCH-001",
+                    patternNode.Id,
+                    projectPath,
+                    null,
+                    $"缺少必要 PackageReference：{requiredPackage.Key}@{requiredPackage.Value}",
+                    "error"));
+            }
+        }
     }
 
     private void ValidateProjectReferences(
@@ -207,6 +262,103 @@ public class CodeGateRunner
         }
 
         return check;
+    }
+
+    private void ValidateVerificationProject(
+        VerificationProjectDefinition verification,
+        ProjectNamePolicy projectNamePolicy,
+        string solutionText,
+        string solutionPath,
+        List<GateIssue> issues,
+        ref bool hasConfigurationError)
+    {
+        string projectName = projectNamePolicy.GetProjectName(solutionPath, verification.Name);
+        string solutionDirectory = Path.GetDirectoryName(solutionPath)!;
+        string projectDirectory = Path.Combine(solutionDirectory, verification.SolutionFolder, projectName);
+        string projectPath = Path.Combine(projectDirectory, $"{projectName}.csproj");
+        PatternNodeDefinition verificationNode = new PatternNodeDefinition
+        {
+            Id = "verification",
+            Name = verification.Name,
+            SolutionFolder = verification.SolutionFolder
+        };
+        if (!File.Exists(projectPath))
+        {
+            issues.Add(new GateIssue("V3-PN-TARGET-NOT-FOUND", "verification", projectPath, null, $"找不到測試專案：{projectName}", "error"));
+            hasConfigurationError = true;
+            return;
+        }
+
+        ValidateSolutionEntry(
+            solutionText,
+            solutionPath,
+            projectName,
+            verification.SolutionFolder,
+            issues,
+            verificationNode);
+        try
+        {
+            XDocument projectDocument = XDocument.Load(projectPath);
+            string? targetFramework = projectDocument.Descendants("TargetFramework").Select(element => element.Value.Trim()).FirstOrDefault();
+            bool useWindowsForms = bool.TryParse(
+                projectDocument.Descendants("UseWindowsForms").Select(element => element.Value.Trim()).FirstOrDefault(),
+                out bool parsedUseWindowsForms) && parsedUseWindowsForms;
+            if (!string.Equals(targetFramework, verification.TargetFramework, StringComparison.Ordinal)
+                || useWindowsForms != verification.UseWindowsForms)
+            {
+                issues.Add(new GateIssue("V3-PN-ARCH-002", "verification", projectPath, null, "測試專案的 TargetFramework 或 UseWindowsForms 不符合 Pattern Network。", "error"));
+            }
+
+            HashSet<string> actualReferences = projectDocument.Descendants("ProjectReference")
+                .Select(reference => reference.Attribute("Include")?.Value)
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .Select(value => Path.GetFileNameWithoutExtension(value!.Replace('\\', Path.DirectorySeparatorChar)))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            HashSet<string> expectedReferences = verification.RequiredProjectReferences
+                .Select(reference => projectNamePolicy.GetProjectName(solutionPath, reference))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            if (!actualReferences.SetEquals(expectedReferences))
+            {
+                issues.Add(new GateIssue("V3-PN-ARCH-002", "verification", projectPath, null, "測試專案必須且只能參考 Domain、Application、Infrastructure 與 WinForms。", "error"));
+            }
+        }
+        catch (Exception exception)
+        {
+            issues.Add(new GateIssue("V3-PN-PROJECT-READ", "verification", projectPath, null, $"讀取測試專案失敗：{exception.Message}", "error"));
+            hasConfigurationError = true;
+        }
+    }
+
+    private void ValidateSolutionFolderNesting(
+        string solutionText,
+        string solutionPath,
+        string projectName,
+        string solutionFolder,
+        string node,
+        List<GateIssue> issues)
+    {
+        Match projectMatch = Regex.Match(
+            solutionText,
+            $"Project\\(\\\"[^\\\"]+\\\"\\) = \\\"{Regex.Escape(projectName)}\\\", \\\"[^\\\"]+\\\", \\\"(?<guid>\\{{[^\\}}]+\\}})\\\"");
+        Match folderMatch = Regex.Match(
+            solutionText,
+            $"Project\\(\\\"\\{{2150E333-8FDC-42A3-9474-1A3956D46DE8\\}}\\\"\\) = \\\"{Regex.Escape(solutionFolder)}\\\", \\\"{Regex.Escape(solutionFolder)}\\\", \\\"(?<guid>\\{{[^\\}}]+\\}})\\\"",
+            RegexOptions.IgnoreCase);
+        if (!projectMatch.Success
+            || !folderMatch.Success
+            || !Regex.IsMatch(
+                solutionText,
+                $"{Regex.Escape(projectMatch.Groups["guid"].Value)}\\s*=\\s*{Regex.Escape(folderMatch.Groups["guid"].Value)}",
+                RegexOptions.IgnoreCase))
+        {
+            issues.Add(new GateIssue(
+                "V3-PN-ARCH-002",
+                node,
+                solutionPath,
+                null,
+                $"專案 {projectName} 必須巢狀於 {solutionFolder} solution folder。",
+                "error"));
+        }
     }
 
     private List<GateIssue> SortIssues(List<GateIssue> issues)

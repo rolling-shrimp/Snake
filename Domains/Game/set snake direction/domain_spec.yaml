@@ -1,0 +1,31 @@
+schema_version: 3
+spec_kind: domain_contract
+id: V3-DOMAIN-GAME-SET-SNAKE-DIRECTION
+domain: SetSnakeDirection
+frame_ref: V3-FRAME-GAME-SET-SNAKE-DIRECTION
+aggregate_refs:
+  - V3-AGG-SNAKE-SNAKE
+  - V3-AGG-GAME-GAME
+use_case: SetSnakeDirection
+input:
+  grain: one_direction_request
+  owner: GameForm
+  type: SnakeDirectionDTO
+output:
+  grain: no_return_value
+  owner: SetSnakeDirectionUseCase
+  type: none
+preconditions:
+  - id: V3-DOMAIN-SET-SNAKE-DIRECTION-PRE
+    rule: "遊戲正在進行且輸入來自單一次方向鍵訊息。"
+rules:
+  - id: V3-DOMAIN-SET-SNAKE-DIRECTION-RULE
+    rule: "接受非反向方向並拒絕相對於目前有效方向的直接反向要求。"
+postconditions:
+  - id: V3-DOMAIN-SET-SNAKE-DIRECTION-POST
+    rule: "下一個移動 Tick 使用最後一個已接受方向。"
+invariants:
+  - id: V3-DOMAIN-SET-SNAKE-DIRECTION-INV
+    rule: "所有狀態更新必須維持所引用 Aggregate 的不變式。"
+no_op:
+  - "前置條件不成立時不修改遊戲狀態。"

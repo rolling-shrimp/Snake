@@ -1,0 +1,15 @@
+schema_version: 3
+spec_kind: acceptance_contract
+id: V3-ACCEPT-GAME-END-CURRENT-LEVEL-PLAY
+contract_ref: V3-DOMAIN-GAME-END-CURRENT-LEVEL-PLAY
+scenarios:
+  - id: V3-SCN-END-CURRENT-LEVEL-PLAY
+    title: "關卡通過或無護盾死亡後，停止目前關卡的移動、操作與物件產生。"
+    given:
+      precondition: "目前關卡已標記通過，或存在尚未被護盾處理的致命事件。"
+    when:
+      operation: EndCurrentLevelPlay
+      call_count: 1
+    then:
+      postcondition: "目前關卡不再 Playing，最終蛇長與結果已保存。"
+    evidence: [behavioral, invariant]

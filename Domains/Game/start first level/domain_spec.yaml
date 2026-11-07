@@ -1,0 +1,34 @@
+schema_version: 3
+spec_kind: domain_contract
+id: V3-DOMAIN-GAME-START-FIRST-LEVEL
+domain: StartFirstLevel
+frame_ref: V3-FRAME-GAME-START-FIRST-LEVEL
+aggregate_refs:
+  - V3-AGG-GAME-GAME
+  - V3-AGG-LEVEL-LEVEL
+  - V3-AGG-BOARD-BOARD
+  - V3-AGG-SNAKE-SNAKE
+  - V3-AGG-FOOD-FOOD
+use_case: StartFirstLevel
+input:
+  grain: one_ui_or_tick_request
+  owner: GameForm
+  type: none
+output:
+  grain: no_return_value
+  owner: StartFirstLevelUseCase
+  type: none
+preconditions:
+  - id: V3-DOMAIN-START-FIRST-LEVEL-PRE
+    rule: "目前畫面為第一關 Ready。"
+rules:
+  - id: V3-DOMAIN-START-FIRST-LEVEL-RULE
+    rule: "將第一關設為 Playing、建立本關初始物件並啟動蛇的固定 250ms 移動。"
+postconditions:
+  - id: V3-DOMAIN-START-FIRST-LEVEL-POST
+    rule: "第一關為 Playing，蛇長為 3 且普通食物已準備。"
+invariants:
+  - id: V3-DOMAIN-START-FIRST-LEVEL-INV
+    rule: "所有狀態更新必須維持所引用 Aggregate 的不變式。"
+no_op:
+  - "前置條件不成立時不修改遊戲狀態。"

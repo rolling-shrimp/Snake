@@ -1,0 +1,33 @@
+schema_version: 3
+spec_kind: technical_contract
+id: V3-TECH-GAME-MOVE-SNAKE
+operation: MoveSnake
+domain_ref: V3-DOMAIN-GAME-MOVE-SNAKE
+input:
+  type: none
+  fields: []
+  grain: one_method_call
+output:
+  type: none
+  fields: []
+  grain: no_return_value
+ports:
+  - name: IGameRepository
+    owner: Snake.Application
+    implementation_owner: Snake.Infrastructure
+implementation_binding:
+  project: Snake.Application
+  directory: _MoveSnakeUseCase
+  class: MoveSnakeUseCase
+  method: MoveSnake
+  parameters: []
+  return_type: void
+dependency_injection:
+  registration_file: DependencyInjection.cs
+  registration_method: AddApplication
+  lifetime: transient
+  interface_required: false
+dto:
+  required: false
+  reason: "MoveSnake 沒有跨層輸入欄位，也不需要回傳資料。"
+

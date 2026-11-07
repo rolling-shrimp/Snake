@@ -1,0 +1,15 @@
+schema_version: 3
+spec_kind: acceptance_contract
+id: V3-ACCEPT-GAME-HANDLE-ORDINARY-FOOD-CONTACT
+contract_ref: V3-DOMAIN-GAME-HANDLE-ORDINARY-FOOD-CONTACT
+scenarios:
+  - id: V3-SCN-HANDLE-ORDINARY-FOOD-CONTACT
+    title: "蛇頭接觸普通食物時，普通食物消失且蛇長增加 1 格。"
+    given:
+      precondition: "目前關卡為 Playing，且蛇頭接觸普通食物。"
+    when:
+      operation: HandleOrdinaryFoodContact
+      call_count: 1
+    then:
+      postcondition: "蛇長增加 1，食物已移除，進度依新蛇長更新。"
+    evidence: [behavioral, invariant]

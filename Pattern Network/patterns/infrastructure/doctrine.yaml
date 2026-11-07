@@ -1,0 +1,67 @@
+schema_version: 3
+
+doctrine:
+  id: V3-PN-INFRASTRUCTURE-DOCTRINE
+  title: "Infrastructure 節點準則"
+  inherits: ../../doctrine.yaml
+
+pattern_node:
+  id: infrastructure
+  name: Infrastructure
+  role: outer_in_memory_state_adapter
+
+project:
+  solution_folder: Core
+  target_framework: net8.0
+  use_windows_forms: false
+  allowed_project_references:
+    - Application
+  required_package_references:
+    - name: Microsoft.Extensions.DependencyInjection.Abstractions
+      version: 8.0.1
+
+responsibility:
+  owns:
+    - repository_implementation
+    - current_game_lifetime
+    - infrastructure_dependency_registration
+  excludes:
+    - domain_rule
+    - use_case
+    - user_interface
+    - database_or_orm_without_requirement
+
+contract:
+  input_grain: one_repository_request
+  output_grain: one_shared_game_aggregate
+  owner: Infrastructure
+  repository_layout:
+    implementation_directory: Repositories/_Game
+    repository_class: GameRepository
+    application_contract: IGameRepository
+  dependency_injection:
+    registration_file: DependencyInjection.cs
+    registration_method: AddInfrastructure
+    repository_lifetime: singleton
+
+rules:
+  - id: V3-PN-INF-001
+    title: "Infrastructure 實作 Application Port"
+    statement: "GameRepository 位於 Repositories/_Game/GameRepository.cs，實作 Application 擁有的 IGameRepository；Infrastructure 不重新定義 repository 介面。"
+    enforcement: automated
+
+  - id: V3-PN-INF-002
+    title: "目前遊戲使用單一生命週期"
+    statement: "GameRepository 由 AddInfrastructure 以 singleton 註冊，保存並回傳同一個 Domain Game Aggregate，讓所有 UseCase 操作同一局遊戲。"
+    enforcement: automated
+
+  - id: V3-PN-INF-003
+    title: "Infrastructure 不擁有業務規則"
+    statement: "GameRepository 只管理 Game 的建立與生命週期，不計算移動、碰撞、得分、關卡或 UI 順序。"
+    enforcement: manual
+
+  - id: V3-PN-INF-004
+    title: "沒有持久化需求就不建立資料庫結構"
+    statement: "規格未要求持久化時，Infrastructure 不得加入 DbContext、ORM、CRUD DTO、資料表 ID 或資料庫設定。"
+    enforcement: automated
+

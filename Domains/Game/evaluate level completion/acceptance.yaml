@@ -1,0 +1,15 @@
+schema_version: 3
+spec_kind: acceptance_contract
+id: V3-ACCEPT-GAME-EVALUATE-LEVEL-COMPLETION
+contract_ref: V3-DOMAIN-GAME-EVALUATE-LEVEL-COMPLETION
+scenarios:
+  - id: V3-SCN-EVALUATE-LEVEL-COMPLETION
+    title: "蛇長達到本關目標時，立即把本關標記為通過。"
+    given:
+      precondition: "目前關卡為 Playing，且本 Tick 沒有未處理致命事件。"
+    when:
+      operation: EvaluateLevelCompletion
+      call_count: 1
+    then:
+      postcondition: "達標時記錄通關蛇長；未達標時保持 Playing。"
+    evidence: [behavioral, invariant]

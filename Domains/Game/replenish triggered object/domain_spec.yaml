@@ -1,0 +1,37 @@
+schema_version: 3
+spec_kind: domain_contract
+id: V3-DOMAIN-GAME-REPLENISH-TRIGGERED-OBJECT
+domain: ReplenishTriggeredObject
+frame_ref: V3-FRAME-GAME-REPLENISH-TRIGGERED-OBJECT
+aggregate_refs:
+  - V3-AGG-GAME-GAME
+  - V3-AGG-BOARD-BOARD
+  - V3-AGG-SNAKE-SNAKE
+  - V3-AGG-FOOD-FOOD
+  - V3-AGG-SHIELD-SHIELD
+  - V3-AGG-FIRE-FIRE
+  - V3-AGG-BOMB-BOMB
+  - V3-AGG-DOORMAZE-DOORMAZE
+use_case: ReplenishTriggeredObject
+input:
+  grain: one_ui_or_tick_request
+  owner: GameForm
+  type: none
+output:
+  grain: no_return_value
+  owner: ReplenishTriggeredObjectUseCase
+  type: none
+preconditions:
+  - id: V3-DOMAIN-REPLENISH-TRIGGERED-OBJECT-PRE
+    rule: "目前關卡仍為 Playing，且有初始或已觸發物件等待放置。"
+rules:
+  - id: V3-DOMAIN-REPLENISH-TRIGGERED-OBJECT-RULE
+    rule: "只補本關允許且仍有配額的物件；沒有合法空格時保留待補狀態，不製造重疊位置。"
+postconditions:
+  - id: V3-DOMAIN-REPLENISH-TRIGGERED-OBJECT-POST
+    rule: "每種應存在物件至多一個，或在無合法空格時保持待補。"
+invariants:
+  - id: V3-DOMAIN-REPLENISH-TRIGGERED-OBJECT-INV
+    rule: "公開結果與狀態修改必須來自同一份已提交領域狀態。"
+no_op:
+  - "前置條件不成立時不修改遊戲狀態。"

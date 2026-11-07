@@ -152,8 +152,8 @@ public class PresentationContractValidatorTests
                 "workflow.yaml");
             string workflow = File.ReadAllText(workflowPath);
             File.WriteAllText(workflowPath, workflow.Replace(
-                "one_atomic_rendered_screen",
-                "incremental_control_updates",
+                "changed_ui_controls_and_board_cells",
+                "one_complete_rendered_screen",
                 StringComparison.Ordinal));
             PresentationContractValidator validator = new PresentationContractValidator();
 
@@ -186,7 +186,7 @@ public class PresentationContractValidatorTests
                 "workflow.yaml");
             string workflow = File.ReadAllText(workflowPath);
             File.WriteAllText(workflowPath, workflow.Replace(
-                "preserve_semantic_control_identity",
+                "create_once_then_update_changed_cells",
                 "recreate_all_controls",
                 StringComparison.Ordinal));
             PresentationContractValidator validator = new PresentationContractValidator();
@@ -220,7 +220,7 @@ public class PresentationContractValidatorTests
                 "workflow.yaml");
             string workflow = File.ReadAllText(workflowPath);
             File.WriteAllText(workflowPath, workflow.Replace(
-                "process_cmd_key_before_control_navigation",
+                "ProcessCmdKey",
                 "key_down_after_control_navigation",
                 StringComparison.Ordinal));
             PresentationContractValidator validator = new PresentationContractValidator();
@@ -252,7 +252,7 @@ public class PresentationContractValidatorTests
                 "workflows",
                 "handle-direction-input",
                 "workflow.yaml");
-            RemoveLineContaining(workflowPath, "Right: Right");
+            RemoveLineContaining(workflowPath, "Right: { x: 1, y: 0 }");
             PresentationContractValidator validator = new PresentationContractValidator();
 
             PresentationContractValidationResult result = validator.Validate(

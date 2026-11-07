@@ -1,0 +1,32 @@
+schema_version: 3
+spec_kind: problem_frame
+id: V3-FRAME-GAME-MOVE-SNAKE
+frame:
+  name: move-snake
+  type: RBF
+  bounded_context: snake-game
+  requirement: "遊戲進行中，每次已接受的移動要求只讓蛇依目前方向前進一格。"
+problem_domains:
+  - name: Player
+    kind: biddable
+  - name: GameTimer
+    kind: causal
+  - name: SnakeGame
+    kind: designed
+shared_phenomena:
+  - name: one_movement_requested
+    source: GameTimer
+    receiver: SnakeGame
+  - name: snake_position_changed
+    source: SnakeGame
+    receiver: Player
+world_facts:
+  - id: V3-FRAME-FACT-MOVE-ONE-CELL
+    fact: "一次移動要求只代表一格移動，不代表累積時間或需要補跑的移動次數。"
+  - id: V3-FRAME-FACT-MOVE-PLAYING
+    fact: "蛇只有在目前關卡為 Playing 且下一格已被判定可移動時才提交位置變更。"
+frame_concerns:
+  - id: V3-FRAME-CONCERN-MOVE-ONCE
+    concern: "一次移動要求不得重複前進或補跑先前延遲的格數。"
+  - id: V3-FRAME-CONCERN-MOVE-TOPOLOGY
+    concern: "移動後蛇身必須保持由頭到尾有序、唯一且相鄰連續。"

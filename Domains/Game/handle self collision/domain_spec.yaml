@@ -1,0 +1,32 @@
+schema_version: 3
+spec_kind: domain_contract
+id: V3-DOMAIN-GAME-HANDLE-SELF-COLLISION
+domain: HandleSelfCollision
+frame_ref: V3-FRAME-GAME-HANDLE-SELF-COLLISION
+aggregate_refs:
+  - V3-AGG-GAME-GAME
+  - V3-AGG-SNAKE-SNAKE
+  - V3-AGG-SHIELD-SHIELD
+use_case: HandleSelfCollision
+input:
+  grain: current_tick_state
+  owner: GameForm
+  type: none
+output:
+  grain: no_return_value
+  owner: HandleSelfCollisionUseCase
+  type: none
+preconditions:
+  - id: V3-DOMAIN-HANDLE-SELF-COLLISION-PRE
+    rule: "目前關卡為 Playing，且下一個蛇頭格與碰撞集合重疊。"
+rules:
+  - id: V3-DOMAIN-HANDLE-SELF-COLLISION-RULE
+    rule: "在移動提交前辨識自身碰撞並記錄死亡原因，舊蛇身保持有效。"
+postconditions:
+  - id: V3-DOMAIN-HANDLE-SELF-COLLISION-POST
+    rule: "蛇身沒有重疊，且目前 Tick 存在自身碰撞致命事件。"
+invariants:
+  - id: V3-DOMAIN-HANDLE-SELF-COLLISION-INV
+    rule: "致命、保命與通關狀態在同一 Tick 只能產生一個一致結果。"
+no_op:
+  - "前置條件不成立時不修改遊戲狀態。"

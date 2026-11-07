@@ -1,0 +1,32 @@
+schema_version: 3
+spec_kind: domain_contract
+id: V3-DOMAIN-GAME-HANDLE-SHIELD-CONTACT
+domain: HandleShieldContact
+frame_ref: V3-FRAME-GAME-HANDLE-SHIELD-CONTACT
+aggregate_refs:
+  - V3-AGG-GAME-GAME
+  - V3-AGG-SNAKE-SNAKE
+  - V3-AGG-SHIELD-SHIELD
+use_case: HandleShieldContact
+input:
+  grain: current_snake_head_contact
+  owner: GameForm
+  type: none
+output:
+  grain: no_return_value
+  owner: HandleShieldContactUseCase
+  type: none
+preconditions:
+  - id: V3-DOMAIN-HANDLE-SHIELD-CONTACT-PRE
+    rule: "目前為第二或第三關 Playing，且蛇頭接觸目前護盾。"
+rules:
+  - id: V3-DOMAIN-HANDLE-SHIELD-CONTACT-RULE
+    rule: "每關至多領取兩個護盾；第一個被取得後可補第二個，第二個之後不再補發。"
+postconditions:
+  - id: V3-DOMAIN-HANDLE-SHIELD-CONTACT-POST
+    rule: "保命次數增加 1，護盾出現紀錄與待補狀態正確。"
+invariants:
+  - id: V3-DOMAIN-HANDLE-SHIELD-CONTACT-INV
+    rule: "同一物件接觸在同一 Tick 最多套用一次效果。"
+no_op:
+  - "蛇頭未接觸此類物件時不修改狀態。"

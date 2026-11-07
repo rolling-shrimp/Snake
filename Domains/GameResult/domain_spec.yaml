@@ -3,23 +3,13 @@ spec_kind: aggregate_contract
 id: V3-AGG-GAMERESULT-GAMERESULT
 aggregate: GameResult
 state:
-  - name: game_result_id
-    type: GameResultId
-    required: true
   - name: level_results
     type: List<LevelResult>
     required: true
     initial_value: []
 value_objects:
-  - name: GameResultId
-    kind: opaque_identity
-  - name: LevelResultId
-    kind: opaque_identity
   - name: LevelResult
     fields:
-      - name: level_result_id
-        type: LevelResultId
-        required: true
       - name: level
         type: LevelNumber
         required: true
@@ -49,8 +39,8 @@ invariants:
     rule: "final_length 不得小於 0。"
   - id: V3-GAMERESULT-INV-DEATH-CAUSE
     rule: "Failed 必須有 death_cause；Passed 不得有 death_cause。"
-  - id: V3-GAMERESULT-INV-IDENTITY
-    rule: "每筆 LevelResult 必須具有唯一 LevelResultId，既有結果不得覆寫。"
+  - id: V3-GAMERESULT-INV-LEVEL-UNIQUE
+    rule: "每個 LevelNumber 最多只能存在一筆 LevelResult，既有結果不得覆寫。"
 behaviors:
   - id: V3-GAMERESULT-BEHAVIOR-RECORD-PASSED
     name: RecordPassed
@@ -76,4 +66,4 @@ behaviors:
     output:
       grain: one_empty_result_history
     rules:
-      - "清空 level_results 但保留 GameResult identity。"
+      - "清空 level_results。"

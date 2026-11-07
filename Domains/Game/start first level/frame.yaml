@@ -1,0 +1,26 @@
+schema_version: 3
+spec_kind: problem_frame
+id: V3-FRAME-GAME-START-FIRST-LEVEL
+frame:
+  name: start-first-level
+  type: RBF
+  bounded_context: snake-game
+  requirement: "玩家在第一關待開始畫面按下開始後，第一關立即進入遊玩狀態。"
+problem_domains:
+  - name: Player
+    kind: biddable
+  - name: SnakeGame
+    kind: designed
+shared_phenomena:
+  - name: request
+    source: Player
+    receiver: SnakeGame
+  - name: state_changed
+    source: SnakeGame
+    receiver: Player
+world_facts:
+  - id: V3-FRAME-FACT-START-FIRST-LEVEL
+    fact: "將第一關設為 Playing、建立本關初始物件並啟動蛇的固定 250ms 移動。"
+frame_concerns:
+  - id: V3-FRAME-CONCERN-START-FIRST-LEVEL
+    concern: "第一關為 Playing，蛇長為 3 且普通食物已準備。"

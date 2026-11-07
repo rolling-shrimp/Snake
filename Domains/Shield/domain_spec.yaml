@@ -3,9 +3,6 @@ spec_kind: aggregate_contract
 id: V3-AGG-SHIELD-SHIELD
 aggregate: Shield
 state:
-  - name: shield_id
-    type: ShieldId
-    required: true
   - name: active_item
     type: ShieldItem
     required: false
@@ -19,15 +16,8 @@ state:
     type: integer
     required: true
 value_objects:
-  - name: ShieldId
-    kind: opaque_identity
-  - name: ShieldItemId
-    kind: opaque_identity
   - name: ShieldItem
     fields:
-      - name: shield_item_id
-        type: ShieldItemId
-        required: true
       - name: position
         type: GridPosition
         required: true

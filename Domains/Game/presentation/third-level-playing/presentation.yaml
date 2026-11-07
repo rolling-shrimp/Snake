@@ -7,7 +7,7 @@ relations:
   - kind: rendered_by
     target_ref: V3-PRES-WF-GAME-RENDER-SCREEN
   - kind: application_output
-    target_ref: V3-WF-GAME-PROCESS-TICK
+    target_ref: V3-DOMAIN-GAME-GET-GAME-SCREEN
 visibility:
   required:
     - 10x10-maze-board

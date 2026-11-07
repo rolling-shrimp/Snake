@@ -3,9 +3,6 @@ spec_kind: aggregate_contract
 id: V3-AGG-FIRE-FIRE
 aggregate: Fire
 state:
-  - name: fire_id
-    type: FireId
-    required: true
   - name: active_item
     type: FireItem
     required: false
@@ -13,23 +10,13 @@ state:
     type: boolean
     required: true
 value_objects:
-  - name: FireId
-    kind: opaque_identity
-  - name: FireItemId
-    kind: opaque_identity
   - name: FireItem
     fields:
-      - name: fire_item_id
-        type: FireItemId
-        required: true
       - name: position
         type: GridPosition
         required: true
   - name: FireContact
     fields:
-      - name: fire_item_id
-        type: FireItemId
-        required: true
       - name: length_delta
         type: integer
         required: true
@@ -85,7 +72,7 @@ behaviors:
       grain: one_spawned_or_pending_result
     rules:
       - "只允許第二、三關的 StartCurrentLevel 工作快照，且不得已有 active FireItem。"
-      - "有合法格位時以新的 FireItemId 建立一個 FireItem，並清除 pending_spawn。"
+      - "有合法格位時建立一個 FireItem，並清除 pending_spawn。"
       - "沒有合法格位時不得製造預設座標或重疊物件，只將 pending_spawn 保持為 true。"
   - id: V3-FIRE-BEHAVIOR-REPLENISH
     name: Replenish
@@ -103,4 +90,4 @@ behaviors:
     output:
       grain: one_empty_fire_state
     rules:
-      - "清除 active_item 並將 pending_spawn 設為 false，但保留 Fire identity。"
+      - "清除 active_item 並將 pending_spawn 設為 false。"

@@ -1,0 +1,21 @@
+schema_version: 3
+spec_kind: problem_frame
+id: V3-FRAME-GAME-EVALUATE-LEVEL-COMPLETION
+frame:
+  name: evaluate-level-completion
+  type: RBF
+  bounded_context: snake-game
+  requirement: "蛇長達到本關目標時，立即把本關標記為通過。"
+problem_domains:
+  - name: SnakeGame
+    kind: designed
+shared_phenomena:
+  - name: tick_state_evaluated
+    source: SnakeGame
+    receiver: SnakeGame
+world_facts:
+  - id: V3-FRAME-FACT-EVALUATE-LEVEL-COMPLETION
+    fact: "第一、二關目標為 20，第三關目標為 50；超過目標仍保留實際蛇長。"
+frame_concerns:
+  - id: V3-FRAME-CONCERN-EVALUATE-LEVEL-COMPLETION
+    concern: "達標時記錄通關蛇長；未達標時保持 Playing。"

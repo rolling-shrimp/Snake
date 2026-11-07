@@ -1,0 +1,34 @@
+schema_version: 3
+spec_kind: domain_contract
+id: V3-DOMAIN-GAME-PREPARE-NEXT-LEVEL
+domain: PrepareNextLevel
+frame_ref: V3-FRAME-GAME-PREPARE-NEXT-LEVEL
+aggregate_refs:
+  - V3-AGG-GAME-GAME
+  - V3-AGG-LEVEL-LEVEL
+  - V3-AGG-BOARD-BOARD
+  - V3-AGG-SNAKE-SNAKE
+  - V3-AGG-SHIELD-SHIELD
+use_case: PrepareNextLevel
+input:
+  grain: one_ui_or_tick_request
+  owner: GameForm
+  type: none
+output:
+  grain: no_return_value
+  owner: PrepareNextLevelUseCase
+  type: none
+preconditions:
+  - id: V3-DOMAIN-PREPARE-NEXT-LEVEL-PRE
+    rule: "第一關或第二關已通過且成績已保存。"
+rules:
+  - id: V3-DOMAIN-PREPARE-NEXT-LEVEL-RULE
+    rule: "下一關蛇長重設為 3，方向向右，護盾次數與出現紀錄清零，棋盤切換為該關配置。"
+postconditions:
+  - id: V3-DOMAIN-PREPARE-NEXT-LEVEL-POST
+    rule: "下一關為 Ready，蛇位於安全起點並顯示正確起始進度。"
+invariants:
+  - id: V3-DOMAIN-PREPARE-NEXT-LEVEL-INV
+    rule: "公開結果與狀態修改必須來自同一份已提交領域狀態。"
+no_op:
+  - "前置條件不成立時不修改遊戲狀態。"

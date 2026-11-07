@@ -1,0 +1,26 @@
+schema_version: 3
+spec_kind: problem_frame
+id: V3-FRAME-GAME-GET-GAME-SCREEN
+frame:
+  name: get-game-screen
+  type: IDF
+  bounded_context: snake-game
+  requirement: "UI 在一個事件完成後取得一份完整且一致的遊戲畫面資料。"
+problem_domains:
+  - name: SnakeGame
+    kind: designed
+  - name: Player
+    kind: biddable
+shared_phenomena:
+  - name: use_case_requested
+    source: Player
+    receiver: SnakeGame
+  - name: result_observed
+    source: SnakeGame
+    receiver: Player
+world_facts:
+  - id: V3-FRAME-FACT-GET-GAME-SCREEN
+    fact: "由同一份已提交遊戲狀態建立棋盤、蛇、物件、關卡、進度、提示、結果與可用操作。"
+frame_concerns:
+  - id: V3-FRAME-CONCERN-GET-GAME-SCREEN
+    concern: "回傳的 GameScreenDTO 足以讓 GameForm 比對前後狀態並只更新變動的控制項與棋盤格，不需要再查詢其他 Use Case。"

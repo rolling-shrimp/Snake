@@ -20,7 +20,7 @@ naming:
     invalid_name_policy: reject_without_normalization
   product_project:
     format: "{solution_name}.{pattern_node_name}"
-    directory_format: "{project_name}"
+    directory_format: "{solution_folder}/{project_name}"
     project_file_format: "{project_name}.csproj"
     assembly_name_format: "{project_name}"
     root_namespace_format: "{project_name}"
@@ -32,41 +32,70 @@ naming:
 architecture:
   dependency_direction:
     - from: WinForms
-      to: UseCases
-    - from: UseCases
-      to: Entities
+      to: Application
+    - from: WinForms
+      to: Infrastructure
+    - from: Infrastructure
+      to: Application
+    - from: Application
+      to: Domain
   forbidden_dependencies:
-    - from: Entities
-      to: UseCases
-    - from: Entities
+    - from: Domain
+      to: Application
+    - from: Domain
+      to: Infrastructure
+    - from: Domain
       to: WinForms
-    - from: UseCases
+    - from: Application
+      to: Infrastructure
+    - from: Application
       to: WinForms
     - from: WinForms
-      to: Entities
+      to: Domain
   contract_ownership:
     - workflow: domain_behavior
       input_grain: domain_value
       output_grain: domain_state_or_event
-      owner: Entities
-    - workflow: application_workflow
-      input_grain: command_or_query
-      output_grain: complete_result
-      owner: UseCases
-    - workflow: presentation_workflow
-      input_grain: winforms_event_or_application_result
-      output_grain: atomic_rendered_screen
+      owner: Domain
+    - workflow: application_use_case
+      input_grain: use_case_specific_value_or_none
+      output_grain: none_or_one_semantic_result
+      owner: Application
+    - workflow: current_game_lifetime
+      input_grain: none
+      output_grain: one_shared_game_aggregate
+      owner: Infrastructure
+    - workflow: winforms_event_execution
+      input_grain: one_winforms_event
+      output_grain: one_screen_dto_then_changed_ui_controls_and_cells
       owner: WinForms
-  workflow_hierarchy:
-    - level: journey
-      role: "描述跨時間的玩家流程與狀態生命週期。"
-      public_application_entry: false
-    - level: workflow
-      role: "從一個外部事件到完整、可見且已提交的最終結果。"
-      public_application_entry: true
-    - level: step_or_domain_operation
-      role: "由 workflow 使用的內部步驟或 Aggregate 行為。"
-      public_application_entry: false
+  verification_project:
+    name: Test
+    solution_folder: Test
+    target_framework: net8.0-windows
+    use_windows_forms: true
+    required_project_references:
+      - Domain
+      - Application
+      - Infrastructure
+      - WinForms
+  dependency_injection:
+    container: Microsoft.Extensions.DependencyInjection
+    application_abstractions_package: Microsoft.Extensions.DependencyInjection.Abstractions
+    application_abstractions_version: 8.0.1
+    composition_package: Microsoft.Extensions.DependencyInjection
+    composition_package_version: 8.0.1
+    application_registration_file: DependencyInjection.cs
+    application_registration_method: AddApplication
+    infrastructure_registration_file: DependencyInjection.cs
+    infrastructure_registration_method: AddInfrastructure
+    composition_root: "App/{solution_name}.WinForms/Program.cs"
+    service_locator_allowed: false
+  execution_ownership:
+    - owner: Application
+      role: "一個 UseCase class 完成 use_case.md 的一個獨立領域敘事。"
+    - owner: WinForms.GameForm
+      role: "接收 UI 事件，依固定順序呼叫透過 constructor injection 取得的 UseCase，最後以畫面 DTO 只更新變動的控制項與棋盤格。"
 
 generated_code:
   excluded_patterns:
@@ -80,8 +109,8 @@ rules:
   - id: V3-PN-CS-CLASS-001
     category: class_declaration
     title: "手寫類別使用普通 public class"
-    statement: "自行撰寫的類別必須宣告為 public class，不得加入 sealed、abstract、partial 或 static 修飾詞。"
-    rationale: "讓類別宣告保持一致，框架產生的 partial 類別依 generated_code 例外處理。"
+    statement: "自行撰寫的類別必須宣告為 public class，不得加入 sealed、abstract、partial 或 static 修飾詞；DependencyInjection.cs 的 DI extension、WinForms Program.cs 的 static Program，以及依 GameForm*.cs 分檔的同一個 partial GameForm 是明確例外。"
+    rationale: "讓類別宣告保持一致，同時符合 Microsoft DI 與 ChiaTech WinForms 入口形式。"
     enforcement: automated
 
   - id: V3-PN-CS-CLASS-002
@@ -94,7 +123,7 @@ rules:
   - id: V3-PN-CS-FILE-001
     category: file_layout
     title: "一個類別一個同名檔案"
-    statement: "每個類別各自放在與類名相同的 .cs 檔案，測試輔助類別亦同。"
+    statement: "每個非 partial 類別各自放在與類名相同的 .cs 檔案，測試輔助類別亦同；同一個 partial GameForm 可以依職責分散在 GameForm*.cs。"
     rationale: "讓檔案與型別可以確定性對應。"
     enforcement: automated
 
@@ -133,6 +162,13 @@ rules:
     rationale: "統一公開與區域識別字格式。"
     enforcement: automated
 
+  - id: V3-PN-CS-NAMESPACE-001
+    category: namespace
+    title: "手寫程式使用區塊式 namespace"
+    statement: "手寫 C# 使用 namespace Name { ... } 區塊形式，不使用 file-scoped namespace；框架產生碼依 generated_code 例外處理。"
+    rationale: "使產碼形狀與 ChiaTech、Ecommerce 與 SnakeEatFood2 參考專案一致。"
+    enforcement: automated
+
   - id: V3-PN-CS-DI-001
     category: dependency_injection
     title: "建構式依賴欄位命名"
@@ -140,10 +176,24 @@ rules:
     rationale: "依賴來源與保存位置保持一對一可追溯。"
     enforcement: automated
 
+  - id: V3-PN-CS-DI-002
+    category: dependency_injection
+    title: "依賴必須由 DI 容器建構"
+    statement: "UseCase、Form 與其他協作者只能透過 constructor injection 取得依賴；只有 composition root 可以建立 ServiceCollection、BuildServiceProvider 與解析 root object。"
+    rationale: "避免直接 new 協作者、property injection 與隱藏的 service locator。"
+    enforcement: automated
+
+  - id: V3-PN-CS-DI-003
+    category: dependency_injection
+    title: "禁止 Service Locator"
+    statement: "UseCase、Form 與 Domain 不得注入或保存 IServiceProvider，也不得在 composition root 之外呼叫 GetService 或 GetRequiredService。"
+    rationale: "讓依賴在 constructor contract 中可見且可驗證。"
+    enforcement: automated
+
   - id: V3-PN-CS-METHOD-001
     category: method
     title: "一般方法使用實例方法"
-    statement: "手寫一般方法不得宣告 static；只有框架契約確實要求時才使用 override。"
+    statement: "手寫一般方法不得宣告 static；DependencyInjection.cs 的 DI registration extension 與框架契約要求的 override 除外。"
     rationale: "避免以靜態狀態或工具方法隱藏物件責任。"
     enforcement: automated
 
@@ -156,9 +206,9 @@ rules:
 
   - id: V3-PN-CS-ENTRY-001
     category: application_entry
-    title: "使用頂層程式入口"
-    statement: "可執行應用程式使用 C# 頂層陳述式，不宣告 static Program.Main。"
-    rationale: "保持入口精簡並符合專案既定形式。"
+    title: "WinForms 使用明確 Program.Main 入口"
+    statement: "WinForms Program.cs 使用 internal static class Program、[STAThread] 與 static void Main()，由 Main 建立 DI container 並啟動 GameForm。"
+    rationale: "符合 ChiaTech WinForms 範本與 Windows STA 執行需求。"
     enforcement: automated
 
   - id: V3-PN-NAME-001
@@ -171,13 +221,13 @@ rules:
   - id: V3-PN-ARCH-001
     category: dependency
     title: "產品相依保持單向"
-    statement: "產品專案只能依 WinForms 到 UseCases 到 Entities 的方向參考。"
+    statement: "產品專案只能依 WinForms 到 Application 與 Infrastructure、Infrastructure 到 Application、Application 到 Domain 的方向參考。"
     rationale: "內層規則不能依賴外層呈現或框架。"
     enforcement: automated
 
   - id: V3-PN-ARCH-002
     category: test_dependency
-    title: "測試專案不屬於產品 pattern 節點"
-    statement: "測試專案可以直接參考受測產品節點，但不參與產品專案命名與相依方向計算。"
-    rationale: "測試需要跨層驗證，且不構成執行期產品相依。"
-    enforcement: manual
+    title: "測試專案使用獨立 Test 分組"
+    statement: "{solution_name}.Test 必須位於 Test/{solution_name}.Test、巢狀於 Test solution folder，並直接參考 Domain、Application、Infrastructure 與 WinForms。"
+    rationale: "測試需要跨層驗證，但不得破壞產品相依方向。"
+    enforcement: automated

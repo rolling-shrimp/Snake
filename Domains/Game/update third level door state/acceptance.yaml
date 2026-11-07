@@ -1,0 +1,15 @@
+schema_version: 3
+spec_kind: acceptance_contract
+id: V3-ACCEPT-GAME-UPDATE-THIRD-LEVEL-DOOR-STATE
+contract_ref: V3-DOMAIN-GAME-UPDATE-THIRD-LEVEL-DOOR-STATE
+scenarios:
+  - id: V3-SCN-UPDATE-THIRD-LEVEL-DOOR-STATE
+    title: "第三關遊玩時，門依固定節奏切換並在關閉前閃爍。"
+    given:
+      precondition: "目前為第三關 Playing。"
+    when:
+      operation: UpdateThirdLevelDoorState
+      call_count: 1
+    then:
+      postcondition: "門狀態與閃爍狀態符合目前週期且不會關在蛇身上。"
+    evidence: [behavioral, invariant]

@@ -1,0 +1,15 @@
+schema_version: 3
+spec_kind: acceptance_contract
+id: V3-ACCEPT-GAME-SET-SNAKE-DIRECTION
+contract_ref: V3-DOMAIN-GAME-SET-SNAKE-DIRECTION
+scenarios:
+  - id: V3-SCN-SET-SNAKE-DIRECTION
+    title: "玩家的一次方向要求只更新下一個移動 Tick 使用的有效方向。"
+    given:
+      precondition: "遊戲正在進行且輸入來自單一次方向鍵訊息。"
+    when:
+      operation: SetSnakeDirection
+      call_count: 1
+    then:
+      postcondition: "下一個移動 Tick 使用最後一個已接受方向。"
+    evidence: [behavioral, invariant]

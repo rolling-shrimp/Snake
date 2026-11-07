@@ -25,7 +25,7 @@ entries:
       - PN-NAME-001
   - source_path: patterns/entities/doctrine.yaml
     disposition: replaced_by
-    target_id: V3-PN-ENTITIES-DOCTRINE
+    target_id: V3-PN-DOMAIN-DOCTRINE
     legacy_ids:
       - PN-ENT-001
       - PN-ENT-002
@@ -34,7 +34,7 @@ entries:
       - PN-ENTITIES-DOCTRINE
   - source_path: patterns/entities/gate.yaml
     disposition: replaced_by
-    target_id: V3-PN-ENTITIES-GATE
+    target_id: V3-PN-DOMAIN-GATE
     legacy_ids:
       - PN-ENT-GATE-001
       - PN-ENT-GATE-002
@@ -46,12 +46,12 @@ entries:
   - source_path: patterns/entities/prohibitions.yaml
     disposition: split_into
     target_ids:
-      - V3-PN-ENT-PRO-001
-      - V3-PN-ENT-PRO-002
-      - V3-PN-ENT-PRO-003
-      - V3-PN-ENT-PRO-004
-      - V3-PN-ENT-PRO-005
-      - V3-PN-ENT-PRO-006
+      - V3-PN-DOM-PRO-001
+      - V3-PN-DOM-PRO-002
+      - V3-PN-DOM-PRO-003
+      - V3-PN-DOM-PRO-004
+      - V3-PN-DOM-PRO-005
+      - V3-PN-DOM-PRO-006
     legacy_ids:
       - PN-ENT-PRO-001
       - PN-ENT-PRO-002
@@ -60,7 +60,7 @@ entries:
       - PN-ENT-PRO-005
   - source_path: patterns/use-cases/doctrine.yaml
     disposition: replaced_by
-    target_id: V3-PN-USECASES-DOCTRINE
+    target_id: V3-PN-APPLICATION-DOCTRINE
     legacy_ids:
       - PN-UC-001
       - PN-UC-002
@@ -71,7 +71,7 @@ entries:
       - PN-USECASES-DOCTRINE
   - source_path: patterns/use-cases/gate.yaml
     disposition: replaced_by
-    target_id: V3-PN-USECASES-GATE
+    target_id: V3-PN-APPLICATION-GATE
     legacy_ids:
       - PN-UC-GATE-001
       - PN-UC-GATE-002

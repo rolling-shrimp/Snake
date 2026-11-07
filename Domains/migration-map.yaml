@@ -300,7 +300,7 @@ entries:
       - Game/cbf/restart-game/technical_spec.yaml
       - Game/cbf/restart-game/acceptance.yaml
     disposition: merged_into
-    target_id: V3-WF-GAME-RESTART
+    target_id: V3-DOMAIN-GAME-RESTART-GAME
     legacy_ids:
       - CBF-RESTART-GAME-001
       - CBF-RESTART-GAME-002
@@ -323,7 +323,7 @@ entries:
       - Game/cbf/start-first-level/technical_spec.yaml
       - Game/cbf/start-first-level/acceptance.yaml
     disposition: merged_into
-    target_id: V3-WF-GAME-START-CURRENT-LEVEL
+    target_id: V3-DOMAIN-GAME-START-FIRST-LEVEL
     legacy_ids:
       - CBF-START-FIRST-LEVEL-001
       - CBF-START-FIRST-LEVEL-002
@@ -353,7 +353,7 @@ entries:
       - Game/cbf/start-second-level/technical_spec.yaml
       - Game/cbf/start-second-level/acceptance.yaml
     disposition: merged_into
-    target_id: V3-WF-GAME-START-CURRENT-LEVEL
+    target_id: V3-DOMAIN-GAME-START-SECOND-LEVEL
     legacy_ids:
       - CBF-START-SECOND-LEVEL-001
       - CBF-START-SECOND-LEVEL-002
@@ -376,7 +376,7 @@ entries:
       - Game/cbf/start-third-level/technical_spec.yaml
       - Game/cbf/start-third-level/acceptance.yaml
     disposition: merged_into
-    target_id: V3-WF-GAME-START-CURRENT-LEVEL
+    target_id: V3-DOMAIN-GAME-START-THIRD-LEVEL
     legacy_ids:
       - CBF-START-THIRD-LEVEL-001
       - CBF-START-THIRD-LEVEL-002
@@ -532,7 +532,7 @@ entries:
       - Game/idf/show-level-passed-result/technical_spec.yaml
       - Game/idf/show-level-passed-result/acceptance.yaml
     disposition: merged_into
-    target_id: V3-WF-GAME-PROCESS-TICK
+    target_id: V3-DOMAIN-GAME-END-CURRENT-LEVEL-PLAY
     legacy_ids:
       - DOM-SHOW-LEVEL-PASSED-RESULT-ERR-001
       - DOM-SHOW-LEVEL-PASSED-RESULT-IN-001
@@ -736,7 +736,7 @@ entries:
       - Game/rbf/advance-snake-step/technical_spec.yaml
       - Game/rbf/advance-snake-step/acceptance.yaml
     disposition: merged_into
-    target_id: V3-WF-GAME-PROCESS-TICK
+    target_id: V3-DOMAIN-GAME-MOVE-SNAKE
     legacy_ids:
       - advance-snake-step
       - DOM-ADVANCE-SNAKE-STEP-IN-001
@@ -760,7 +760,7 @@ entries:
       - Game/rbf/evaluate-level-completion/technical_spec.yaml
       - Game/rbf/evaluate-level-completion/acceptance.yaml
     disposition: merged_into
-    target_id: V3-WF-GAME-PROCESS-TICK
+    target_id: V3-DOMAIN-GAME-EVALUATE-LEVEL-COMPLETION
     legacy_ids:
       - DOM-EVALUATE-LEVEL-COMPLETION-IN-001
       - DOM-EVALUATE-LEVEL-COMPLETION-INV-001
@@ -784,7 +784,7 @@ entries:
       - Game/rbf/handle-bomb-contact/technical_spec.yaml
       - Game/rbf/handle-bomb-contact/acceptance.yaml
     disposition: merged_into
-    target_id: V3-WF-GAME-PROCESS-TICK
+    target_id: V3-DOMAIN-GAME-HANDLE-BOMB-CONTACT
     legacy_ids:
       - DOM-HANDLE-BOMB-CONTACT-IN-001
       - DOM-HANDLE-BOMB-CONTACT-INV-001
@@ -807,7 +807,7 @@ entries:
       - Game/rbf/handle-closed-door-collision/technical_spec.yaml
       - Game/rbf/handle-closed-door-collision/acceptance.yaml
     disposition: merged_into
-    target_id: V3-WF-GAME-PROCESS-TICK
+    target_id: V3-DOMAIN-GAME-HANDLE-CLOSED-DOOR-COLLISION
     legacy_ids:
       - DOM-HANDLE-CLOSED-DOOR-COLLISION-IN-001
       - DOM-HANDLE-CLOSED-DOOR-COLLISION-INV-001
@@ -830,7 +830,7 @@ entries:
       - Game/rbf/handle-fire-contact/technical_spec.yaml
       - Game/rbf/handle-fire-contact/acceptance.yaml
     disposition: merged_into
-    target_id: V3-WF-GAME-PROCESS-TICK
+    target_id: V3-DOMAIN-GAME-HANDLE-FIRE-CONTACT
     legacy_ids:
       - DOM-HANDLE-FIRE-CONTACT-IN-001
       - DOM-HANDLE-FIRE-CONTACT-INV-001
@@ -854,7 +854,7 @@ entries:
       - Game/rbf/handle-ordinary-food-contact/technical_spec.yaml
       - Game/rbf/handle-ordinary-food-contact/acceptance.yaml
     disposition: merged_into
-    target_id: V3-WF-GAME-PROCESS-TICK
+    target_id: V3-DOMAIN-GAME-HANDLE-ORDINARY-FOOD-CONTACT
     legacy_ids:
       - DOM-HANDLE-ORDINARY-FOOD-CONTACT-IN-001
       - DOM-HANDLE-ORDINARY-FOOD-CONTACT-INV-001
@@ -877,7 +877,7 @@ entries:
       - Game/rbf/handle-self-collision/technical_spec.yaml
       - Game/rbf/handle-self-collision/acceptance.yaml
     disposition: merged_into
-    target_id: V3-WF-GAME-PROCESS-TICK
+    target_id: V3-DOMAIN-GAME-HANDLE-SELF-COLLISION
     legacy_ids:
       - DOM-HANDLE-SELF-COLLISION-IN-001
       - DOM-HANDLE-SELF-COLLISION-INV-001
@@ -900,7 +900,7 @@ entries:
       - Game/rbf/handle-shield-contact/technical_spec.yaml
       - Game/rbf/handle-shield-contact/acceptance.yaml
     disposition: merged_into
-    target_id: V3-WF-GAME-PROCESS-TICK
+    target_id: V3-DOMAIN-GAME-HANDLE-SHIELD-CONTACT
     legacy_ids:
       - DOM-HANDLE-SHIELD-CONTACT-IN-001
       - DOM-HANDLE-SHIELD-CONTACT-INV-001
@@ -923,7 +923,7 @@ entries:
       - Game/rbf/handle-special-food-contact/technical_spec.yaml
       - Game/rbf/handle-special-food-contact/acceptance.yaml
     disposition: merged_into
-    target_id: V3-WF-GAME-PROCESS-TICK
+    target_id: V3-DOMAIN-GAME-HANDLE-SPECIAL-FOOD-CONTACT
     legacy_ids:
       - DOM-HANDLE-SPECIAL-FOOD-CONTACT-IN-001
       - DOM-HANDLE-SPECIAL-FOOD-CONTACT-INV-001
@@ -947,7 +947,7 @@ entries:
       - Game/rbf/handle-wall-collision/technical_spec.yaml
       - Game/rbf/handle-wall-collision/acceptance.yaml
     disposition: merged_into
-    target_id: V3-WF-GAME-PROCESS-TICK
+    target_id: V3-DOMAIN-GAME-HANDLE-WALL-COLLISION
     legacy_ids:
       - DOM-HANDLE-WALL-COLLISION-IN-001
       - DOM-HANDLE-WALL-COLLISION-INV-001
@@ -970,7 +970,7 @@ entries:
       - Game/rbf/update-third-level-door-state/technical_spec.yaml
       - Game/rbf/update-third-level-door-state/acceptance.yaml
     disposition: merged_into
-    target_id: V3-WF-GAME-PROCESS-TICK
+    target_id: V3-DOMAIN-GAME-UPDATE-THIRD-LEVEL-DOOR-STATE
     legacy_ids:
       - DOM-UPDATE-THIRD-LEVEL-DOOR-STATE-IN-001
       - DOM-UPDATE-THIRD-LEVEL-DOOR-STATE-INV-001
@@ -995,7 +995,7 @@ entries:
       - Game/rif/activate-first-level-play/technical_spec.yaml
       - Game/rif/activate-first-level-play/acceptance.yaml
     disposition: merged_into
-    target_id: V3-WF-GAME-START-CURRENT-LEVEL
+    target_id: V3-DOMAIN-GAME-START-FIRST-LEVEL
     legacy_ids:
       - activate-first-level-play
       - DOM-ACTIVATE-FIRST-LEVEL-IN-001
@@ -1032,7 +1032,7 @@ entries:
       - Game/rif/activate-second-level-play/technical_spec.yaml
       - Game/rif/activate-second-level-play/acceptance.yaml
     disposition: merged_into
-    target_id: V3-WF-GAME-START-CURRENT-LEVEL
+    target_id: V3-DOMAIN-GAME-START-SECOND-LEVEL
     legacy_ids:
       - activate-second-level-play
       - DOM-ACTIVATE-SECOND-LEVEL-PLAY-IN-001
@@ -1056,7 +1056,7 @@ entries:
       - Game/rif/activate-third-level-play/technical_spec.yaml
       - Game/rif/activate-third-level-play/acceptance.yaml
     disposition: merged_into
-    target_id: V3-WF-GAME-START-CURRENT-LEVEL
+    target_id: V3-DOMAIN-GAME-START-THIRD-LEVEL
     legacy_ids:
       - activate-third-level-play
       - DOM-ACTIVATE-THIRD-LEVEL-PLAY-IN-001
@@ -1080,7 +1080,7 @@ entries:
       - Game/rif/end-current-level-play/technical_spec.yaml
       - Game/rif/end-current-level-play/acceptance.yaml
     disposition: merged_into
-    target_id: V3-WF-GAME-PROCESS-TICK
+    target_id: V3-DOMAIN-GAME-END-CURRENT-LEVEL-PLAY
     legacy_ids:
       - DOM-END-CURRENT-LEVEL-PLAY-IN-001
       - DOM-END-CURRENT-LEVEL-PLAY-INV-001
@@ -1105,7 +1105,7 @@ entries:
       - Game/rif/prepare-next-level/technical_spec.yaml
       - Game/rif/prepare-next-level/acceptance.yaml
     disposition: merged_into
-    target_id: V3-WF-GAME-PROCESS-TICK
+    target_id: V3-DOMAIN-GAME-PREPARE-NEXT-LEVEL
     legacy_ids:
       - DOM-PREPARE-NEXT-LEVEL-IN-001
       - DOM-PREPARE-NEXT-LEVEL-INV-001
@@ -1129,7 +1129,7 @@ entries:
       - Game/rif/replenish-triggered-object/technical_spec.yaml
       - Game/rif/replenish-triggered-object/acceptance.yaml
     disposition: merged_into
-    target_id: V3-WF-GAME-PROCESS-TICK
+    target_id: V3-DOMAIN-GAME-REPLENISH-TRIGGERED-OBJECT
     legacy_ids:
       - DOM-REPLENISH-TRIGGERED-OBJECT-IN-001
       - DOM-REPLENISH-TRIGGERED-OBJECT-INV-001
@@ -1154,7 +1154,7 @@ entries:
       - Game/rif/rescue-with-shield/technical_spec.yaml
       - Game/rif/rescue-with-shield/acceptance.yaml
     disposition: merged_into
-    target_id: V3-WF-GAME-PROCESS-TICK
+    target_id: V3-DOMAIN-GAME-RESCUE-WITH-SHIELD
     legacy_ids:
       - DOM-RESCUE-WITH-SHIELD-IN-001
       - DOM-RESCUE-WITH-SHIELD-INV-001
@@ -1178,7 +1178,7 @@ entries:
       - Game/rif/reset-game-for-replay/technical_spec.yaml
       - Game/rif/reset-game-for-replay/acceptance.yaml
     disposition: merged_into
-    target_id: V3-WF-GAME-RESTART
+    target_id: V3-DOMAIN-GAME-RESTART-GAME
     legacy_ids:
       - DOM-RESET-GAME-FOR-REPLAY-IN-001
       - DOM-RESET-GAME-FOR-REPLAY-INV-001
@@ -1202,7 +1202,7 @@ entries:
       - Game/swf/set-snake-direction/technical_spec.yaml
       - Game/swf/set-snake-direction/acceptance.yaml
     disposition: merged_into
-    target_id: V3-WF-GAME-SET-SNAKE-DIRECTION
+    target_id: V3-DOMAIN-GAME-SET-SNAKE-DIRECTION
     legacy_ids:
       - DOM-SET-SNAKE-DIRECTION-IN-001
       - DOM-SET-SNAKE-DIRECTION-INV-001
@@ -1225,7 +1225,7 @@ entries:
       - Game/tf/update-level-status-read-model/technical_spec.yaml
       - Game/tf/update-level-status-read-model/acceptance.yaml
     disposition: merged_into
-    target_id: V3-WF-GAME-GET-CURRENT-SCREEN
+    target_id: V3-DOMAIN-GAME-GET-GAME-SCREEN
     legacy_ids:
       - DOM-UPDATE-LEVEL-STATUS-READ-MODEL-IN-001
       - DOM-UPDATE-LEVEL-STATUS-READ-MODEL-INV-001

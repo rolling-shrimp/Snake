@@ -1,0 +1,23 @@
+schema_version: 3
+spec_kind: problem_frame
+id: V3-FRAME-GAME-HANDLE-ORDINARY-FOOD-CONTACT
+frame:
+  name: handle-ordinary-food-contact
+  type: RBF
+  bounded_context: snake-game
+  requirement: "蛇頭接觸普通食物時，普通食物消失且蛇長增加 1 格。"
+problem_domains:
+  - name: SnakeHead
+    kind: causal
+  - name: SnakeGame
+    kind: designed
+shared_phenomena:
+  - name: contact_detected
+    source: SnakeHead
+    receiver: SnakeGame
+world_facts:
+  - id: V3-FRAME-FACT-HANDLE-ORDINARY-FOOD-CONTACT
+    fact: "只在蛇頭位於普通食物格時套用一次 +1 成長並標記該食物需要補充。"
+frame_concerns:
+  - id: V3-FRAME-CONCERN-HANDLE-ORDINARY-FOOD-CONTACT
+    concern: "蛇長增加 1，食物已移除，進度依新蛇長更新。"

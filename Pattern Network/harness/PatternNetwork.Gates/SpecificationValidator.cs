@@ -436,6 +436,7 @@ public class SpecificationValidator
         List<SpecificationReference> references = new List<SpecificationReference>();
         ReadScalarReference(specificationPath, root, "frame_ref", SpecificationKind.ProblemFrame, references, issues);
         ReadScalarReference(specificationPath, root, "workflow_ref", SpecificationKind.WorkflowContract, references, issues);
+        ReadScalarReference(specificationPath, root, "domain_ref", SpecificationKind.DomainContract, references, issues);
         ReadScalarReference(specificationPath, root, "contract_ref", null, references, issues);
         ReadScalarReference(specificationPath, root, "technical_ref", SpecificationKind.TechnicalContract, references, issues);
         ReadScalarReference(specificationPath, root, "acceptance_ref", SpecificationKind.AcceptanceContract, references, issues);
@@ -444,6 +445,20 @@ public class SpecificationValidator
             root,
             "domain_refs",
             SpecificationKind.AggregateContract,
+            references,
+            issues);
+        ReadSequenceReferences(
+            specificationPath,
+            root,
+            "aggregate_refs",
+            SpecificationKind.AggregateContract,
+            references,
+            issues);
+        ReadSequenceReferences(
+            specificationPath,
+            root,
+            "domain_contract_refs",
+            SpecificationKind.DomainContract,
             references,
             issues);
         ReadSequenceReferences(
@@ -472,6 +487,13 @@ public class SpecificationValidator
             root,
             "aggregates",
             SpecificationKind.AggregateContract,
+            references,
+            issues);
+        ReadSequenceReferences(
+            specificationPath,
+            root,
+            "domain_contracts",
+            SpecificationKind.DomainContract,
             references,
             issues);
         ReadSequenceReferences(

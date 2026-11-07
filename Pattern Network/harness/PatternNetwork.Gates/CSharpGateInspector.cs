@@ -29,18 +29,37 @@ public class CSharpGateInspector
                 continue;
             }
 
-            InspectFile(patternNode, sourceFile, issues);
+            InspectFile(patternNode, projectDirectory, sourceFile, issues);
         }
 
-        if (HasChecker(patternNode, "top_level_program"))
+        if (HasChecker(patternNode, "winforms_program"))
         {
-            ValidateTopLevelProgram(patternNode, projectDirectory, issues);
+            ValidateWinFormsProgram(patternNode, projectDirectory, issues);
+        }
+
+        if (HasChecker(patternNode, "dependency_injection"))
+        {
+            ValidateDependencyInjection(patternNode, projectDirectory, sourceFiles, issues);
+        }
+
+        if (HasChecker(patternNode, "application_feature_layout"))
+        {
+            ValidateApplicationFeatureLayout(patternNode, projectDirectory, sourceFiles, issues);
+        }
+
+        if (HasChecker(patternNode, "winforms_roles"))
+        {
+            ValidateWinFormsRoles(patternNode, projectDirectory, sourceFiles, issues);
         }
 
         return issues;
     }
 
-    private void InspectFile(PatternNodeDefinition patternNode, string sourceFile, List<GateIssue> issues)
+    private void InspectFile(
+        PatternNodeDefinition patternNode,
+        string projectDirectory,
+        string sourceFile,
+        List<GateIssue> issues)
     {
         try
         {
@@ -59,24 +78,24 @@ public class CSharpGateInspector
             }
 
             ValidateForbiddenNamespaces(patternNode, sourceFile, root, issues);
-            if (HasChecker(patternNode, "entity_boundaries"))
+            if (HasChecker(patternNode, "domain_state_boundaries"))
             {
-                ValidateEntityBoundaries(patternNode, sourceFile, root, issues);
+                ValidateEntityBoundaries(patternNode, projectDirectory, sourceFile, root, issues);
             }
 
-            if (HasChecker(patternNode, "application_workflow_contracts"))
+            if (HasChecker(patternNode, "application_use_case_contracts"))
             {
-                ValidateApplicationWorkflowContracts(patternNode, sourceFile, root, issues);
+                ValidateApplicationUseCaseContracts(patternNode, sourceFile, root, issues);
             }
 
-            if (HasChecker(patternNode, "winforms_boundaries"))
+            if (HasChecker(patternNode, "winforms_roles"))
             {
                 ValidateWinFormsBoundaries(patternNode, sourceFile, root, issues);
             }
 
-            if (HasChecker(patternNode, "presentation_workflow_boundaries"))
+            if (HasChecker(patternNode, "game_form_boundaries"))
             {
-                ValidatePresentationWorkflowBoundaries(patternNode, sourceFile, root, issues);
+                ValidateGameFormBoundaries(patternNode, sourceFile, root, issues);
             }
         }
         catch (Exception exception)
@@ -87,6 +106,18 @@ public class CSharpGateInspector
 
     private void ValidateGlobalRules(PatternNodeDefinition patternNode, string sourceFile, CompilationUnitSyntax root, List<GateIssue> issues)
     {
+        foreach (FileScopedNamespaceDeclarationSyntax fileScopedNamespace in root.Members
+            .OfType<FileScopedNamespaceDeclarationSyntax>())
+        {
+            AddIssue(
+                issues,
+                "V3-PN-CS-NAMESPACE-001",
+                patternNode.Id,
+                sourceFile,
+                fileScopedNamespace,
+                "namespace 必須使用區塊式大括號，不得使用 file-scoped namespace。");
+        }
+
         foreach (RecordDeclarationSyntax record in root.DescendantNodes().OfType<RecordDeclarationSyntax>())
         {
             AddIssue(issues, "V3-PN-CS-CLASS-002", patternNode.Id, sourceFile, record, "手寫型別不得使用 record。 ");
@@ -103,7 +134,13 @@ public class CSharpGateInspector
             ValidateClassDeclaration(patternNode, sourceFile, classDeclaration, issues);
         }
 
-        if (classes.Count == 1 && !string.Equals(Path.GetFileNameWithoutExtension(sourceFile), classes[0].Identifier.ValueText, StringComparison.Ordinal))
+        bool containsOnlyGameFormPartial = classes.Count == 1
+            && string.Equals(classes[0].Identifier.ValueText, "GameForm", StringComparison.Ordinal)
+            && Path.GetFileName(sourceFile).StartsWith("GameForm", StringComparison.Ordinal)
+            && classes[0].Modifiers.Any(SyntaxKind.PartialKeyword);
+        if (classes.Count == 1
+            && !containsOnlyGameFormPartial
+            && !string.Equals(Path.GetFileNameWithoutExtension(sourceFile), classes[0].Identifier.ValueText, StringComparison.Ordinal))
         {
             AddIssue(issues, "V3-PN-CS-FILE-001", patternNode.Id, sourceFile, classes[0], $"類別 {classes[0].Identifier.ValueText} 必須放在同名檔案。 ");
         }
@@ -117,7 +154,11 @@ public class CSharpGateInspector
 
         foreach (MethodDeclarationSyntax method in root.DescendantNodes().OfType<MethodDeclarationSyntax>())
         {
-            if (method.Modifiers.Any(SyntaxKind.StaticKeyword))
+            bool isProgramMain = string.Equals(Path.GetFileName(sourceFile), "Program.cs", StringComparison.Ordinal)
+                && string.Equals(method.Identifier.ValueText, "Main", StringComparison.Ordinal);
+            if (method.Modifiers.Any(SyntaxKind.StaticKeyword)
+                && !IsDependencyInjectionRegistrationFile(sourceFile)
+                && !isProgramMain)
             {
                 AddIssue(issues, "V3-PN-CS-METHOD-001", patternNode.Id, sourceFile, method, $"方法 {method.Identifier.ValueText} 不得宣告 static。 ");
             }
@@ -209,14 +250,27 @@ public class CSharpGateInspector
 
     private void ValidateClassDeclaration(PatternNodeDefinition patternNode, string sourceFile, ClassDeclarationSyntax classDeclaration, List<GateIssue> issues)
     {
-        if (!classDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword))
+        bool isProgramClass = string.Equals(Path.GetFileName(sourceFile), "Program.cs", StringComparison.Ordinal)
+            && string.Equals(classDeclaration.Identifier.ValueText, "Program", StringComparison.Ordinal);
+        bool isGameFormPartial = Path.GetFileName(sourceFile).StartsWith("GameForm", StringComparison.Ordinal)
+            && string.Equals(Path.GetExtension(sourceFile), ".cs", StringComparison.Ordinal)
+            && string.Equals(classDeclaration.Identifier.ValueText, "GameForm", StringComparison.Ordinal);
+        if (!classDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword) && !isProgramClass)
         {
             AddIssue(issues, "V3-PN-CS-CLASS-001", patternNode.Id, sourceFile, classDeclaration, $"類別 {classDeclaration.Identifier.ValueText} 必須宣告 public。 ");
         }
 
         foreach (SyntaxKind forbiddenModifier in new[] { SyntaxKind.SealedKeyword, SyntaxKind.AbstractKeyword, SyntaxKind.PartialKeyword, SyntaxKind.StaticKeyword })
         {
-            if (classDeclaration.Modifiers.Any(forbiddenModifier))
+            bool isAllowedRegistrationClass = forbiddenModifier == SyntaxKind.StaticKeyword
+                && IsDependencyInjectionRegistrationFile(sourceFile)
+                && string.Equals(classDeclaration.Identifier.ValueText, "DependencyInjection", StringComparison.Ordinal);
+            bool isAllowedProgramClass = forbiddenModifier == SyntaxKind.StaticKeyword && isProgramClass;
+            bool isAllowedGameFormPartial = forbiddenModifier == SyntaxKind.PartialKeyword && isGameFormPartial;
+            if (classDeclaration.Modifiers.Any(forbiddenModifier)
+                && !isAllowedRegistrationClass
+                && !isAllowedProgramClass
+                && !isAllowedGameFormPartial)
             {
                 string modifierText = SyntaxFacts.GetText(forbiddenModifier);
                 AddIssue(issues, "V3-PN-CS-CLASS-001", patternNode.Id, sourceFile, classDeclaration, $"手寫類別 {classDeclaration.Identifier.ValueText} 不得宣告 {modifierText}。 ");
@@ -310,7 +364,12 @@ public class CSharpGateInspector
             return;
         }
 
-        string ruleId = patternNode.Id == "entities" ? "V3-PN-ENT-PRO-002" : "V3-PN-UC-PRO-002";
+        string ruleId = patternNode.Id switch
+        {
+            "domain" => "V3-PN-DOM-PRO-002",
+            "infrastructure" => "V3-PN-INF-PRO-003",
+            _ => "V3-PN-UC-PRO-002"
+        };
         foreach (UsingDirectiveSyntax usingDirective in root.Usings)
         {
             string namespaceName = usingDirective.Name?.ToString() ?? string.Empty;
@@ -324,8 +383,43 @@ public class CSharpGateInspector
         }
     }
 
-    private void ValidateEntityBoundaries(PatternNodeDefinition patternNode, string sourceFile, CompilationUnitSyntax root, List<GateIssue> issues)
+    private void ValidateEntityBoundaries(
+        PatternNodeDefinition patternNode,
+        string projectDirectory,
+        string sourceFile,
+        CompilationUnitSyntax root,
+        List<GateIssue> issues)
     {
+        foreach (ClassDeclarationSyntax classDeclaration in root.DescendantNodes().OfType<ClassDeclarationSyntax>())
+        {
+            if (classDeclaration.Identifier.ValueText.EndsWith("Id", StringComparison.Ordinal))
+            {
+                AddIssue(
+                    issues,
+                    "V3-PN-DOM-PRO-007",
+                    patternNode.Id,
+                    sourceFile,
+                    classDeclaration,
+                    $"規格未宣告 identity，不得建立獨立識別類別 {classDeclaration.Identifier.ValueText}。");
+            }
+        }
+
+        string relativePath = Path.GetRelativePath(projectDirectory, sourceFile).Replace('\\', '/');
+        foreach (EnumDeclarationSyntax enumDeclaration in root.DescendantNodes().OfType<EnumDeclarationSyntax>())
+        {
+            string expectedPath = $"Enums/{enumDeclaration.Identifier.ValueText}.cs";
+            if (!string.Equals(relativePath, expectedPath, StringComparison.Ordinal))
+            {
+                AddIssue(
+                    issues,
+                    "V3-PN-DOM-PRO-008",
+                    patternNode.Id,
+                    sourceFile,
+                    enumDeclaration,
+                    $"Domain enum {enumDeclaration.Identifier.ValueText} 必須位於 {expectedPath}。");
+            }
+        }
+
         foreach (PropertyDeclarationSyntax property in root.DescendantNodes().OfType<PropertyDeclarationSyntax>())
         {
             if (!property.Modifiers.Any(SyntaxKind.PublicKeyword) || property.AccessorList == null)
@@ -338,7 +432,7 @@ public class CSharpGateInspector
                 bool isRestricted = accessor.Modifiers.Any(SyntaxKind.PrivateKeyword) || accessor.Modifiers.Any(SyntaxKind.ProtectedKeyword) || accessor.Modifiers.Any(SyntaxKind.InternalKeyword);
                 if (!isRestricted)
                 {
-                    AddIssue(issues, "V3-PN-ENT-PRO-004", patternNode.Id, sourceFile, accessor, $"領域屬性 {property.Identifier.ValueText} 不得提供 public {accessor.Keyword.ValueText}。 ");
+                    AddIssue(issues, "V3-PN-DOM-PRO-004", patternNode.Id, sourceFile, accessor, $"領域屬性 {property.Identifier.ValueText} 不得提供 public {accessor.Keyword.ValueText}。 ");
                 }
             }
         }
@@ -348,7 +442,7 @@ public class CSharpGateInspector
             string expression = memberAccess.ToString();
             if (expression is "DateTime.Now" or "DateTime.UtcNow" or "Guid.NewGuid" || expression.StartsWith("Environment.", StringComparison.Ordinal))
             {
-                AddIssue(issues, "V3-PN-ENT-PRO-003", patternNode.Id, sourceFile, memberAccess, $"Entities 不得直接取得非確定性來源：{expression}。 ");
+                AddIssue(issues, "V3-PN-DOM-PRO-003", patternNode.Id, sourceFile, memberAccess, $"Domain 不得直接取得非確定性來源：{expression}。 ");
             }
         }
 
@@ -356,12 +450,12 @@ public class CSharpGateInspector
         {
             if (objectCreation.Type.ToString() is "Random" or "System.Random")
             {
-                AddIssue(issues, "V3-PN-ENT-PRO-003", patternNode.Id, sourceFile, objectCreation, "Entities 不得自行建立 Random。 ");
+                AddIssue(issues, "V3-PN-DOM-PRO-003", patternNode.Id, sourceFile, objectCreation, "Domain 不得自行建立 Random。 ");
             }
         }
     }
 
-    private void ValidateApplicationWorkflowContracts(
+    private void ValidateApplicationUseCaseContracts(
         PatternNodeDefinition patternNode,
         string sourceFile,
         CompilationUnitSyntax root,
@@ -369,180 +463,184 @@ public class CSharpGateInspector
     {
         foreach (ClassDeclarationSyntax classDeclaration in root.DescendantNodes().OfType<ClassDeclarationSyntax>())
         {
-            bool isLegacyUseCase = classDeclaration.Identifier.ValueText.EndsWith("UseCase", StringComparison.Ordinal);
+            bool isUseCase = classDeclaration.Identifier.ValueText.EndsWith("UseCase", StringComparison.Ordinal);
             bool isApplicationService = classDeclaration.Identifier.ValueText.EndsWith("ApplicationService", StringComparison.Ordinal);
-            if (isLegacyUseCase || isApplicationService)
-            {
-                List<MethodDeclarationSyntax> workflowMethods = classDeclaration.Members
-                    .OfType<MethodDeclarationSyntax>()
-                    .Where(method => method.Modifiers.Any(SyntaxKind.PublicKeyword))
-                    .ToList();
-                if (isLegacyUseCase
-                    && workflowMethods.Count == 1
-                    && workflowMethods[0].Identifier.ValueText == "Execute")
-                {
-                    AddIssue(
-                        issues,
-                        "V3-PN-UC-PRO-006",
-                        patternNode.Id,
-                        sourceFile,
-                        classDeclaration,
-                        $"{classDeclaration.Identifier.ValueText} 仍採用單一 Execute 的葉節點 Use Case 結構。 ",
-                        "warning");
-                }
-
-                foreach (MethodDeclarationSyntax workflowMethod in workflowMethods)
-                {
-                    if (workflowMethod.ParameterList.Parameters.Count != 1)
-                    {
-                        AddIssue(
-                            issues,
-                            "V3-PN-UC-002",
-                            patternNode.Id,
-                            sourceFile,
-                            workflowMethod,
-                            $"Workflow Method {workflowMethod.Identifier.ValueText} 必須接受一個 Command 或 Query。 ",
-                            "warning");
-                    }
-                    else
-                    {
-                        string inputType = workflowMethod.ParameterList.Parameters[0].Type?.ToString() ?? string.Empty;
-                        if (!inputType.EndsWith("Command", StringComparison.Ordinal)
-                            && !inputType.EndsWith("Query", StringComparison.Ordinal))
-                        {
-                            AddIssue(
-                                issues,
-                                "V3-PN-UC-PRO-003",
-                                patternNode.Id,
-                                sourceFile,
-                                workflowMethod.ParameterList.Parameters[0],
-                                $"Workflow Method 輸入型別 {inputType} 必須以 Command 或 Query 結尾。 ",
-                                "warning");
-                        }
-                    }
-
-                    if (!workflowMethod.ReturnType.ToString().EndsWith("Result", StringComparison.Ordinal))
-                    {
-                        AddIssue(
-                            issues,
-                            "V3-PN-UC-002",
-                            patternNode.Id,
-                            sourceFile,
-                            workflowMethod.ReturnType,
-                            $"Workflow Method {workflowMethod.Identifier.ValueText} 回傳型別必須以 Result 結尾。 ",
-                            "warning");
-                    }
-                }
-            }
-
-            if (classDeclaration.Identifier.ValueText.EndsWith("Result", StringComparison.Ordinal))
-            {
-                ValidateResultContract(patternNode, sourceFile, classDeclaration, issues);
-            }
-        }
-    }
-
-    private void ValidateResultContract(PatternNodeDefinition patternNode, string sourceFile, ClassDeclarationSyntax resultClass, List<GateIssue> issues)
-    {
-        Dictionary<string, string> requiredProperties = new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            ["IsSuccess"] = "bool",
-            ["FailureCode"] = "string?",
-            ["FailureMessage"] = "string?"
-        };
-        Dictionary<string, PropertyDeclarationSyntax> actualProperties = resultClass.Members
-            .OfType<PropertyDeclarationSyntax>()
-            .Where(property => property.Modifiers.Any(SyntaxKind.PublicKeyword))
-            .ToDictionary(property => property.Identifier.ValueText, StringComparer.Ordinal);
-
-        foreach (KeyValuePair<string, string> requiredProperty in requiredProperties)
-        {
-            if (!actualProperties.TryGetValue(requiredProperty.Key, out PropertyDeclarationSyntax? actualProperty) || !string.Equals(actualProperty.Type.ToString(), requiredProperty.Value, StringComparison.Ordinal))
+            bool isProcessGameTick = string.Equals(
+                classDeclaration.Identifier.ValueText,
+                "ProcessGameTickUseCase",
+                StringComparison.Ordinal);
+            if (isApplicationService || isProcessGameTick)
             {
                 AddIssue(
                     issues,
-                    "V3-PN-UC-003",
+                    "V3-PN-UC-PRO-007",
                     patternNode.Id,
                     sourceFile,
-                    resultClass,
-                    $"Result 必須提供 {requiredProperty.Value} {requiredProperty.Key}。 ",
-                    "warning");
+                    classDeclaration,
+                    $"{classDeclaration.Identifier.ValueText} 不得集中承載多個領域敘事；每個敘事必須使用獨立 UseCase class。");
+            }
+
+            if (isUseCase)
+            {
+                string className = classDeclaration.Identifier.ValueText;
+                string operationName = className[..^"UseCase".Length];
+                List<MethodDeclarationSyntax> behaviorMethods = classDeclaration.Members
+                    .OfType<MethodDeclarationSyntax>()
+                    .Where(method => method.Modifiers.Any(SyntaxKind.PublicKeyword))
+                    .ToList();
+                if (behaviorMethods.Count != 1)
+                {
+                    AddIssue(
+                        issues,
+                        "V3-PN-UC-007",
+                        patternNode.Id,
+                        sourceFile,
+                        classDeclaration,
+                        $"{className} 必須恰好公開一個領域行為方法，實際為 {behaviorMethods.Count} 個。");
+                }
+
+                foreach (MethodDeclarationSyntax behaviorMethod in behaviorMethods)
+                {
+                    if (!string.Equals(behaviorMethod.Identifier.ValueText, operationName, StringComparison.Ordinal))
+                    {
+                        AddIssue(
+                            issues,
+                            "V3-PN-UC-007",
+                            patternNode.Id,
+                            sourceFile,
+                            behaviorMethod,
+                            $"{className} 的公開行為方法必須命名為 {operationName}。");
+                    }
+                }
+
+                IEnumerable<TypeSyntax> dependencyTypes = classDeclaration.Members
+                    .OfType<FieldDeclarationSyntax>()
+                    .Select(field => field.Declaration.Type)
+                    .Concat(classDeclaration.Members
+                        .OfType<ConstructorDeclarationSyntax>()
+                        .SelectMany(constructor => constructor.ParameterList.Parameters)
+                        .Where(parameter => parameter.Type is not null)
+                        .Select(parameter => parameter.Type!));
+                foreach (TypeSyntax dependencyType in dependencyTypes)
+                {
+                    if (dependencyType.ToString().Split('.').Last().EndsWith("UseCase", StringComparison.Ordinal))
+                    {
+                        AddIssue(
+                            issues,
+                            "V3-PN-UC-PRO-006",
+                            patternNode.Id,
+                            sourceFile,
+                            dependencyType,
+                            $"{className} 不得注入另一個 UseCase：{dependencyType}。");
+                    }
+                }
+            }
+
+            bool hasEmptyWrapperSuffix = new[]
+            {
+                "Command",
+                "Query",
+                "Request",
+                "Response",
+                "Result",
+                "Outcome",
+                "RspDTO"
+            }.Any(suffix => classDeclaration.Identifier.ValueText.EndsWith(suffix, StringComparison.Ordinal));
+            bool hasDataMember = classDeclaration.Members.Any(member =>
+                member is PropertyDeclarationSyntax or FieldDeclarationSyntax);
+            if (hasEmptyWrapperSuffix && !hasDataMember)
+            {
+                AddIssue(
+                    issues,
+                    "V3-PN-UC-PRO-003",
+                    patternNode.Id,
+                    sourceFile,
+                    classDeclaration,
+                    $"空的 {classDeclaration.Identifier.ValueText} 是不必要的契約包裝；請直接使用無參數、void 或自然型別。");
             }
         }
     }
 
     private void ValidateWinFormsBoundaries(PatternNodeDefinition patternNode, string sourceFile, CompilationUnitSyntax root, List<GateIssue> issues)
     {
-        foreach (ClassDeclarationSyntax presenter in root.DescendantNodes().OfType<ClassDeclarationSyntax>().Where(type => type.Identifier.ValueText.EndsWith("Presenter", StringComparison.Ordinal)))
+        GateCheckDefinition? roleCheck = patternNode.Checks.FirstOrDefault(
+            candidate => string.Equals(candidate.Checker, "winforms_roles", StringComparison.Ordinal));
+        List<string> forbiddenRoleSuffixes = roleCheck?.ListParameters.GetValueOrDefault(
+            "forbidden_role_suffixes",
+            new List<string>()) ?? new List<string>();
+        List<string> forbiddenRoleNames = roleCheck?.ListParameters.GetValueOrDefault(
+            "forbidden_role_names",
+            new List<string>()) ?? new List<string>();
+        foreach (ClassDeclarationSyntax classDeclaration in root.DescendantNodes().OfType<ClassDeclarationSyntax>())
         {
-            foreach (BaseTypeSyntax baseType in presenter.BaseList?.Types ?? new SeparatedSyntaxList<BaseTypeSyntax>())
+            string className = classDeclaration.Identifier.ValueText;
+            bool isAllowedRole = string.Equals(className, "GameForm", StringComparison.Ordinal);
+            if (forbiddenRoleNames.Contains(className, StringComparer.Ordinal))
             {
-                if (IsWinFormsType(baseType.Type.ToString()))
-                {
-                    AddIssue(issues, "V3-PN-UI-PRO-002", patternNode.Id, sourceFile, baseType, "Presenter 不得繼承 WinForms 型別。 ");
-                }
+                AddIssue(
+                    issues,
+                    "V3-PN-UI-PRO-002",
+                    patternNode.Id,
+                    sourceFile,
+                    classDeclaration,
+                    $"UI 不得宣告中介角色 {className}；事件、UseCase 順序與畫面更新由 GameForm 擁有。");
             }
 
-            foreach (FieldDeclarationSyntax field in presenter.Members.OfType<FieldDeclarationSyntax>())
+            string? forbiddenSuffix = forbiddenRoleSuffixes.FirstOrDefault(suffix =>
+                className.EndsWith(suffix, StringComparison.Ordinal));
+            if (!isAllowedRole && forbiddenSuffix is not null)
             {
-                if (IsWinFormsType(field.Declaration.Type.ToString()))
-                {
-                    AddIssue(issues, "V3-PN-UI-PRO-002", patternNode.Id, sourceFile, field, "Presenter 不得保存 WinForms 控制項。 ");
-                }
+                AddIssue(
+                    issues,
+                    "V3-PN-UI-PRO-007",
+                    patternNode.Id,
+                    sourceFile,
+                    classDeclaration,
+                    $"UI 類別 {className} 不得使用意義不明的 {forbiddenSuffix} 角色名稱。");
             }
 
-            foreach (ConstructorDeclarationSyntax constructor in presenter.Members.OfType<ConstructorDeclarationSyntax>())
-            {
-                foreach (ParameterSyntax parameter in constructor.ParameterList.Parameters)
-                {
-                    if (IsWinFormsType(parameter.Type?.ToString() ?? string.Empty))
-                    {
-                        AddIssue(issues, "V3-PN-UI-PRO-002", patternNode.Id, sourceFile, parameter, "Presenter 建構式不得接收 WinForms 控制項。 ");
-                    }
-                }
-            }
-        }
-
-        GateCheckDefinition? boundaryCheck = patternNode.Checks.FirstOrDefault(
-            candidate => string.Equals(candidate.Checker, "winforms_boundaries", StringComparison.Ordinal));
-        if (boundaryCheck is null
-            || !boundaryCheck.ScalarParameters.TryGetValue("direction_dispatch_event", out string? directionDispatchEvent)
-            || !boundaryCheck.ScalarParameters.TryGetValue("direction_value_type", out string? directionValueType)
-            || !boundaryCheck.ListParameters.TryGetValue("declared_direction_keys", out List<string>? declaredDirectionKeys))
-        {
-            return;
-        }
-
-        foreach (ClassDeclarationSyntax form in root.DescendantNodes()
-            .OfType<ClassDeclarationSyntax>()
-            .Where(IsWinFormsForm))
-        {
-            bool declaresDirectionEvent = form.Members
-                .OfType<EventFieldDeclarationSyntax>()
-                .SelectMany(eventField => eventField.Declaration.Variables)
-                .Any(variable => string.Equals(
-                    variable.Identifier.ValueText,
-                    directionDispatchEvent,
-                    StringComparison.Ordinal));
-            bool referencesDeclaredDirectionKey = form.DescendantNodes()
-                .OfType<MemberAccessExpressionSyntax>()
-                .Any(memberAccess => IsMemberAccess(
-                    memberAccess,
-                    "Keys",
-                    declaredDirectionKeys));
-            if (!declaresDirectionEvent || !referencesDeclaredDirectionKey)
+            if (!string.Equals(className, "GameForm", StringComparison.Ordinal))
             {
                 continue;
             }
 
-            ValidateDirectionInputForm(
-                patternNode,
-                sourceFile,
-                form,
-                directionDispatchEvent,
-                directionValueType,
-                declaredDirectionKeys,
-                issues);
+            List<string> directionKeys = new List<string> { "Up", "Down", "Left", "Right" };
+            bool referencesDirectionKey = classDeclaration.DescendantNodes()
+                .OfType<MemberAccessExpressionSyntax>()
+                .Any(memberAccess => IsMemberAccess(memberAccess, "Keys", directionKeys));
+            bool declaresDirectionEvent = classDeclaration.Members
+                .OfType<EventFieldDeclarationSyntax>()
+                .SelectMany(eventField => eventField.Declaration.Variables)
+                .Any(variable => string.Equals(
+                    variable.Identifier.ValueText,
+                    "DirectionRequested",
+                    StringComparison.Ordinal));
+            if (referencesDirectionKey || declaresDirectionEvent)
+            {
+                ValidateDirectionInputForm(
+                    patternNode,
+                    sourceFile,
+                    classDeclaration,
+                    "DirectionRequested",
+                    "Direction",
+                    directionKeys,
+                    issues);
+            }
+        }
+
+        foreach (InterfaceDeclarationSyntax interfaceDeclaration in root.DescendantNodes().OfType<InterfaceDeclarationSyntax>())
+        {
+            string interfaceName = interfaceDeclaration.Identifier.ValueText;
+            if (forbiddenRoleNames.Contains(interfaceName, StringComparer.Ordinal))
+            {
+                AddIssue(
+                    issues,
+                    "V3-PN-UI-PRO-002",
+                    patternNode.Id,
+                    sourceFile,
+                    interfaceDeclaration,
+                    $"UI 不得宣告中介角色 {interfaceName}；GameForm 直接擁有 UI 契約。");
+            }
         }
     }
 
@@ -597,7 +695,7 @@ public class CSharpGateInspector
 
             AddIssue(
                 issues,
-                "V3-PN-UI-PRO-007",
+                "V3-PN-UI-008",
                 patternNode.Id,
                 sourceFile,
                 parallelMethod,
@@ -647,7 +745,7 @@ public class CSharpGateInspector
                 patternNode.Id,
                 sourceFile,
                 processCmdKey,
-                $"ProcessCmdKey 必須以 Keys.KeyCode 恰好映射 {string.Join("、", declaredDirectionKeys)} 到同名 {directionValueType}。 ");
+                $"ProcessCmdKey 必須以 Keys.KeyCode 恰好映射 {string.Join("、", declaredDirectionKeys)} 到對應方向值。 ");
         }
 
         int dispatchCount = CountEventDispatches(processCmdKey, directionDispatchEvent);
@@ -696,17 +794,19 @@ public class CSharpGateInspector
         {
             string? keyName = GetMemberName(arm.Pattern, "Keys");
             string? directionName = GetMemberName(arm.Expression, directionValueType);
-            if (keyName is null && directionName is null)
+            string? vectorDirectionName = GetVectorDirectionName(arm.Expression);
+            string? mappedDirectionName = directionName ?? vectorDirectionName;
+            if (keyName is null && mappedDirectionName is null)
             {
                 continue;
             }
 
-            if (keyName is null || directionName is null)
+            if (keyName is null || mappedDirectionName is null)
             {
                 return false;
             }
 
-            mappings.Add(new KeyValuePair<string, string>(keyName, directionName));
+            mappings.Add(new KeyValuePair<string, string>(keyName, mappedDirectionName));
         }
 
         if (mappings.Count != declaredDirectionKeys.Count
@@ -719,6 +819,28 @@ public class CSharpGateInspector
         return declaredDirectionKeys.All(key => mappings.Any(mapping =>
             string.Equals(mapping.Key, key, StringComparison.Ordinal)
             && string.Equals(mapping.Value, key, StringComparison.Ordinal)));
+    }
+
+    private string? GetVectorDirectionName(ExpressionSyntax expression)
+    {
+        ObjectCreationExpressionSyntax? objectCreation = expression.DescendantNodesAndSelf()
+            .OfType<ObjectCreationExpressionSyntax>()
+            .FirstOrDefault(creation => creation.Type.ToString().Split('.').Last() == "SnakeDirectionDTO");
+        if (objectCreation?.ArgumentList?.Arguments.Count != 2)
+        {
+            return null;
+        }
+
+        string x = objectCreation.ArgumentList.Arguments[0].Expression.ToString();
+        string y = objectCreation.ArgumentList.Arguments[1].Expression.ToString();
+        return (x, y) switch
+        {
+            ("0", "-1") => "Up",
+            ("0", "1") => "Down",
+            ("-1", "0") => "Left",
+            ("1", "0") => "Right",
+            _ => null
+        };
     }
 
     private string? GetMemberName(SyntaxNode node, string ownerName)
@@ -767,93 +889,660 @@ public class CSharpGateInspector
             && memberNames.Contains(memberAccess.Name.Identifier.ValueText, StringComparer.Ordinal);
     }
 
-    private void ValidatePresentationWorkflowBoundaries(
+    private void ValidateGameFormBoundaries(
         PatternNodeDefinition patternNode,
         string sourceFile,
         CompilationUnitSyntax root,
         List<GateIssue> issues)
     {
-        foreach (ClassDeclarationSyntax presenter in root.DescendantNodes()
+        foreach (ClassDeclarationSyntax form in root.DescendantNodes()
             .OfType<ClassDeclarationSyntax>()
-            .Where(type => type.Identifier.ValueText.EndsWith("Presenter", StringComparison.Ordinal)))
+            .Where(type => string.Equals(type.Identifier.ValueText, "GameForm", StringComparison.Ordinal)))
         {
-            HashSet<string> applicationDependencyFields = presenter.Members
-                .OfType<FieldDeclarationSyntax>()
-                .Where(field =>
-                    field.Declaration.Type.ToString().EndsWith("UseCase", StringComparison.Ordinal)
-                    || field.Declaration.Type.ToString().EndsWith("ApplicationService", StringComparison.Ordinal))
-                .SelectMany(field => field.Declaration.Variables)
-                .Select(variable => variable.Identifier.ValueText)
-                .ToHashSet(StringComparer.Ordinal);
-            HashSet<string> sessionFields = presenter.Members
-                .OfType<FieldDeclarationSyntax>()
-                .Where(field => field.Declaration.Type.ToString().EndsWith("Session", StringComparison.Ordinal))
-                .SelectMany(field => field.Declaration.Variables)
-                .Select(variable => variable.Identifier.ValueText)
-                .ToHashSet(StringComparer.Ordinal);
-
-            foreach (MethodDeclarationSyntax method in presenter.Members.OfType<MethodDeclarationSyntax>())
+            MethodDeclarationSyntax? tick = form.Members
+                .OfType<MethodDeclarationSyntax>()
+                .FirstOrDefault(method => string.Equals(method.Identifier.ValueText, "ExecuteGameTick", StringComparison.Ordinal));
+            if (tick is not null)
             {
-                List<InvocationExpressionSyntax> applicationCalls = method.DescendantNodes()
+                int moveCalls = tick.DescendantNodes()
                     .OfType<InvocationExpressionSyntax>()
-                    .Where(invocation => IsInvocationOnField(invocation, applicationDependencyFields))
-                    .ToList();
-                if (applicationCalls.Count > 1)
+                    .Count(invocation => invocation.Expression is MemberAccessExpressionSyntax memberAccess
+                        && string.Equals(memberAccess.Name.Identifier.ValueText, "MoveSnake", StringComparison.Ordinal));
+                if (moveCalls != 1)
                 {
                     AddIssue(
                         issues,
-                        "V3-PN-UI-PRO-005",
+                        "V3-PN-UI-009",
                         patternNode.Id,
                         sourceFile,
-                        method,
-                        $"Presenter 方法 {method.Identifier.ValueText} 呼叫了 {applicationCalls.Count} 個應用操作；一個 UI 事件只能呼叫一個完整 Workflow Method。 ",
-                        "warning");
+                        tick,
+                        $"GameForm.ExecuteGameTick 一次只能呼叫一次 MoveSnakeUseCase.MoveSnake，實際為 {moveCalls} 次。");
                 }
 
-                foreach (InvocationExpressionSyntax sessionCall in method.DescendantNodes()
-                    .OfType<InvocationExpressionSyntax>()
-                    .Where(invocation => IsInvocationOnField(invocation, sessionFields)))
+                if (tick.DescendantNodes().Any(node =>
+                        node is ForStatementSyntax
+                            or ForEachStatementSyntax
+                            or WhileStatementSyntax
+                            or DoStatementSyntax))
+                {
+                    AddIssue(issues, "V3-PN-UI-PRO-009", patternNode.Id, sourceFile, tick, "GameForm.ExecuteGameTick 不得用迴圈補跑移動。");
+                }
+
+                string tickSource = tick.ToString();
+                if (new[] { "DateTime", "Stopwatch", "Elapsed", "elapsed", "accumulated", "deltaTime" }
+                    .Any(token => tickSource.Contains(token, StringComparison.Ordinal)))
+                {
+                    AddIssue(issues, "V3-PN-UI-PRO-009", patternNode.Id, sourceFile, tick, "GameForm.ExecuteGameTick 不得讀取或累積時間。");
+                }
+            }
+
+            MethodDeclarationSyntax? applyScreen = form.Members
+                .OfType<MethodDeclarationSyntax>()
+                .FirstOrDefault(method => string.Equals(method.Identifier.ValueText, "ApplyScreen", StringComparison.Ordinal));
+            if (applyScreen is not null)
+            {
+                string applyScreenSource = applyScreen.ToString();
+                string? forbiddenOperation = new[] { "Controls.Clear", "ResumeLayout(true)", "_boardSurface.Invalidate" }
+                    .FirstOrDefault(token => applyScreenSource.Contains(token, StringComparison.Ordinal));
+                if (forbiddenOperation is not null)
                 {
                     AddIssue(
                         issues,
-                        "V3-PN-UI-PRO-005",
+                        "V3-PN-UI-PRO-006",
                         patternNode.Id,
                         sourceFile,
-                        sessionCall,
-                        $"Presenter 方法 {method.Identifier.ValueText} 不得讀取 Session 後決定業務流程。 ",
-                        "warning");
+                        applyScreen,
+                        $"GameForm.ApplyScreen 不得執行整體畫面更新：{forbiddenOperation}。");
+                }
+
+                if (!applyScreenSource.Contains("HasCellChanged", StringComparison.Ordinal))
+                {
+                    AddIssue(
+                        issues,
+                        "V3-PN-UI-004",
+                        patternNode.Id,
+                        sourceFile,
+                        applyScreen,
+                        "GameForm.ApplyScreen 必須先比對棋盤格差異，再更新變動格位。");
                 }
             }
         }
     }
 
-    private bool IsInvocationOnField(InvocationExpressionSyntax invocation, HashSet<string> fieldNames)
+    private void ValidateWinFormsRoles(
+        PatternNodeDefinition patternNode,
+        string projectDirectory,
+        string[] sourceFiles,
+        List<GateIssue> issues)
     {
-        return invocation.Expression is MemberAccessExpressionSyntax memberAccess
-            && memberAccess.Expression is IdentifierNameSyntax receiver
-            && fieldNames.Contains(receiver.Identifier.ValueText);
+        GateCheckDefinition roleCheck = patternNode.Checks.First(candidate =>
+            string.Equals(candidate.Checker, "winforms_roles", StringComparison.Ordinal));
+        string formClass = roleCheck.ScalarParameters.GetValueOrDefault("form_class", "GameForm");
+        List<string> forbiddenRoleNames = roleCheck.ListParameters.GetValueOrDefault(
+            "forbidden_role_names",
+            new List<string>());
+        List<ClassDeclarationSyntax> formDeclarations = new List<ClassDeclarationSyntax>();
+        List<(string Name, string File)> forbiddenDeclarations = new List<(string Name, string File)>();
+        foreach (string sourceFile in sourceFiles.Where(sourceFile => !IsGeneratedFile(projectDirectory, sourceFile)))
+        {
+            CompilationUnitSyntax root = CSharpSyntaxTree.ParseText(
+                File.ReadAllText(sourceFile),
+                path: sourceFile).GetCompilationUnitRoot();
+            foreach (ClassDeclarationSyntax classDeclaration in root.DescendantNodes().OfType<ClassDeclarationSyntax>())
+            {
+                string className = classDeclaration.Identifier.ValueText;
+                if (string.Equals(className, formClass, StringComparison.Ordinal))
+                {
+                    formDeclarations.Add(classDeclaration);
+                }
+
+                if (forbiddenRoleNames.Contains(className, StringComparer.Ordinal))
+                {
+                    forbiddenDeclarations.Add((className, sourceFile));
+                }
+            }
+
+            foreach (InterfaceDeclarationSyntax interfaceDeclaration in root.DescendantNodes().OfType<InterfaceDeclarationSyntax>())
+            {
+                string interfaceName = interfaceDeclaration.Identifier.ValueText;
+                if (forbiddenRoleNames.Contains(interfaceName, StringComparer.Ordinal))
+                {
+                    forbiddenDeclarations.Add((interfaceName, sourceFile));
+                }
+            }
+        }
+
+        if (formDeclarations.Count == 0)
+        {
+            issues.Add(new GateIssue(
+                "V3-PN-UI-001",
+                patternNode.Id,
+                projectDirectory,
+                null,
+                $"WinForms 必須宣告 {formClass}。",
+                "error"));
+        }
+
+        foreach ((string forbiddenRoleName, string sourceFile) in forbiddenDeclarations)
+        {
+            issues.Add(new GateIssue(
+                "V3-PN-UI-PRO-002",
+                patternNode.Id,
+                sourceFile,
+                null,
+                $"WinForms 不得宣告 {forbiddenRoleName}；事件、UseCase 順序與畫面更新由 {formClass} 擁有。",
+                "error"));
+        }
+
+        bool hasTickWorkflow = formDeclarations
+            .SelectMany(declaration => declaration.Members.OfType<MethodDeclarationSyntax>())
+            .Any(method => string.Equals(method.Identifier.ValueText, "ExecuteGameTick", StringComparison.Ordinal));
+        bool hasChangedScreenApplication = formDeclarations
+            .SelectMany(declaration => declaration.Members.OfType<MethodDeclarationSyntax>())
+            .Any(method => string.Equals(method.Identifier.ValueText, "ApplyScreen", StringComparison.Ordinal));
+        bool injectsMoveSnakeUseCase = formDeclarations
+            .SelectMany(declaration => declaration.Members.OfType<ConstructorDeclarationSyntax>())
+            .SelectMany(constructor => constructor.ParameterList.Parameters)
+            .Any(parameter => string.Equals(parameter.Type?.ToString().Split('.').Last(), "MoveSnakeUseCase", StringComparison.Ordinal));
+        if (!hasTickWorkflow || !hasChangedScreenApplication || !injectsMoveSnakeUseCase)
+        {
+            issues.Add(new GateIssue(
+                "V3-PN-UI-002",
+                patternNode.Id,
+                projectDirectory,
+                null,
+                $"{formClass} 必須透過 DI 取得 MoveSnakeUseCase，並擁有 ExecuteGameTick 與 ApplyScreen。",
+                "error"));
+        }
     }
 
-    private void ValidateTopLevelProgram(PatternNodeDefinition patternNode, string projectDirectory, List<GateIssue> issues)
+    private void ValidateDependencyInjection(
+        PatternNodeDefinition patternNode,
+        string projectDirectory,
+        string[] sourceFiles,
+        List<GateIssue> issues)
+    {
+        List<string> inspectedSourceFiles = sourceFiles
+            .Where(sourceFile => !IsGeneratedFile(projectDirectory, sourceFile))
+            .ToList();
+        foreach (string sourceFile in inspectedSourceFiles)
+        {
+            string sourceText = File.ReadAllText(sourceFile);
+            CompilationUnitSyntax root = CSharpSyntaxTree.ParseText(sourceText, path: sourceFile).GetCompilationUnitRoot();
+            foreach (IdentifierNameSyntax serviceProviderType in root.DescendantNodes()
+                .OfType<IdentifierNameSyntax>()
+                .Where(identifier => string.Equals(identifier.Identifier.ValueText, "IServiceProvider", StringComparison.Ordinal)))
+            {
+                AddIssue(
+                    issues,
+                    "V3-PN-CS-DI-003",
+                    patternNode.Id,
+                    sourceFile,
+                    serviceProviderType,
+                    "不得注入或保存 IServiceProvider；依賴必須透過 constructor injection 明確宣告。");
+            }
+
+            bool isCompositionRoot = string.Equals(Path.GetFileName(sourceFile), "Program.cs", StringComparison.Ordinal);
+            if (!isCompositionRoot)
+            {
+                foreach (InvocationExpressionSyntax serviceLocation in root.DescendantNodes()
+                    .OfType<InvocationExpressionSyntax>()
+                    .Where(invocation => invocation.Expression is MemberAccessExpressionSyntax memberAccess
+                        && memberAccess.Name.Identifier.ValueText is "GetService" or "GetRequiredService"))
+                {
+                    AddIssue(
+                        issues,
+                        "V3-PN-CS-DI-003",
+                        patternNode.Id,
+                        sourceFile,
+                        serviceLocation,
+                        "GetService/GetRequiredService 只能出現在 Program.cs composition root，不得作為 Service Locator。");
+                }
+            }
+
+            foreach (ObjectCreationExpressionSyntax objectCreation in root.DescendantNodes()
+                .OfType<ObjectCreationExpressionSyntax>()
+                .Where(objectCreation => objectCreation.Type.ToString().Split('.').Last().EndsWith("UseCase", StringComparison.Ordinal)))
+            {
+                AddIssue(
+                    issues,
+                    "V3-PN-CS-DI-002",
+                    patternNode.Id,
+                    sourceFile,
+                    objectCreation,
+                    $"不得直接 new {objectCreation.Type}；UseCase 必須由 DI container 建立。");
+            }
+        }
+
+        if (string.Equals(patternNode.Id, "application", StringComparison.Ordinal))
+        {
+            ValidateApplicationRegistrations(patternNode, projectDirectory, inspectedSourceFiles, issues);
+        }
+        else if (string.Equals(patternNode.Id, "infrastructure", StringComparison.Ordinal))
+        {
+            ValidateInfrastructureRegistrations(patternNode, projectDirectory, issues);
+        }
+        else if (string.Equals(patternNode.Id, "winforms", StringComparison.Ordinal))
+        {
+            ValidateWinFormsCompositionRoot(patternNode, projectDirectory, inspectedSourceFiles, issues);
+        }
+    }
+
+    private void ValidateInfrastructureRegistrations(
+        PatternNodeDefinition patternNode,
+        string projectDirectory,
+        List<GateIssue> issues)
+    {
+        GateCheckDefinition check = patternNode.Checks.First(candidate =>
+            string.Equals(candidate.Checker, "dependency_injection", StringComparison.Ordinal));
+        string registrationFile = check.ScalarParameters.GetValueOrDefault("registration_file", "DependencyInjection.cs");
+        string registrationMethod = check.ScalarParameters.GetValueOrDefault("registration_method", "AddInfrastructure");
+        string repositoryInterface = check.ScalarParameters.GetValueOrDefault("repository_interface", "IGameRepository");
+        string repositoryImplementation = check.ScalarParameters.GetValueOrDefault("repository_implementation", "GameRepository");
+        string registrationPath = Path.Combine(projectDirectory, registrationFile);
+        if (!File.Exists(registrationPath))
+        {
+            issues.Add(new GateIssue(
+                "V3-PN-INF-002",
+                patternNode.Id,
+                registrationPath,
+                null,
+                $"Infrastructure 必須提供 {registrationFile} 與 {registrationMethod}。",
+                "error"));
+            return;
+        }
+
+        string registrationText = File.ReadAllText(registrationPath);
+        if (!Regex.IsMatch(registrationText, $@"\b{Regex.Escape(registrationMethod)}\s*\("))
+        {
+            issues.Add(new GateIssue(
+                "V3-PN-INF-002",
+                patternNode.Id,
+                registrationPath,
+                1,
+                $"{registrationFile} 必須提供 {registrationMethod} registration method。",
+                "error"));
+        }
+
+        string singletonPattern = $@"AddSingleton\s*<\s*{Regex.Escape(repositoryInterface)}\s*,\s*{Regex.Escape(repositoryImplementation)}\s*>";
+        if (!Regex.IsMatch(registrationText, singletonPattern))
+        {
+            issues.Add(new GateIssue(
+                "V3-PN-INF-PRO-002",
+                patternNode.Id,
+                registrationPath,
+                1,
+                $"{repositoryInterface}/{repositoryImplementation} 必須以 AddSingleton 註冊，確保所有 UseCase 共用同一個 Game。",
+                "error"));
+        }
+
+        string repositoryPath = Path.Combine(
+            projectDirectory,
+            "Repositories",
+            "_Game",
+            $"{repositoryImplementation}.cs");
+        if (!File.Exists(repositoryPath))
+        {
+            issues.Add(new GateIssue(
+                "V3-PN-INF-001",
+                patternNode.Id,
+                repositoryPath,
+                null,
+                $"{repositoryImplementation} 必須位於 Repositories/_Game/{repositoryImplementation}.cs。",
+                "error"));
+        }
+    }
+
+    private void ValidateApplicationRegistrations(
+        PatternNodeDefinition patternNode,
+        string projectDirectory,
+        List<string> sourceFiles,
+        List<GateIssue> issues)
+    {
+        GateCheckDefinition check = patternNode.Checks.First(candidate =>
+            string.Equals(candidate.Checker, "dependency_injection", StringComparison.Ordinal));
+        string registrationFile = check.ScalarParameters.GetValueOrDefault("registration_file", "DependencyInjection.cs");
+        string registrationMethod = check.ScalarParameters.GetValueOrDefault("registration_method", "AddApplication");
+        string registrationPath = Path.Combine(projectDirectory, registrationFile);
+        if (!File.Exists(registrationPath))
+        {
+            issues.Add(new GateIssue(
+                "V3-PN-UC-009",
+                patternNode.Id,
+                registrationPath,
+                null,
+                $"Application 必須提供 {registrationFile} 集中註冊 UseCase。",
+                "error"));
+            return;
+        }
+
+        string registrationText = File.ReadAllText(registrationPath);
+        if (!Regex.IsMatch(registrationText, $@"\b{Regex.Escape(registrationMethod)}\s*\("))
+        {
+            issues.Add(new GateIssue(
+                "V3-PN-UC-009",
+                patternNode.Id,
+                registrationPath,
+                1,
+                $"{registrationFile} 必須提供 {registrationMethod} registration method。",
+                "error"));
+        }
+
+        List<string> useCaseNames = new List<string>();
+        foreach (string sourceFile in sourceFiles)
+        {
+            CompilationUnitSyntax root = CSharpSyntaxTree.ParseText(File.ReadAllText(sourceFile), path: sourceFile).GetCompilationUnitRoot();
+            useCaseNames.AddRange(root.DescendantNodes()
+                .OfType<ClassDeclarationSyntax>()
+                .Select(classDeclaration => classDeclaration.Identifier.ValueText)
+                .Where(className => className.EndsWith("UseCase", StringComparison.Ordinal)));
+        }
+
+        foreach (string useCaseName in useCaseNames.Distinct(StringComparer.Ordinal))
+        {
+            string transientPattern = $@"AddTransient\s*<\s*{Regex.Escape(useCaseName)}\s*>";
+            if (!Regex.IsMatch(registrationText, transientPattern))
+            {
+                issues.Add(new GateIssue(
+                    "V3-PN-UC-009",
+                    patternNode.Id,
+                    registrationPath,
+                    1,
+                    $"{useCaseName} 必須以 AddTransient<{useCaseName}> 註冊具體 UseCase class。",
+                    "error"));
+            }
+        }
+    }
+
+    private void ValidateWinFormsCompositionRoot(
+        PatternNodeDefinition patternNode,
+        string projectDirectory,
+        List<string> sourceFiles,
+        List<GateIssue> issues)
     {
         string programPath = Path.Combine(projectDirectory, "Program.cs");
         if (!File.Exists(programPath))
         {
-            issues.Add(new GateIssue("V3-PN-CS-ENTRY-001", patternNode.Id, programPath, null, "WinForms 專案必須提供頂層 Program.cs。", "error"));
+            return;
+        }
+
+        string programText = File.ReadAllText(programPath);
+        GateCheckDefinition check = patternNode.Checks.First(candidate =>
+            string.Equals(candidate.Checker, "dependency_injection", StringComparison.Ordinal));
+        string applicationRegistrationMethod = check.ScalarParameters.GetValueOrDefault(
+            "application_registration_method",
+            "AddApplication");
+        string infrastructureRegistrationMethod = check.ScalarParameters.GetValueOrDefault(
+            "infrastructure_registration_method",
+            "AddInfrastructure");
+        string[] requiredCompositionCalls =
+        {
+            "ServiceCollection",
+            applicationRegistrationMethod,
+            infrastructureRegistrationMethod,
+            "BuildServiceProvider",
+            "GetRequiredService"
+        };
+        foreach (string requiredCall in requiredCompositionCalls)
+        {
+            if (!programText.Contains(requiredCall, StringComparison.Ordinal))
+            {
+                issues.Add(new GateIssue(
+                    "V3-PN-UI-010",
+                    patternNode.Id,
+                    programPath,
+                    1,
+                    $"Program.cs composition root 必須包含 {requiredCall}。",
+                    "error"));
+            }
+        }
+
+        List<string> requiredTransientTypes = check.ListParameters.GetValueOrDefault(
+            "required_transient_types",
+            new List<string>());
+        foreach (string transientType in requiredTransientTypes)
+        {
+            if (!Regex.IsMatch(programText, $@"AddTransient\s*<\s*{Regex.Escape(transientType)}\s*>"))
+            {
+                issues.Add(new GateIssue(
+                    "V3-PN-UI-010",
+                    patternNode.Id,
+                    programPath,
+                    1,
+                    $"{transientType} 必須在 Program.cs 以 transient 註冊。",
+                    "error"));
+            }
+        }
+    }
+
+    private void ValidateApplicationFeatureLayout(
+        PatternNodeDefinition patternNode,
+        string projectDirectory,
+        string[] sourceFiles,
+        List<GateIssue> issues)
+    {
+        foreach (string sourceFile in sourceFiles.Where(sourceFile => !IsGeneratedFile(projectDirectory, sourceFile)))
+        {
+            if (IsDependencyInjectionRegistrationFile(sourceFile))
+            {
+                continue;
+            }
+
+            string relativePath = Path.GetRelativePath(projectDirectory, sourceFile).Replace('\\', '/');
+            string[] segments = relativePath.Split('/');
+            CompilationUnitSyntax root = CSharpSyntaxTree.ParseText(File.ReadAllText(sourceFile), path: sourceFile).GetCompilationUnitRoot();
+            bool isUseCaseFeature = segments.Length >= 2
+                && segments[0].StartsWith("_", StringComparison.Ordinal)
+                && segments[0].EndsWith("UseCase", StringComparison.Ordinal);
+            bool isCommonSource = segments.Length >= 2
+                && string.Equals(segments[0], "Common", StringComparison.Ordinal);
+            bool isRepositoryContract = string.Equals(
+                relativePath,
+                "Repositories/IGameRepository.cs",
+                StringComparison.Ordinal);
+            string expectedNamespace = $"{Path.GetFileName(projectDirectory)}.{string.Join('.', segments.Take(segments.Length - 1))}";
+            string? actualNamespace = root.DescendantNodes()
+                .OfType<BaseNamespaceDeclarationSyntax>()
+                .Select(namespaceDeclaration => namespaceDeclaration.Name.ToString())
+                .FirstOrDefault();
+            if (string.Equals(segments[0], "_GameState", StringComparison.Ordinal)
+                || root.DescendantNodes().OfType<ClassDeclarationSyntax>().Any(classDeclaration =>
+                    string.Equals(classDeclaration.Identifier.ValueText, "GameState", StringComparison.Ordinal)))
+            {
+                issues.Add(new GateIssue(
+                    "V3-PN-UC-PRO-009",
+                    patternNode.Id,
+                    sourceFile,
+                    1,
+                    "Application 不得建立 _GameState 或 GameState；目前遊戲狀態由 Domain Game 擁有，並透過 IGameRepository 取得。",
+                    "error"));
+            }
+
+            bool isAllowedRoot = isUseCaseFeature || isCommonSource || isRepositoryContract;
+            if (!isAllowedRoot || !string.Equals(actualNamespace, expectedNamespace, StringComparison.Ordinal))
+            {
+                issues.Add(new GateIssue(
+                    "V3-PN-UC-009",
+                    patternNode.Id,
+                    sourceFile,
+                    1,
+                    $"Application 格式錯誤：{relativePath}；只允許 UseCase feature、Common 或 Repositories/IGameRepository.cs，且必須使用對應 namespace。",
+                    "error"));
+                continue;
+            }
+
+            if (isRepositoryContract)
+            {
+                bool containsExpectedInterface = root.DescendantNodes()
+                    .OfType<InterfaceDeclarationSyntax>()
+                    .Any(interfaceDeclaration => string.Equals(
+                        interfaceDeclaration.Identifier.ValueText,
+                        "IGameRepository",
+                        StringComparison.Ordinal));
+                if (!containsExpectedInterface)
+                {
+                    issues.Add(new GateIssue(
+                        "V3-PN-UC-010",
+                        patternNode.Id,
+                        sourceFile,
+                        1,
+                        "Repositories/IGameRepository.cs 必須宣告 IGameRepository。",
+                        "error"));
+                }
+            }
+
+            foreach (ClassDeclarationSyntax useCase in root.DescendantNodes()
+                .OfType<ClassDeclarationSyntax>()
+                .Where(classDeclaration => classDeclaration.Identifier.ValueText.EndsWith("UseCase", StringComparison.Ordinal)))
+            {
+                string operation = useCase.Identifier.ValueText[..^"UseCase".Length];
+                string expectedRelativePath = $"_{operation}UseCase/{operation}UseCase.cs";
+                if (!string.Equals(relativePath, expectedRelativePath, StringComparison.Ordinal))
+                {
+                    AddIssue(
+                        issues,
+                        "V3-PN-UC-009",
+                        patternNode.Id,
+                        sourceFile,
+                        useCase,
+                        $"{operation}UseCase 必須位於 {expectedRelativePath}。");
+                }
+
+                bool injectsGameRepository = useCase.Members
+                    .OfType<ConstructorDeclarationSyntax>()
+                    .SelectMany(constructor => constructor.ParameterList.Parameters)
+                    .Any(parameter => parameter.Type?.ToString().Split('.').Last() == "IGameRepository");
+                if (!injectsGameRepository)
+                {
+                    AddIssue(
+                        issues,
+                        "V3-PN-UC-008",
+                        patternNode.Id,
+                        sourceFile,
+                        useCase,
+                        $"{operation}UseCase 必須透過 constructor injection 取得 IGameRepository。");
+                }
+            }
+
+            bool isDtoDirectory = segments.Length == 3
+                && string.Equals(segments[1], "Dto", StringComparison.Ordinal);
+            bool isEnumDirectory = segments.Length == 3
+                && string.Equals(segments[1], "Enums", StringComparison.Ordinal);
+            foreach (ClassDeclarationSyntax classDeclaration in root.DescendantNodes().OfType<ClassDeclarationSyntax>())
+            {
+                bool isDto = classDeclaration.Identifier.ValueText.EndsWith("DTO", StringComparison.Ordinal);
+                if (isDtoDirectory && !isDto)
+                {
+                    AddIssue(
+                        issues,
+                        "V3-PN-UC-003",
+                        patternNode.Id,
+                        sourceFile,
+                        classDeclaration,
+                        $"Dto 資料夾內的 class {classDeclaration.Identifier.ValueText} 必須以 DTO 結尾。");
+                }
+                else if (isDto && !isDtoDirectory)
+                {
+                    AddIssue(
+                        issues,
+                        "V3-PN-UC-003",
+                        patternNode.Id,
+                        sourceFile,
+                        classDeclaration,
+                        $"DTO 型別 {classDeclaration.Identifier.ValueText} 必須位於所屬 UseCase 的 Dto 子資料夾。");
+                }
+
+                if (isEnumDirectory)
+                {
+                    AddIssue(
+                        issues,
+                        "V3-PN-UC-PRO-010",
+                        patternNode.Id,
+                        sourceFile,
+                        classDeclaration,
+                        $"Enums 資料夾只能放 enum，不得放 class {classDeclaration.Identifier.ValueText}。");
+                }
+
+                if (classDeclaration.Identifier.ValueText.EndsWith("Repository", StringComparison.Ordinal)
+                    && !string.Equals(classDeclaration.Identifier.ValueText, "IGameRepository", StringComparison.Ordinal))
+                {
+                    AddIssue(
+                        issues,
+                        "V3-PN-UC-PRO-011",
+                        patternNode.Id,
+                        sourceFile,
+                        classDeclaration,
+                        $"Application 不得實作 {classDeclaration.Identifier.ValueText}；Repository 實作屬於 Infrastructure。");
+                }
+            }
+
+            foreach (EnumDeclarationSyntax enumDeclaration in root.DescendantNodes().OfType<EnumDeclarationSyntax>())
+            {
+                if (!isEnumDirectory)
+                {
+                    AddIssue(
+                        issues,
+                        "V3-PN-UC-PRO-010",
+                        patternNode.Id,
+                        sourceFile,
+                        enumDeclaration,
+                        $"UseCase enum {enumDeclaration.Identifier.ValueText} 必須位於該 UseCase 的 Enums 子資料夾。");
+                }
+            }
+        }
+    }
+
+    private void ValidateWinFormsProgram(PatternNodeDefinition patternNode, string projectDirectory, List<GateIssue> issues)
+    {
+        string programPath = Path.Combine(projectDirectory, "Program.cs");
+        if (!File.Exists(programPath))
+        {
+            issues.Add(new GateIssue("V3-PN-CS-ENTRY-001", patternNode.Id, programPath, null, "WinForms 專案必須提供 Program.cs。", "error"));
             return;
         }
 
         string sourceText = File.ReadAllText(programPath);
         CompilationUnitSyntax root = CSharpSyntaxTree.ParseText(sourceText, path: programPath).GetCompilationUnitRoot();
-        if (!root.Members.OfType<GlobalStatementSyntax>().Any())
+        ClassDeclarationSyntax? program = root.Members
+            .OfType<BaseNamespaceDeclarationSyntax>()
+            .SelectMany(namespaceDeclaration => namespaceDeclaration.Members.OfType<ClassDeclarationSyntax>())
+            .Concat(root.Members.OfType<ClassDeclarationSyntax>())
+            .FirstOrDefault(classDeclaration => string.Equals(
+                classDeclaration.Identifier.ValueText,
+                "Program",
+                StringComparison.Ordinal));
+        MethodDeclarationSyntax? main = program?.Members
+            .OfType<MethodDeclarationSyntax>()
+            .FirstOrDefault(method => string.Equals(method.Identifier.ValueText, "Main", StringComparison.Ordinal));
+        bool hasValidProgramClass = program is not null
+            && program.Modifiers.Any(SyntaxKind.InternalKeyword)
+            && program.Modifiers.Any(SyntaxKind.StaticKeyword);
+        bool hasValidMain = main is not null
+            && main.Modifiers.Any(SyntaxKind.StaticKeyword)
+            && string.Equals(main.ReturnType.ToString(), "void", StringComparison.Ordinal)
+            && main.ParameterList.Parameters.Count == 0
+            && main.AttributeLists.SelectMany(list => list.Attributes).Any(attribute =>
+                attribute.Name.ToString() is "STAThread" or "STAThreadAttribute");
+        if (!hasValidProgramClass || !hasValidMain || root.Members.OfType<GlobalStatementSyntax>().Any())
         {
-            issues.Add(new GateIssue("V3-PN-CS-ENTRY-001", patternNode.Id, programPath, 1, "Program.cs 必須使用頂層陳述式。", "error"));
+            issues.Add(new GateIssue(
+                "V3-PN-CS-ENTRY-001",
+                patternNode.Id,
+                programPath,
+                1,
+                "Program.cs 必須使用 internal static class Program、[STAThread] 與 static void Main()，不得使用頂層陳述式。",
+                "error"));
         }
     }
 
     private bool HasChecker(PatternNodeDefinition patternNode, string checker)
     {
         return patternNode.Checks.Any(candidate => string.Equals(candidate.Checker, checker, StringComparison.Ordinal));
+    }
+
+    private bool IsDependencyInjectionRegistrationFile(string sourceFile)
+    {
+        return string.Equals(Path.GetFileName(sourceFile), "DependencyInjection.cs", StringComparison.Ordinal);
     }
 
     private bool IsGeneratedFile(string projectDirectory, string sourceFile)

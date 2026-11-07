@@ -1,0 +1,21 @@
+schema_version: 3
+spec_kind: problem_frame
+id: V3-FRAME-GAME-HANDLE-CLOSED-DOOR-COLLISION
+frame:
+  name: handle-closed-door-collision
+  type: RBF
+  bounded_context: snake-game
+  requirement: "第三關蛇下一格撞到關閉的門時形成致命事件。"
+problem_domains:
+  - name: SnakeGame
+    kind: designed
+shared_phenomena:
+  - name: tick_state_evaluated
+    source: SnakeGame
+    receiver: SnakeGame
+world_facts:
+  - id: V3-FRAME-FACT-HANDLE-CLOSED-DOOR-COLLISION
+    fact: "開啟門可通過；關閉門不可提交移動並記錄關門碰撞。"
+frame_concerns:
+  - id: V3-FRAME-CONCERN-HANDLE-CLOSED-DOOR-COLLISION
+    concern: "蛇位置未進入關閉門格，且目前 Tick 存在關門碰撞致命事件。"

@@ -1,0 +1,15 @@
+schema_version: 3
+spec_kind: acceptance_contract
+id: V3-ACCEPT-GAME-RESTART-GAME
+contract_ref: V3-DOMAIN-GAME-RESTART-GAME
+scenarios:
+  - id: V3-SCN-RESTART-GAME
+    title: "玩家在 Game Over 或完成第三關後按下重玩，直接重新開始第一關。"
+    given:
+      precondition: "目前為 Game Over 或 Game Completed。"
+    when:
+      operation: RestartGame
+      call_count: 1
+    then:
+      postcondition: "第一關為 Playing，蛇長為 3、進度為 15%，普通食物已準備。"
+    evidence: [behavioral, invariant]

@@ -1,0 +1,15 @@
+schema_version: 3
+spec_kind: acceptance_contract
+id: V3-ACCEPT-GAME-REPLENISH-TRIGGERED-OBJECT
+contract_ref: V3-DOMAIN-GAME-REPLENISH-TRIGGERED-OBJECT
+scenarios:
+  - id: V3-SCN-REPLENISH-TRIGGERED-OBJECT
+    title: "觸發物件效果與終局判定完成後，在合法空格補上仍應存在的物件。"
+    given:
+      precondition: "目前關卡仍為 Playing，且有初始或已觸發物件等待放置。"
+    when:
+      operation: ReplenishTriggeredObject
+      call_count: 1
+    then:
+      postcondition: "每種應存在物件至多一個，或在無合法空格時保持待補。"
+    evidence: [behavioral, invariant]

@@ -1,0 +1,33 @@
+schema_version: 3
+spec_kind: domain_contract
+id: V3-DOMAIN-GAME-HANDLE-CLOSED-DOOR-COLLISION
+domain: HandleClosedDoorCollision
+frame_ref: V3-FRAME-GAME-HANDLE-CLOSED-DOOR-COLLISION
+aggregate_refs:
+  - V3-AGG-GAME-GAME
+  - V3-AGG-SNAKE-SNAKE
+  - V3-AGG-DOORMAZE-DOORMAZE
+  - V3-AGG-SHIELD-SHIELD
+use_case: HandleClosedDoorCollision
+input:
+  grain: current_tick_state
+  owner: GameForm
+  type: none
+output:
+  grain: no_return_value
+  owner: HandleClosedDoorCollisionUseCase
+  type: none
+preconditions:
+  - id: V3-DOMAIN-HANDLE-CLOSED-DOOR-COLLISION-PRE
+    rule: "目前為第三關 Playing，且下一個蛇頭格為關閉的門。"
+rules:
+  - id: V3-DOMAIN-HANDLE-CLOSED-DOOR-COLLISION-RULE
+    rule: "開啟門可通過；關閉門不可提交移動並記錄關門碰撞。"
+postconditions:
+  - id: V3-DOMAIN-HANDLE-CLOSED-DOOR-COLLISION-POST
+    rule: "蛇位置未進入關閉門格，且目前 Tick 存在關門碰撞致命事件。"
+invariants:
+  - id: V3-DOMAIN-HANDLE-CLOSED-DOOR-COLLISION-INV
+    rule: "致命、保命與通關狀態在同一 Tick 只能產生一個一致結果。"
+no_op:
+  - "前置條件不成立時不修改遊戲狀態。"
